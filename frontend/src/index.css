@@ -1,3 +1,36 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+<<<<<<< HEAD
+=======
+
+/* Custom styles for AI chat markdown rendering */
+.ai-chat-content {
+  line-height: 1.4;
+}
+
+.ai-chat-content strong {
+  font-weight: 600;
+  color: inherit;
+}
+
+.ai-chat-content em {
+  font-style: italic;
+  color: inherit;
+}
+
+.ai-chat-content ul {
+  margin: 0.4rem 0;
+  padding-left: 1.2rem;
+}
+
+.ai-chat-content li {
+  margin: 0.2rem 0;
+  list-style-type: disc;
+}
+
+.ai-chat-content br {
+  margin: 0.1rem 0;
+  line-height: 1.2;
+}
+>>>>>>> d53c058a (chatbot-commit)
