@@ -472,7 +472,8 @@ const Quiz: React.FC = () => {
   const [isAnswered, setIsAnswered] = useState(false);
   const [score, setScore] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
-  const [sessionQuestions, setSessionQuestions] = useState<Question[]>(() => sampleQuestions(5));
+  const [hasStarted, setHasStarted] = useState(false);
+const [sessionQuestions, setSessionQuestions] = useState<Question[]>([]);
   const [timeLeft, setTimeLeft] = useState(15);
 
   const total = sessionQuestions.length;
@@ -498,6 +499,17 @@ const Quiz: React.FC = () => {
     }, 1000);
     return () => clearInterval(id);
   }, [isFinished, isAnswered, currentIndex]);
+
+  function startQuiz() {
+  setSessionQuestions(sampleQuestions(5));
+  setCurrentIndex(0);
+  setSelectedIndex(null);
+  setIsAnswered(false);
+  setScore(0);
+  setIsFinished(false);
+  setTimeLeft(15);
+  setHasStarted(true);
+}
 
   function handleSelect(optionIndex: number) {
     if (isAnswered) return;
@@ -538,14 +550,49 @@ const Quiz: React.FC = () => {
   }
 
   function restart() {
-    setSessionQuestions(sampleQuestions(5));
-    setCurrentIndex(0);
-    setSelectedIndex(null);
-    setIsAnswered(false);
-    setScore(0);
-    setIsFinished(false);
-    setTimeLeft(15);
-  }
+  setHasStarted(false);
+  setSessionQuestions([]);
+  setCurrentIndex(0);
+  setSelectedIndex(null);
+  setIsAnswered(false);
+  setScore(0);
+  setIsFinished(false);
+  setTimeLeft(15);
+}
+
+if (!hasStarted) {
+  return (
+    <div className="container mx-auto max-w-3xl p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-8">
+        <h1 className="text-4xl font-extrabold text-center mb-4 text-primary">
+          AI Awareness Quiz
+        </h1>
+
+        <p className="text-gray-700 dark:text-gray-300 text-center mb-6">
+          Read the instructions carefully before starting.
+        </p>
+
+        <div className="space-y-3 text-gray-800 dark:text-gray-100">
+          <p>📌 Total Questions: <strong>5</strong></p>
+          <p>⏱ Time per Question: <strong>15 seconds</strong></p>
+          <p>✅ Each question has only one correct answer</p>
+          <p>📖 Explanation will be shown after each answer</p>
+          <p>⚠ If time runs out, the question will be skipped</p>
+        </div>
+
+        <div className="mt-8 text-center">
+          <button
+            onClick={startQuiz}
+            className="bg-primary hover:bg-primary-focus text-white font-semibold px-10 py-3 rounded-lg text-lg"
+          >
+            Start Quiz
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
   return (
     <div className="container mx-auto max-w-3xl p-4">
