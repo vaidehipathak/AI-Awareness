@@ -4,7 +4,7 @@ URL configuration for core project.
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/5.2/topics/http/urls/
 """
-from django.contrib import admin
+from accounts.admin import admin_site
 from django.urls import path
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
@@ -69,8 +69,14 @@ def health_check(request):
     })
 
 
+from analysis.views import analyze
+from django.urls import include
+
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('admin/', admin_site.urls),
     path('api/ask-ai/', ask_ai, name='ask-ai'),
+    path('api/analyze/', analyze, name='analyze'),
+    path('api/', include('analysis.urls')),
     path('api/health/', health_check, name='health-check'),
+    path('auth/', include('accounts.urls')),
 ]

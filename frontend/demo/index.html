@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI-Awareness Demo</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="page-header">
+    <div class="title-block">
+      <h1>AI-Awareness</h1>
+      <p class="subtitle">Explainable Cybersecurity Analysis</p>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="card upload-card">
+      <div class="card-header">
+        <h2>Upload for Analysis</h2>
+        <p class="hint">Supported: text / PDF / image</p>
+      </div>
+
+      <div id="dropzone" class="dropzone" tabindex="0">
+        <p class="drop-text">Drag & drop a file here, or click to choose</p>
+        <p id="file-name" class="file-name" aria-live="polite"></p>
+        <input type="file" id="file-input" class="file-input" aria-label="File input" />
+      </div>
+
+      <div class="meta-grid">
+        <label class="field">
+          <span>Source platform (optional)</span>
+          <input type="text" id="source" placeholder="e.g., user portal" autocomplete="off">
+        </label>
+        <label class="field full">
+          <span>Notes (optional)</span>
+          <textarea id="notes" rows="3" placeholder="Add context for review"></textarea>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button id="analyze-btn" type="button" class="primary-btn">Analyze File</button>
+        <div id="status" class="status" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section id="results" class="card results-card hidden" aria-live="polite">
+      <div class="card-header">
+        <h2>Analysis Results</h2>
+      </div>
+      <div id="error" class="error hidden"></div>
+      <div id="result-body" class="result-body hidden">
+        <div class="meta-row">
+          <div>
+            <p class="label">File</p>
+            <p id="res-file"></p>
+          </div>
+          <div>
+            <p class="label">Type</p>
+            <p id="res-type"></p>
+          </div>
+          <div>
+            <p class="label">Size</p>
+            <p id="res-size"></p>
+          </div>
+        </div>
+        <div class="meta-row">
+          <div>
+            <p class="label">Detectors</p>
+            <p id="res-detectors"></p>
+          </div>
+          <div>
+            <p class="label">Risk</p>
+            <span id="res-risk" class="pill">LOW</span>
+          </div>
+        </div>
+        <div class="json-block">
+          <p class="label">Unified Report</p>
+          <pre id="res-json"></pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="page-footer">
+    <p>No raw personal data is stored. Analysis is deterministic and explainable.</p>
+    <p class="small">AI-Awareness internal demo interface.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

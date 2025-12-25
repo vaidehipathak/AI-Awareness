@@ -11,9 +11,14 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from backend/.env if present (keeps prod env-only safe)
+load_dotenv(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
@@ -31,6 +36,7 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '*']
 # Application definition
 
 INSTALLED_APPS = [
+    'rest_framework',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -38,6 +44,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
+    'django_otp',
+    'django_otp.plugins.otp_totp',
+    'accounts',
+    'analysis',
 ]
 
 MIDDLEWARE = [
@@ -47,6 +57,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django_otp.middleware.OTPMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -74,10 +85,23 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+def _get_env(name: str, *, required: bool = False) -> str:
+    value = os.getenv(name)
+    if required and not value:
+        raise RuntimeError(f"Missing required environment variable: {name}")
+    return value or ""
+
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': _get_env('DB_NAME', required=True),
+        'USER': _get_env('DB_USER', required=True),
+        'PASSWORD': _get_env('DB_PASSWORD', required=True),
+        'HOST': _get_env('DB_HOST', required=True),
+        'PORT': _get_env('DB_PORT', required=True),
+        # Keep connections open for reuse; override with DB_CONN_MAX_AGE if needed
+        'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '60')),
     }
 }
 
@@ -123,6 +147,9 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Custom User Model
+AUTH_USER_MODEL = 'accounts.User'
+
 # CORS Settings
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
@@ -131,3 +158,44 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:3000',
 ]
 CORS_ALLOW_CREDENTIALS = True
+
+# Django REST Framework Configuration
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.AllowAny',
+    ),
+}
+
+# Simple JWT Configuration
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': False,
+    'UPDATE_LAST_LOGIN': True,
+    
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'VERIFYING_KEY': None,
+    
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+}
+
+# Email Configuration
+# Default to Console backend for safety if not configured.
+# To use SMTP, set EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend in .env
+# Email Configuration
+# Development-safe Console Backend (Prints emails to stdout)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'noreply@awareness.io'

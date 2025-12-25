@@ -1,0 +1,31 @@
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+import json
+
+from .router import route_and_detect
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def analyze(request):
+    """
+    Accepts multipart/form-data with field 'file' and optional 'metadata' JSON string.
+    Returns a unified Phase 2A report.
+    """
+    uploaded_file = request.FILES.get('file')
+    if not uploaded_file:
+        return JsonResponse({"error": "Missing file"}, status=400)
+
+    metadata = {}
+    if 'metadata' in request.POST:
+        try:
+            meta_str = request.POST['metadata'].strip()
+            if meta_str:
+                metadata = json.loads(meta_str)
+        except (json.JSONDecodeError, AttributeError):
+            # If metadata is invalid, just use empty dict; don't fail the request
+            pass
+
+    report = route_and_detect(user=getattr(request, 'user', None), uploaded_file=uploaded_file, metadata=metadata)
+    return JsonResponse(report)
