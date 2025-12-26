@@ -78,7 +78,7 @@ const Report: React.FC = () => {
 
       const token = localStorage.getItem('auth_token');
 
-      const response = await fetch('http://localhost:9000/api/analyze/', {
+      const response = await fetch('http://localhost:8000/api/analyze/', {
         method: 'POST',
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',

@@ -83,7 +83,9 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) =>
         switch (type) {
             case 'pii': return <Fingerprint className="w-5 h-5" />;
             case 'text_pdf': return <FileText className="w-5 h-5" />;
-            case 'image_deepfake': return <ImageIcon className="w-5 h-5" />;
+            case 'image_deepfake': 
+            case 'ai_generated_content': 
+                return <ImageIcon className="w-5 h-5" />;
             default: return <Binary className="w-5 h-5" />;
         }
     };
