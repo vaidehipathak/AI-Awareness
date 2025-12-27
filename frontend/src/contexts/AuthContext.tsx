@@ -5,12 +5,14 @@ export interface User {
   email: string;
   username: string;
   role: 'USER' | 'ADMIN';
+  mfa_enabled: boolean;
+  mfa_verified: boolean;
 }
 
 type LoginResult =
   | { status: 'authenticated' }
   | { status: 'requires_enrollment'; userId: number; email: string }
-  | { status: 'requires_otp'; tempToken: string; email: string };
+  | { status: 'requires_otp' };
 
 interface Pending2FAState {
   stage: 'enroll' | 'verify' | null;
@@ -27,6 +29,7 @@ export interface AuthContextType {
   login: (email: string, password: string) => Promise<LoginResult>;
   logout: () => void;
   isAuthenticated: boolean;
+  isFullyAuthenticated: boolean;
   isAdmin: boolean;
   requiresEnrollment: boolean;
   requiresOtp: boolean;
@@ -44,7 +47,6 @@ export interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // ... (existing state) ...
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,6 +74,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refresh?: string;
     role?: 'ADMIN' | 'USER';
     email?: string;
+    mfa_enabled?: boolean;
+    mfa_verified?: boolean;
   }) => {
     const accessToken = data.access;
     try {
@@ -80,12 +84,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const derivedRole = (data.role as 'ADMIN' | 'USER') || payload.role || 'USER';
       const derivedId = payload.user_id || payload.id;
       const derivedUsername = payload.username || (derivedEmail ? derivedEmail.split('@')[0] : '');
+      const derivedMfaEnabled = data.mfa_enabled !== undefined ? data.mfa_enabled : (payload.mfa_enabled || false);
+      const derivedMfaVerified = data.mfa_verified !== undefined ? data.mfa_verified : (payload.mfa_verified || false);
 
       const userData: User = {
         id: derivedId,
         email: derivedEmail,
         username: derivedUsername,
         role: derivedRole,
+        mfa_enabled: derivedMfaEnabled,
+        mfa_verified: derivedMfaVerified,
       };
 
       localStorage.setItem('auth_token', accessToken);
@@ -102,16 +110,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // ... (useEffect same as before, assume it's there or just update around it if needed, but replace_file_content needs exact context. I'll stick to replacing methods if possible, or large chunk.)
-  // Actually, I'll just replace the methods to be safer and not miss context.
+  useEffect(() => {
+    const initAuth = () => {
+      const storedToken = localStorage.getItem('auth_token');
+      const storedUser = localStorage.getItem('auth_user');
+      const storedPending = sessionStorage.getItem('otp_pending');
 
-  // ... (safeFetch same) ...
+      if (storedToken && storedUser) {
+        try {
+          setToken(storedToken);
+          setUser(JSON.parse(storedUser));
+        } catch (e) {
+          localStorage.clear();
+        }
+      }
+
+      if (storedPending) {
+        try {
+          setPending2FA(JSON.parse(storedPending));
+        } catch (e) {
+          sessionStorage.removeItem('otp_pending');
+        }
+      }
+      setLoading(false);
+    };
+    initAuth();
+  }, []);
+
   const safeFetch = async (endpoint: string, options: RequestInit) => {
     const url = `${API_BASE_URL}${endpoint}`;
+    const headers = { ...options.headers } as any;
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     try {
-      const response = await fetch(url, options);
+      const response = await fetch(url, { ...options, headers });
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
+        if (response.status === 204) return { ok: true, data: {}, status: 204 };
         throw new Error(`Server returned ${contentType || 'unknown content type'} instead of JSON`);
       }
       const data = await response.json();
@@ -122,7 +159,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = async (email: string, password: string): Promise<LoginResult> => {
-    // ... (login logic remains mostly same, just ensuring it sets state correctly)
     setLoading(true);
     setError(null);
 
@@ -154,6 +190,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { status: 'requires_enrollment', userId, email };
       }
 
+      if (data.access) {
+        const mfaEnabled = data.mfa_enabled === true;
+
+        setSessionFromTokens({
+          access: data.access,
+          refresh: data.refresh,
+          role: data.role,
+          email: email,
+          mfa_enabled: mfaEnabled,
+          mfa_verified: false
+        });
+
+        persistPending2FA({ stage: null, userId: null, email: null, tempToken: null });
+
+        if (mfaEnabled) {
+          return { status: 'requires_otp' };
+        }
+        return { status: 'authenticated' };
+      }
+
       if (data.requires_otp) {
         const tempToken = data.temp_token || data.tempToken;
         persistPending2FA({
@@ -162,24 +218,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email,
           tempToken,
         });
-        return { status: 'requires_otp', tempToken, email };
+        return { status: 'requires_otp' };
       }
 
-      if (!data.access) {
-        throw new Error('Unexpected login response');
-      }
+      throw new Error('Unexpected login response');
 
-      setSessionFromTokens({ access: data.access, refresh: data.refresh, role: data.role, email });
-      persistPending2FA({ stage: null, userId: null, email: null, tempToken: null });
-      return { status: 'authenticated' };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
-      const displayError = errorMessage.includes('Server returned')
-        ? 'Service unavailable. Please try again later.'
-        : errorMessage;
-
-      setError(displayError);
-      throw new Error(displayError);
+      setError(errorMessage);
+      throw new Error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -187,15 +234,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const enroll2FA = async (password: string) => {
     if (!pending2FA.userId || !pending2FA.email) {
-      throw new Error('No pending enrollment session found');
+      if (!user) throw new Error('No pending enrollment session found');
     }
 
     const { ok, data } = await safeFetch('/auth/otp/enroll/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        user_id: pending2FA.userId,
-        email: pending2FA.email,
+        user_id: pending2FA.userId || user?.id,
+        email: pending2FA.email || user?.email,
         password,
       }),
     });
@@ -213,15 +260,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const confirmEnrollment = async (deviceId: number, tokenValue: string) => {
-    if (!pending2FA.userId || !pending2FA.email) {
-      throw new Error('No pending enrollment session found');
-    }
+    const userId = pending2FA.userId || user?.id;
+    if (!userId) throw new Error('No user context found');
 
     const { ok, data } = await safeFetch('/auth/otp/confirm-enroll/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        user_id: pending2FA.userId,
+        user_id: userId,
         device_id: deviceId,
         otp: tokenValue,
       }),
@@ -231,28 +277,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error(data.error || data.detail || 'Failed to confirm 2FA enrollment');
     }
 
-    setSessionFromTokens({
-      access: data.access,
-      refresh: data.refresh,
-      role: data.role,
-      email: data.email || pending2FA.email,
-    });
+    if (data.access) {
+      setSessionFromTokens({
+        access: data.access,
+        refresh: data.refresh,
+        role: data.role,
+        email: data.email || pending2FA.email || user?.email,
+        mfa_enabled: true,
+        mfa_verified: true
+      });
+    }
     persistPending2FA({ stage: null, userId: null, email: null, tempToken: null });
   };
 
-  const verifyOtp = async (token: string, type: 'otp' | 'backup' = 'otp') => {
-    if (!pending2FA.tempToken) {
-      throw new Error('No pending OTP session found');
+  const verifyOtp = async (otpValue: string, type: 'otp' | 'backup' = 'otp') => {
+    const payload: any = {};
+    if (type === 'backup') {
+      payload.backup_code = otpValue;
+    } else {
+      payload.otp = otpValue;
     }
 
-    const payload: any = {
-      temp_token: pending2FA.tempToken,
-    };
-
-    if (type === 'backup') {
-      payload.backup_code = token;
-    } else {
-      payload.otp = token;
+    if (pending2FA.tempToken) {
+      payload.temp_token = pending2FA.tempToken;
     }
 
     const { ok, data } = await safeFetch('/auth/otp/verify/', {
@@ -266,12 +313,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error(data.error || data.detail || 'OTP verification failed');
     }
 
-    setSessionFromTokens({
-      access: data.access,
-      refresh: data.refresh,
-      role: data.role,
-      email: data.email || pending2FA.email || '',
-    });
+    if (data.access) {
+      setSessionFromTokens({
+        access: data.access,
+        refresh: data.refresh,
+        role: data.role,
+        email: data.email || user?.email || pending2FA.email,
+        mfa_enabled: true,
+        mfa_verified: true,
+      });
+    } else {
+      if (user) {
+        const updatedUser = { ...user, mfa_verified: true };
+        setUser(updatedUser);
+        localStorage.setItem('auth_user', JSON.stringify(updatedUser));
+      }
+    }
     persistPending2FA({ stage: null, userId: null, email: null, tempToken: null });
   };
 
@@ -302,7 +359,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signup = async (email: string, password: string, passwordConfirm: string) => {
-    // Map email to username as required by backend
     const payload = {
       username: email,
       email,
@@ -317,17 +373,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     if (!ok) {
-      // Extract error message from backend response
       let errorMessage = 'Registration failed';
       if (data.username) errorMessage = `Username error: ${data.username[0]}`;
       else if (data.email) errorMessage = `Email error: ${data.email[0]}`;
       else if (data.password) errorMessage = `Password error: ${data.password[0]}`;
       else if (data.detail) errorMessage = data.detail;
       else if (typeof data === 'string') errorMessage = data;
-
       throw new Error(errorMessage);
     }
-
     return { message: 'Account created successfully.' };
   };
 
@@ -341,6 +394,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     persistPending2FA({ stage: null, userId: null, email: null, tempToken: null });
   };
 
+  const isFullyAuthenticated = !!user && !!token && (!user.mfa_enabled || user.mfa_verified);
+
   const value: AuthContextType = {
     user,
     token,
@@ -349,11 +404,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     logout,
     isAuthenticated: !!token && !!user,
+    isFullyAuthenticated,
     isAdmin: user?.role === 'ADMIN',
     requiresEnrollment: pending2FA.stage === 'enroll',
-    requiresOtp: pending2FA.stage === 'verify',
-    pendingEmail: pending2FA.email,
-    pendingUserId: pending2FA.userId,
+    requiresOtp: pending2FA.stage === 'verify' || (!!user?.mfa_enabled && !user?.mfa_verified),
+    pendingEmail: pending2FA.email || user?.email || null,
+    pendingUserId: pending2FA.userId || user?.id || null,
     otpTempToken: pending2FA.tempToken,
     enroll2FA,
     confirmEnrollment,

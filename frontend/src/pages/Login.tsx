@@ -26,11 +26,11 @@ const Login: React.FC = () => {
       }
 
       if (result.status === 'requires_enrollment') {
-        navigate('/otp/enroll', { state: { from } });
+        navigate('/otp-enroll', { state: { from } });
       }
 
       if (result.status === 'requires_otp') {
-        navigate('/otp/verify', { state: { from } });
+        navigate('/otp-verify', { state: { from } });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');

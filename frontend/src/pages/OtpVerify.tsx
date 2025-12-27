@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const OtpVerify: React.FC = () => {
-  const { requiresOtp, otpTempToken, pendingEmail, verifyOtp } = useAuth();
+  const { requiresOtp, otpTempToken, pendingEmail, verifyOtp, isAuthenticated } = useAuth();
   const [otp, setOtp] = useState('');
   const [isBackup, setIsBackup] = useState(false);
   const [error, setError] = useState('');
@@ -11,7 +11,10 @@ const OtpVerify: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  if (!requiresOtp || !otpTempToken) {
+  // Check if we have a valid session for OTP:
+  // Either a temp token (legacy/unauthenticated flow) OR a partial auth session (token + mfa_enabled).
+
+  if (!requiresOtp || (!otpTempToken && !isAuthenticated)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-6">
         <div className="max-w-md w-full bg-white dark:bg-gray-800 shadow rounded-lg p-6 text-center">

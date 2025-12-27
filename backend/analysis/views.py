@@ -8,6 +8,7 @@ from accounts.permissions import IsAdminUserRole, IsOwnerOrAdmin, IsAdminWithMFA
 import json
 
 from .router import route_and_detect
+from .utils.file_validation import validate_uploaded_file
 
 
 class AnalyzeView(APIView):
@@ -35,16 +36,29 @@ class AnalyzeView(APIView):
                 {"error": "Missing file"},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        # SECURITY: Validate file before processing
+        is_valid, error_msg = validate_uploaded_file(uploaded_file)
+        if not is_valid:
+            print(f"SECURITY BLOCK: Rejected file '{uploaded_file.name}' - {error_msg}")
+            return Response(
+                {"error": f"Security Error: {error_msg}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         metadata = {}
         if 'metadata' in request.POST:
             try:
                 meta_str = request.POST['metadata'].strip()
+                print(f"DEBUG: AnalyzeView raw metadata: {meta_str}")
                 if meta_str:
                     metadata = json.loads(meta_str)
+                    print(f"DEBUG: AnalyzeView parsed metadata: {metadata}")
             except (json.JSONDecodeError, AttributeError):
-                # If metadata is invalid, use empty dict; don't fail the request
+                print("DEBUG: AnalyzeView metadata JSON decode failed")
                 pass
+        else:
+            print(f"DEBUG: No 'metadata' in request.POST. Keys: {request.POST.keys()}")
         
         # Pass authenticated user to router
         report = route_and_detect(

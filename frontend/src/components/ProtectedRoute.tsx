@@ -7,11 +7,11 @@ interface ProtectedRouteProps {
   requiredRole?: 'ADMIN' | 'USER';
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
-  children, 
-  requiredRole 
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  children,
+  requiredRole
 }) => {
-  const { isAuthenticated, user, loading } = useAuth();
+  const { isAuthenticated, user, loading, isFullyAuthenticated } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -22,10 +22,26 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
+  // 1. Basic Auth Check
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // MFA Check: If user is authenticated but MFA is pending
+  if (user?.mfa_enabled && !user?.mfa_verified) {
+    return <Navigate to="/otp-verify" state={{ from: location }} replace />;
+  }
+
+  // 2. MFA Check
+  // If user is authenticated but MFA is not completed (and required),
+  // redirects to OTP verify page.
+  // Note: If the backend says mfa_enabled=true, we expect mfa_verified=true.
+  if (user?.mfa_enabled && !user?.mfa_verified) {
+    // Avoid redirect loops if we are already there (though this component shouldn't wrap /otp-verify generally)
+    return <Navigate to="/otp-verify" state={{ from: location }} replace />;
+  }
+
+  // 3. Role Check
   if (requiredRole && user?.role !== requiredRole) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">

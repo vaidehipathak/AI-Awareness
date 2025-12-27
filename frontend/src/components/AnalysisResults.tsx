@@ -155,7 +155,9 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) =>
                         </div>
 
                         <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-4">
-                            {detector.short_explanation}
+                            {detector.short_explanation === "PII detection failed unexpectedly."
+                                ? "PII scan could not be completed."
+                                : detector.short_explanation}
                         </p>
 
                         {detector.flags && detector.flags.length > 0 && (
