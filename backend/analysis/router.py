@@ -102,9 +102,9 @@ def _risk_label_from_scores(scores: List[float]) -> str:
     if not scores:
         return "LOW"
     m = max(scores)
-    if m >= 0.8:
+    if m >= 0.7:
         return "HIGH"
-    if m >= 0.4:
+    if m >= 0.3:
         return "MEDIUM"
     return "LOW"
 

@@ -58,7 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     tempToken: null,
   });
 
-  const API_BASE_URL = "http://127.0.0.1:9000";
+  const API_BASE_URL = "http://127.0.0.1:8000";
 
   const persistPending2FA = (state: Pending2FAState) => {
     setPending2FA(state);

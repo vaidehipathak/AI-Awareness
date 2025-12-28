@@ -199,3 +199,5 @@ SIMPLE_JWT = {
 # Development-safe Console Backend (Prints emails to stdout)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = 'noreply@awareness.io'
+
+CORS_ALLOW_ALL_ORIGINS = True
