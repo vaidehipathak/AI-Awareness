@@ -10,22 +10,16 @@ PLACEHOLDER_RESPONSE = {
 }
 
 def detect(extracted_text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Adapter for PII Detection.
-    Connects to the dedicated PII Engine in backend.pii_engine.
-    """
-    
     try:
+        # Simplified and more robust import
         try:
-            from backend.pii_module.pii_engine import detect_pii
-        except ImportError:
-            try:
-                from pii_module.pii_engine import detect_pii
-            except ImportError:
-                return {
-                    **PLACEHOLDER_RESPONSE,
-                    "short_explanation": "PII module not installed."
-                }
+            from pii_module.pii_engine import detect_pii
+        except ImportError as e:
+            print(f"❌ PII IMPORT ERROR: {e}") # This will show in your terminal
+            return {
+                **PLACEHOLDER_RESPONSE,
+                "short_explanation": f"PII module missing dependencies: {e}"
+            }
 
         # 2. Raw Detection
         findings = detect_pii(extracted_text or "")

@@ -1,15 +1,16 @@
 from typing import Dict, Any, List
 
 
-def detect(processed_text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Heuristic-based AI text detector.
-    - Placeholder implementation for team handoff
-    - Returns deterministic neutral response
-    """
+def detect(text: str, metadata: dict) -> dict:
+    # Basic logic: If text contains words like "confidential" or "password"
+    threats = ["password", "secret", "private key", "confidential"]
+    found = [word for word in threats if word in text.lower()]
+    
+    score = 0.8 if found else 0.1
+    
     return {
         "detection_type": "text_pdf",
-        "confidence_score": 0.0,
-        "flags": [],
-        "short_explanation": "Analysis module awaiting configuration.",
+        "confidence_score": score,
+        "flags": found,
+        "short_explanation": f"Detected {len(found)} suspicious keywords." if found else "No suspicious keywords found."
     }
