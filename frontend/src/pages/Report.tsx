@@ -13,7 +13,6 @@ const Report: React.FC = () => {
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [metadata, setMetadata] = useState<Metadata>({ source: '', notes: '' });
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResultData | null>(null);
@@ -29,14 +28,6 @@ const Report: React.FC = () => {
   };
 
   const handleFileSelect = (selectedFile: File) => {
-    const allowedExtensions = ['txt', 'pdf', 'png', 'jpg', 'jpeg'];
-    const fileExtension = selectedFile.name.split('.').pop()?.toLowerCase();
-
-    if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
-      setError('This file type is not supported yet.');
-      return;
-    }
-
     setFile(selectedFile);
     setError(null);
   };
@@ -81,17 +72,20 @@ const Report: React.FC = () => {
     try {
       const formData = new FormData();
       formData.append('file', file);
-
-      const combinedMetadata = {
-        ...metadata,
-        run_pii: 'true'
-      };
-
-      formData.append('metadata', JSON.stringify(combinedMetadata));
+      if (metadata.source || metadata.notes) {
+        formData.append('metadata', JSON.stringify(metadata));
+      }
 
       const token = localStorage.getItem('auth_token');
 
-      const response = await fetch('http://localhost:8000/api/analyze/', {
+      
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
+      const targetUrl = (fileExt === 'pdf' || fileExt === 'txt')
+        ? 'http://localhost:8000/api/detect-pdf-ai/' 
+        : 'http://localhost:8000/api/analyze/';
+      
+
+      const response = await fetch(targetUrl, {
         method: 'POST',
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
@@ -106,7 +100,10 @@ const Report: React.FC = () => {
         return;
       }
 
-      setResult(data);
+      
+      const firstResult = data.results?.[0] ?? null;
+      setResult(firstResult);
+
       setFile(null);
       setMetadata({ source: '', notes: '' });
     } catch (err) {
@@ -155,7 +152,6 @@ const Report: React.FC = () => {
               ref={fileInputRef}
               type="file"
               className="hidden"
-              accept=".txt,.pdf,.png,.jpg,.jpeg"
               onChange={(e) => e.target.files && handleFileSelect(e.target.files[0])}
             />
 
@@ -209,7 +205,7 @@ const Report: React.FC = () => {
             )}
           </div>
 
-  /* Metadata Fields */
+          {/* Metadata Fields */}
           <div className="grid md:grid-cols-2 gap-6 mb-8">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -235,7 +231,6 @@ const Report: React.FC = () => {
               />
             </div>
           </div>
-
 
           {/* Error Message */}
           {error && (

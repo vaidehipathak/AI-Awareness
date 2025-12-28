@@ -5,7 +5,7 @@ The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/5.2/topics/http/urls/
 """
 from accounts.admin import admin_site
-from django.urls import path
+from django.urls import path, include
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
@@ -13,6 +13,8 @@ import json
 import logging
 
 from .safety import generate_safe_reply
+# --- IMPORT YOUR NEW VIEW HERE ---
+from core.ai_detection.views import detect_ai_content 
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +26,7 @@ def ask_ai(request):
     Safe AI chat endpoint with two-stage classifier + assistant pipeline.
     
     POST /api/ask-ai/
-    Body: {"message": "<user text>"}
+    Body: {"message": "<user message>"}
     Response: {"reply": "<assistant text>"}
     """
     try:
@@ -70,12 +72,15 @@ def health_check(request):
 
 
 from analysis.views import analyze
-from django.urls import include
 
 urlpatterns = [
     path('admin/', admin_site.urls),
     path('api/ask-ai/', ask_ai, name='ask-ai'),
     path('api/analyze/', analyze, name='analyze'),
+    
+    # --- YOUR NEW ROUTE ---
+    path('api/detect-pdf-ai/', detect_ai_content, name='detect-pdf-ai'),
+    
     path('api/', include('analysis.urls')),
     path('api/health/', health_check, name='health-check'),
     path('auth/', include('accounts.urls')),

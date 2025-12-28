@@ -23,3 +23,31 @@ Thumbs.db
 
 # Logs
 *.log
+.env
+venv/
+.venv/
+backend/venv/
+
+# Django
+django/
+
+# Node
+node_modules/
+frontend/node_modules/
+dist/
+build/
+
+# Logs
+*.log
+
+# LM Studio local files
+*.jsonl
+
+# IDEs and OS files
+.vs/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Database
+backend/db.sqlite3
