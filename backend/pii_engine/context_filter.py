@@ -18,20 +18,33 @@ def is_context_safe(text: str, start: int, end: int) -> bool:
     line_lower = line.lower()
     
     # 2. Check for Code/Config Artifacts in the line
-    # Variable assignments
-    if re.search(r"(=|:|const|var|let|def|class|function|=>|return)\s", line):
-        return True 
+    # Variable assignments, function defs
+    if re.search(r"\b(?:const|var|let|def|class|function|import|from|return|echo|print)\b", line):
+        return True
+    # Code block markers or structure
+    if re.search(r"(=|:|=>|->)\s*$", line.strip()):
+        return True
+    if line.strip().endswith(('{', '}', ';', ',')):
+        return True
 
     # Comments
     stripped = line.strip()
-    if stripped.startswith(('#', '//', '/*', '*', '<!--')):
+    if stripped.startswith(('#', '//', '/*', '*', '<!--', '%')):
         return True
         
     # JSON/YAML keys (e.g. "email": "...")
     if re.search(r"[\"']\w+[\"']\s*:", line):
         return True
+        
+    # HTML Tags
+    if re.search(r"</?[a-z][\s\S]*>", line):
+        return True
 
     # 3. Check specific keywords nearby in the line that suggest documentation/placeholders
+    # Documentation headers
+    if re.match(r"^(?:Usage|Example|Note|Warning|Hint|Version):", stripped, re.IGNORECASE):
+        return True
+        
     if any(k in line_lower for k in ['example', 'sample', 'dummy', 'placeholder', 'demo']):
         return True
         

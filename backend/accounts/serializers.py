@@ -36,6 +36,12 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return attrs
 
     def validate_email(self, value):
+        from .utils_email import validate_email_domain
+        
+        # 1. Custom Security Check: Disposable Domains
+        validate_email_domain(value)
+        
+        # 2. Uniqueness Check
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("A user with this email already exists.")
         return value
@@ -95,13 +101,21 @@ class AuditLogSerializer(serializers.ModelSerializer):
     Serializer for audit logs.
     Read-only, for admin use.
     """
-    actor_username = serializers.ReadOnlyField(source='actor.username')
-    actor_id = serializers.ReadOnlyField(source='actor.id')
+    actor = serializers.SerializerMethodField()
 
     class Meta:
         model = AuditLog
-        fields = ['id', 'actor_id', 'actor_username', 'action', 'target', 'metadata', 'created_at']
+        fields = ['id', 'actor', 'action', 'target', 'metadata', 'created_at']
         read_only_fields = fields
+
+    def get_actor(self, obj):
+        if obj.actor:
+            return {
+                "id": obj.actor.id,
+                "username": obj.actor.username,
+                "email": obj.actor.email
+            }
+        return None
 
 
 class ForgotPasswordSerializer(serializers.Serializer):
@@ -126,3 +140,13 @@ class ResetPasswordSerializer(serializers.Serializer):
         if attrs['new_password'] != attrs['confirm_password']:
             raise serializers.ValidationError({"new_password": "Password fields did not match."})
         return attrs
+
+
+class UserListSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Admin User List.
+    """
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'email', 'role', 'is_active', 'mfa_enabled', 'last_login', 'date_joined')
+

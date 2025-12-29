@@ -42,6 +42,8 @@ export interface AuthContextType {
   requestPasswordReset: (email: string) => Promise<{ message: string }>;
   completePasswordReset: (token: string, newPassword: string, confirmPassword: string) => Promise<{ message: string }>;
   signup: (email: string, password: string, passwordConfirm: string) => Promise<{ message: string }>;
+  lastLoginAt: string | null;
+  lastMfaVerifiedAt: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -58,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     tempToken: null,
   });
 
-  const API_BASE_URL = "http://127.0.0.1:9000";
+  const API_BASE_URL = "http://127.0.0.1:8000";
 
   const persistPending2FA = (state: Pending2FAState) => {
     setPending2FA(state);
@@ -76,6 +78,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     email?: string;
     mfa_enabled?: boolean;
     mfa_verified?: boolean;
+    lastLoginAt?: string | null;
+    lastMfaVerifiedAt?: string | null;
   }) => {
     const accessToken = data.access;
     try {
@@ -100,6 +104,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('auth_user', JSON.stringify(userData));
       if (data.refresh) {
         localStorage.setItem('auth_refresh', data.refresh);
+      }
+
+      // Persist Timestamps
+      if (data.lastLoginAt !== undefined) {
+        if (data.lastLoginAt) localStorage.setItem('auth_last_login', data.lastLoginAt);
+        else localStorage.removeItem('auth_last_login');
+      }
+      if (data.lastMfaVerifiedAt !== undefined) {
+        if (data.lastMfaVerifiedAt) localStorage.setItem('auth_last_mfa', data.lastMfaVerifiedAt);
+        else localStorage.removeItem('auth_last_mfa');
       }
 
       setToken(accessToken);
@@ -192,6 +206,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (data.access) {
         const mfaEnabled = data.mfa_enabled === true;
+        const now = new Date().toISOString();
 
         setSessionFromTokens({
           access: data.access,
@@ -199,7 +214,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: data.role,
           email: email,
           mfa_enabled: mfaEnabled,
-          mfa_verified: false
+          mfa_verified: false,
+          lastLoginAt: now,
+          lastMfaVerifiedAt: null // MFA verified is false here
         });
 
         persistPending2FA({ stage: null, userId: null, email: null, tempToken: null });
@@ -278,13 +295,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     if (data.access) {
+      const now = new Date().toISOString();
       setSessionFromTokens({
         access: data.access,
         refresh: data.refresh,
         role: data.role,
         email: data.email || pending2FA.email || user?.email,
         mfa_enabled: true,
-        mfa_verified: true
+        mfa_verified: true,
+        lastLoginAt: now,
+        lastMfaVerifiedAt: now
       });
     }
     persistPending2FA({ stage: null, userId: null, email: null, tempToken: null });
@@ -314,6 +334,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     if (data.access) {
+      const now = new Date().toISOString();
       setSessionFromTokens({
         access: data.access,
         refresh: data.refresh,
@@ -321,6 +342,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: data.email || user?.email || pending2FA.email,
         mfa_enabled: true,
         mfa_verified: true,
+        lastLoginAt: now,
+        lastMfaVerifiedAt: now
       });
     } else {
       if (user) {
@@ -417,6 +440,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     requestPasswordReset,
     completePasswordReset,
     signup,
+    lastLoginAt: localStorage.getItem('auth_last_login'),
+    lastMfaVerifiedAt: localStorage.getItem('auth_last_mfa'),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

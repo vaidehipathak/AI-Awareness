@@ -1,6 +1,6 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
-from .views import RegisterView, LoginView, MFAEnrollView, MFAVerifyView, AdminAuditLogListView, ForgotPasswordView, ResetPasswordView
+from .views import RegisterView, LoginView, MFAEnrollView, MFAVerifyView, AdminAuditLogListView, ForgotPasswordView, ResetPasswordView, AdminUserListView, AdminUserActionView, AdminSelfMFAReEnrollView
 
 app_name = 'accounts'
 
@@ -27,4 +27,9 @@ urlpatterns = [
     # If I put it here, it becomes /auth/admin/audit-logs/ if backend/core/urls.py has `path('auth/', include('accounts.urls'))`.
     # Let's check core/urls.py again to be sure where accounts.urls is included.
     path('admin/audit-logs/', AdminAuditLogListView.as_view(), name='admin_audit_logs'),
+    
+    # Admin User Management
+    path('admin/users/', AdminUserListView.as_view(), name='admin_user_list'),
+    path('admin/users/<int:user_id>/<str:action>/', AdminUserActionView.as_view(), name='admin_user_action'),
+    path('admin/mfa/re-enroll/', AdminSelfMFAReEnrollView.as_view(), name='admin_mfa_reenroll'),
 ]

@@ -79,4 +79,5 @@ urlpatterns = [
     path('api/', include('analysis.urls')),
     path('api/health/', health_check, name='health-check'),
     path('auth/', include('accounts.urls')),
+    path('api/content/', include('content.urls')),
 ]

@@ -17,8 +17,14 @@ def detect(text: str) -> List[Dict[str, Any]]:
         return []
         
     findings = []
-    patterns = get_patterns()
     
+    # Pre-scan for multi-line exclusion zones (Markdown code blocks)
+    # Finds ranges between ``` and ```
+    unsafe_ranges = []
+    for match in re.finditer(r"```[\s\S]*?```", text):
+        unsafe_ranges.append((match.start(), match.end()))
+        
+    patterns = get_patterns()
     unique_matches = set()
 
     for p_type, regex in patterns.items():
@@ -27,12 +33,17 @@ def detect(text: str) -> List[Dict[str, Any]]:
             start = match.start()
             end = match.end()
             
+            # 0. Check multi-line unsafe ranges
+            in_unsafe_range = any(r_start <= start and end <= r_end for r_start, r_end in unsafe_ranges)
+            if in_unsafe_range:
+                continue
+            
             # 1. Dedup
             match_id = f"{p_type}:{start}:{end}"
             if match_id in unique_matches:
                 continue
                 
-            # 2. Context Check (Suppress Code/Docs)
+            # 2. Context Check (Suppress Code/Docs lines)
             if is_context_safe(text, start, end):
                 continue
                 

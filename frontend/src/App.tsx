@@ -6,6 +6,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminRoute } from './components/AdminRoute';
 import PublicLayout from './layouts/PublicLayout';
 import UserLayout from './layouts/UserLayout';
+import ConditionalLayout from './layouts/ConditionalLayout';
 import Home from './pages/Home';
 import AwarenessHub from './pages/AwarenessHub';
 import Quiz from './pages/Quiz';
@@ -26,11 +27,15 @@ const App: React.FC = () => {
       <AuthProvider>
         <HashRouter>
           <Routes>
-            {/* Public Routes */}
-            <Route element={<PublicLayout />}>
+            {/* Conditional Layout Routes - Show sidebar when logged in, navbar only when logged out */}
+            <Route element={<ConditionalLayout />}>
               <Route path="/" element={<Home />} />
               <Route path="/awareness-hub" element={<AwarenessHub />} />
               <Route path="/blog" element={<Blog />} />
+            </Route>
+
+            {/* Public Routes */}
+            <Route element={<PublicLayout />}>
               <Route path="/login" element={<Login />} />
               {/* OTP pages are technically part of auth flow so kept public but they have internal state checks */}
               <Route path="/otp-enroll" element={<OtpEnroll />} />
@@ -48,7 +53,7 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             >
-              <Route path="/dashboard" element={<Navigate to="/" replace />} /> {/* Placeholder if no user dashboard exists yet, or reuse Home? or maybe Report is the main user action? Let's assume Home is fine or no specific dashboard page was provided. The requirements listed "User dashboard" but I don't see a Dashboard.tsx. I'll point to Home or Report? Actually requirements said "User dashboard", maybe it meant the "Home" or "Report"? I will map /dashboard to Home for now or checking if there is a UserDashboard. I don't see one in file list. I will map /quiz, /games, /report here. */}
+              <Route path="/dashboard" element={<Navigate to="/" replace />} />
               <Route path="/quiz" element={<Quiz />} />
               <Route path="/games" element={<Games />} />
               <Route path="/report" element={<Report />} />

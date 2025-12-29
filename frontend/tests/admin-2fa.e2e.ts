@@ -1,11 +1,11 @@
 /*
  * End-to-end happy-path test for ADMIN 2FA.
- * Prerequisites: backend running at http://localhost:9000 with Django session cookies enabled.
+ * Prerequisites: backend running at http://localhost:8000 with Django session cookies enabled.
  */
 
 import { totp } from 'otplib';
 
-const BASE_URL = 'http://localhost:9000';
+const BASE_URL = 'http://localhost:8000';
 
 type Json = Record<string, any>;
 

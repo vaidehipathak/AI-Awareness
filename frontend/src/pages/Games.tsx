@@ -1,7 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
 import { useTheme } from 'next-themes';
 
-import { ChevronRight, Clock, Trophy, Brain, Target, Eye, BookOpen, Cpu, Zap, Shuffle, Award } from 'lucide-react';
+import { ChevronRight, Clock, Trophy, Brain, Target, Eye, BookOpen, Cpu, Zap, Shuffle, Award, Plus, Settings } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import AdminActionButtons from '../components/admin/AdminActionButtons';
+import ContentEditModal from '../components/admin/ContentEditModal';
+
+// New Interactive Games
+import DeepfakeDetector from '../components/games/DeepfakeDetector';
+import BiasSpotter from '../components/games/BiasSpotter';
+import PhishingSorter from '../components/games/PhishingSorter';
 
 const GamesPage: React.FC = () => {
   const [currentGame, setCurrentGame] = useState<string | null>(null);
@@ -17,6 +26,9 @@ const GamesPage: React.FC = () => {
     sequence: 0,
     classification: 0,
     wordpuzzle: 0,
+    deepfake: 0,
+    biasspotter: 0,
+    phishing: 0,
     total: 0,
     gamesPlayed: 0
   });
@@ -41,6 +53,9 @@ const GamesPage: React.FC = () => {
       sequence: 0,
       classification: 0,
       wordpuzzle: 0,
+      deepfake: 0,
+      biasspotter: 0,
+      phishing: 0,
       total: 0,
       gamesPlayed: 0
     });
@@ -61,185 +76,65 @@ const GamesPage: React.FC = () => {
   };
 
   // Game Data
-  const dragDropData = [
-    { term: "Machine Learning", definition: "Algorithm that learns from data" },
-    { term: "Neural Network", definition: "Brain-inspired computing system" },
-    { term: "Deep Learning", definition: "ML with multiple layers" },
-    { term: "NLP", definition: "Natural language processing" },
-    { term: "Computer Vision", definition: "AI interpreting images" },
-    { term: "Supervised Learning", definition: "Learning with labeled data" },
-    { term: "Unsupervised Learning", definition: "Finding patterns in data" },
-    { term: "Reinforcement Learning", definition: "Learning through rewards" },
-    { term: "Overfitting", definition: "Too specific to training data" },
-    { term: "Classification", definition: "Predicting categories" },
-    { term: "Regression", definition: "Predicting numbers" },
-    { term: "Clustering", definition: "Grouping similar data" },
-    { term: "Algorithm", definition: "Step-by-step procedure" },
-    { term: "Big Data", definition: "Extremely large datasets" },
-    { term: "Feature", definition: "Measurable data property" },
-    { term: "Gradient Descent", definition: "Optimization algorithm" },
-    { term: "Backpropagation", definition: "Neural network training" },
-    { term: "Transformer", definition: "Attention-based model" },
-    { term: "CNN", definition: "Convolutional neural network" },
-    { term: "RNN", definition: "Recurrent neural network" }
-  ];
+  // Game Data State
+  const { user } = useAuth();
+  const [allGames, setAllGames] = useState<any[]>([]);
+  const [dragDropData, setDragDropData] = useState<any[]>([]);
+  const [trueFalseData, setTrueFalseData] = useState<any[]>([]);
+  const [multipleChoiceData, setMultipleChoiceData] = useState<any[]>([]);
+  const [biasData, setBiasData] = useState<any[]>([]);
+  const [memoryData, setMemoryData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const trueFalseData = [
-    { question: "Machine Learning is a subset of AI", answer: true },
-    { question: "Deep Learning always requires labeled data", answer: false },
-    { question: "Neural networks are inspired by the brain", answer: true },
-    { question: "AI can only work with numbers", answer: false },
-    { question: "Supervised learning needs labeled data", answer: true },
-    { question: "Overfitting means good performance on new data", answer: false },
-    { question: "ChatGPT uses Natural Language Processing", answer: true },
-    { question: "AI systems are always 100% accurate", answer: false },
-    { question: "Computer Vision helps AI understand images", answer: true },
-    { question: "More data always means better models", answer: false },
-    { question: "Reinforcement learning uses rewards", answer: true },
-    { question: "All AI needs internet connectivity", answer: false },
-    { question: "Gradient descent optimizes models", answer: true },
-    { question: "Random Forest is one decision tree", answer: false },
-    { question: "LSTM can handle sequences", answer: true },
-    { question: "Bias only means statistical error", answer: false },
-    { question: "Transfer learning reuses pretrained models", answer: true },
-    { question: "CNNs are good for image processing", answer: true },
-    { question: "All neural nets have same structure", answer: false },
-    { question: "Hyperparameters are learned during training", answer: false }
-  ];
+  const fetchGames = async () => {
+    try {
+      const res = await axios.get('http://localhost:8000/api/content/games/');
+      const games = res.data;
+      setAllGames(games);
 
-  const multipleChoiceData = [
-    {
-      question: "What does CNN stand for?",
-      options: ["Computer Neural Network", "Convolutional Neural Network", "Complex Network Node", "Cognitive Neural Net"],
-      correct: 1
-    },
-    {
-      question: "Which algorithm is best for clustering?",
-      options: ["Linear Regression", "K-Means", "Logistic Regression", "Decision Tree"],
-      correct: 1
-    },
-    {
-      question: "What is the main purpose of dropout?",
-      options: ["Speed up training", "Reduce overfitting", "Increase accuracy", "Add more layers"],
-      correct: 1
-    },
-    {
-      question: "Which is NOT a supervised learning task?",
-      options: ["Classification", "Regression", "Clustering", "Prediction"],
-      correct: 2
-    },
-    {
-      question: "What does NLP stand for?",
-      options: ["Neural Learning Process", "Natural Language Processing", "Network Layer Protocol", "Numeric Linear Programming"],
-      correct: 1
-    },
-    {
-      question: "What is backpropagation used for?",
-      options: ["Data preprocessing", "Training neural networks", "Testing models", "Collecting data"],
-      correct: 1
-    },
-    {
-      question: "Which metric combines precision and recall?",
-      options: ["Accuracy", "F1 Score", "AUC", "Loss"],
-      correct: 1
-    },
-    {
-      question: "What is transfer learning?",
-      options: ["Moving data", "Using pretrained models", "Converting files", "Data transfer"],
-      correct: 1
-    },
-    {
-      question: "Which activation function is most common?",
-      options: ["Sigmoid", "Linear", "ReLU", "Softmax"],
-      correct: 2
-    },
-    {
-      question: "What is an epoch in training?",
-      options: ["One sample", "Complete data pass", "One layer", "One parameter"],
-      correct: 1
+      let dd: any[] = [];
+      let tf: any[] = [];
+      let mc: any[] = [];
+      let bias: any[] = [];
+      let mem: any[] = [];
+
+      games.forEach((g: any) => {
+        if (!g.is_active || !g.game_data) return;
+
+        // Assuming game_data is an ARRAY of items or a single object with items
+        // My seed data structure: game_data = [ {term...}, {term...} ]
+        // It is mostly a flat array in JSON.
+
+        const data = Array.isArray(g.game_data) ? g.game_data : (g.game_data.items || []);
+
+        switch (g.game_type) {
+          case 'DRAG_DROP': dd = [...dd, ...data]; break;
+          case 'TRUE_FALSE': tf = [...tf, ...data]; break;
+          case 'MULTIPLE_CHOICE': mc = [...mc, ...data]; break;
+          case 'SPOT_BIAS': bias = [...bias, ...data]; break;
+          case 'MEMORY': mem = [...mem, ...data]; break;
+        }
+      });
+
+      // Fallback to empty default if nothing fetched? 
+      // Better to show empty state or loading. 
+      // Since seed script populated some, we should see them.
+
+      setDragDropData(dd);
+      setTrueFalseData(tf);
+      setMultipleChoiceData(mc);
+      setBiasData(bias);
+      setMemoryData(mem);
+    } catch (err) {
+      console.error("Failed to load games", err);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
-  const biasData = [
-    {
-      scenario: "Resume Screening AI",
-      description: "AI ranks top 5 engineering candidates:",
-      candidates: [
-        "Alex (Male) - MIT, 5yrs Google",
-        "Sarah (Female) - Stanford, 7yrs Meta",
-        "Michael - Harvard, 6yrs Amazon",
-        "Jennifer (Female) - Berkeley, 8yrs Microsoft",
-        "David - Caltech, 4yrs Apple"
-      ],
-      biasType: "Gender bias - women ranked lower despite better experience",
-      correctAnswer: 1
-    },
-    {
-      scenario: "Loan Approval System",
-      description: "AI evaluates loan applications:",
-      candidates: [
-        "$75K, 750 credit, Downtown - Approved",
-        "$76K, 755 credit, East Side - Denied",
-        "$74K, 748 credit, Suburbs - Approved",
-        "$77K, 760 credit, North - Approved",
-        "$73K, 745 credit, West - Approved"
-      ],
-      biasType: "Geographic bias - East Side systematically denied",
-      correctAnswer: 1
-    },
-    {
-      scenario: "Medical Diagnosis Confidence",
-      description: "AI confidence for chest pain:",
-      candidates: [
-        "65yo Male - 95% risk",
-        "35yo Female - 60% risk",
-        "45yo Male - 88% risk",
-        "55yo Female - 65% risk",
-        "50yo Male - 85% risk"
-      ],
-      biasType: "Gender bias - lower confidence for women",
-      correctAnswer: 1
-    },
-    {
-      scenario: "Facial Recognition Accuracy",
-      description: "Security system accuracy:",
-      candidates: [
-        "White males - 99.7%",
-        "White females - 99.3%",
-        "Black males - 88.0%",
-        "Black females - 65.3%",
-        "Asian males - 98.6%"
-      ],
-      biasType: "Racial/gender bias - poor accuracy for Black women",
-      correctAnswer: 3
-    },
-    {
-      scenario: "University Admissions",
-      description: "Graduate school recommendations:",
-      candidates: [
-        "3.8 GPA, State school - Accept",
-        "3.7 GPA, Private - Accept",
-        "3.9 GPA, Community college - Reject",
-        "3.6 GPA, Ivy League - Accept",
-        "3.8 GPA, Online - Reject"
-      ],
-      biasType: "Educational prestige bias",
-      correctAnswer: 2
-    }
-  ];
-
-  const memoryData = [
-    { term: "ML", definition: "Learns from data" },
-    { term: "Neural Net", definition: "Brain-inspired" },
-    { term: "Deep Learning", definition: "Multiple layers" },
-    { term: "NLP", definition: "Language AI" },
-    { term: "CNN", definition: "Image network" },
-    { term: "RNN", definition: "Sequence network" },
-    { term: "Supervised", definition: "Labeled data" },
-    { term: "Unsupervised", definition: "No labels" },
-    { term: "Overfitting", definition: "Too specific" },
-    { term: "Gradient", definition: "Optimization" }
-  ];
+  useEffect(() => {
+    fetchGames();
+  }, []);
 
   // Component definitions
   const GameCard: React.FC<any> = ({ icon: Icon, title, description, onClick, color }) => (
@@ -524,7 +419,8 @@ const GamesPage: React.FC = () => {
     }, [timeLeft, gameActive]);
 
     const startGame = () => {
-      const questions = getRandomItems(trueFalseData, 5);
+      const numQuestions = Math.min(trueFalseData.length, 10); // Use all available, max 10
+      const questions = getRandomItems(trueFalseData, numQuestions);
       setCurrentQuestions(questions);
       setCurrentIndex(0);
       setScore(0);
@@ -955,8 +851,103 @@ const GamesPage: React.FC = () => {
     );
   };
 
-  // Main Menu
-  const GamesMenu: React.FC = () => (
+  /* ---------------- ADMIN VIEW ---------------- */
+
+  const AdminGameList = () => {
+    const [isCreating, setIsCreating] = useState(false);
+
+    // If somehow a non-admin gets here, show nothing (though parent hides it too)
+    if (user?.role !== 'ADMIN') return null;
+
+    return (
+      <div className={`min-h-screen ${darkMode ? 'bg-slate-900' : 'bg-slate-50'} p-8`}>
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Game Management</h1>
+              <p className={`mt-2 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                Create, edit, and manage educational games.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsCreating(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors shadow-sm"
+            >
+              <Plus className="w-5 h-5" />
+              Create New Game
+            </button>
+          </div>
+
+          {/* Management Table */}
+          <div className={`rounded-xl shadow-sm border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} overflow-hidden`}>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className={`bg-slate-50 dark:bg-slate-700/50 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  <tr>
+                    <th className="px-6 py-4 font-semibold">ID</th>
+                    <th className="px-6 py-4 font-semibold">Title</th>
+                    <th className="px-6 py-4 font-semibold">Type</th>
+                    <th className="px-6 py-4 font-semibold">Content Items</th>
+                    <th className="px-6 py-4 font-semibold">Status</th>
+                    <th className="px-6 py-4 font-semibold text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className={`divide-y ${darkMode ? 'divide-slate-700' : 'divide-slate-100'}`}>
+                  {allGames.map(game => (
+                    <tr key={game.id} className="group hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                      <td className="px-6 py-4 font-mono text-xs opacity-50">#{game.id}</td>
+                      <td className={`px-6 py-4 font-medium ${darkMode ? 'text-white' : 'text-slate-900'}`}>{game.title}</td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
+                          {game.game_type?.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-xs opacity-75">
+                        {Array.isArray(game.game_data) ? game.game_data.length : (game.game_data?.items?.length || 0)} items
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${game.is_active
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                          : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                          }`}>
+                          {game.is_active ? 'Active' : 'Disabled'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <AdminActionButtons item={game} contentType="games" onUpdate={fetchGames} />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {allGames.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                        No games found. Get started by creating one.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <ContentEditModal
+            isOpen={isCreating}
+            onClose={() => setIsCreating(false)}
+            item={null}
+            contentType="games"
+            onSuccess={fetchGames}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  /* ---------------- LEARNER VIEW ---------------- */
+
+  const LearnerGamesMenu = () => (
     <div className={`min-h-screen ${darkMode ? 'bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-blue-50 to-indigo-100'} p-8`}>
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
@@ -966,15 +957,7 @@ const GamesPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-          <GameCard
-            icon={Target}
-            title="Drag & Drop"
-            description="Match AI terms with their definitions using drag and drop."
-            onClick={() => setCurrentGame('dragdrop')}
-            color="border-l-blue-500"
-          />
-
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           <GameCard
             icon={Clock}
             title="True/False Lightning"
@@ -984,27 +967,27 @@ const GamesPage: React.FC = () => {
           />
 
           <GameCard
-            icon={Brain}
-            title="Multiple Choice"
-            description="Test your AI knowledge with multiple choice questions."
-            onClick={() => setCurrentGame('quiz')}
-            color="border-l-green-500"
-          />
-
-          <GameCard
             icon={Eye}
-            title="Spot the Bias"
-            description="Identify biased decisions in AI scenarios."
-            onClick={() => setCurrentGame('bias')}
-            color="border-l-purple-500"
+            title="Deepfake Detective"
+            description="Can you spot AI-generated faces? Use clues and zoom to identify deepfakes!"
+            onClick={() => setCurrentGame('deepfake')}
+            color="border-l-purple-600"
           />
 
           <GameCard
-            icon={BookOpen}
-            title="Memory Match"
-            description="Flip cards to match AI terms with definitions."
-            onClick={() => setCurrentGame('memory')}
-            color="border-l-yellow-500"
+            icon={Target}
+            title="AI Bias Investigation"
+            description="Investigate AI decisions and uncover hidden biases in algorithms!"
+            onClick={() => setCurrentGame('bias-spotter')}
+            color="border-l-orange-500"
+          />
+
+          <GameCard
+            icon={Zap}
+            title="Phishing Email Sorter"
+            description="Sort emails as phishing or legitimate under time pressure. Build combos!"
+            onClick={() => setCurrentGame('phishing')}
+            color="border-l-cyan-500"
           />
         </div>
 
@@ -1015,7 +998,25 @@ const GamesPage: React.FC = () => {
     </div>
   );
 
-  // Game Router
+  // Main Render Switch
+  // If User is Admin -> Show AdminGameList ONLY
+  // If User is Learner -> Show LearnerGamesMenu
+
+  if (user?.role === 'ADMIN' && !currentGame) {
+    return <AdminGameList />;
+  }
+
+  // If Admin is somehow "playing" (e.g. testing) we could allow it via a hidden toggle, 
+  // but strictly following requirements: "Admins CONTROL ... DO NOT play".
+  // So if currentGame is set but user is ADMIN, we should probably reset/redirect or just show the admin list.
+  // However, "Modify existing components" implies we might want to keep the "Play" logic available if explicitly navigated?
+  // Let's enforce the restriction: Admin sees ONLY management.
+
+  if (user?.role === 'ADMIN') {
+    return <AdminGameList />;
+  }
+
+  // Learner Logic
   const renderCurrentGame = () => {
     const bgClass = darkMode ? 'bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-blue-50 to-indigo-100';
 
@@ -1075,8 +1076,50 @@ const GamesPage: React.FC = () => {
             </div>
           </div>
         );
+      case 'deepfake':
+        return (
+          <div className={`min-h-screen ${bgClass} p-8`}>
+            <div className="max-w-6xl mx-auto">
+              <div className="flex justify-between items-center mb-6">
+                <BackButton onClick={() => setCurrentGame(null)} />
+              </div>
+              <DeepfakeDetector
+                data={allGames.find(g => g.game_type === 'DEEPFAKE_DETECTOR')?.game_data || { rounds: [] }}
+                onScoreUpdate={(score) => updateLifetimeScore('deepfake', score)}
+              />
+            </div>
+          </div>
+        );
+      case 'bias-spotter':
+        return (
+          <div className={`min-h-screen ${bgClass} p-8`}>
+            <div className="max-w-6xl mx-auto">
+              <div className="flex justify-between items-center mb-6">
+                <BackButton onClick={() => setCurrentGame(null)} />
+              </div>
+              <BiasSpotter
+                data={allGames.find(g => g.game_type === 'BIAS_SPOTTER')?.game_data || { scenarios: [] }}
+                onScoreUpdate={(score) => updateLifetimeScore('biasspotter', score)}
+              />
+            </div>
+          </div>
+        );
+      case 'phishing':
+        return (
+          <div className={`min-h-screen ${bgClass} p-8`}>
+            <div className="max-w-6xl mx-auto">
+              <div className="flex justify-between items-center mb-6">
+                <BackButton onClick={() => setCurrentGame(null)} />
+              </div>
+              <PhishingSorter
+                data={allGames.find(g => g.game_type === 'PHISHING_SORTER')?.game_data || { emails: [] }}
+                onScoreUpdate={(score) => updateLifetimeScore('phishing', score)}
+              />
+            </div>
+          </div>
+        );
       default:
-        return <GamesMenu />;
+        return <LearnerGamesMenu />;
     }
   };
 

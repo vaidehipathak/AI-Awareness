@@ -91,7 +91,7 @@ const Report: React.FC = () => {
 
       const token = localStorage.getItem('auth_token');
 
-      const response = await fetch('http://localhost:9000/api/analyze/', {
+      const response = await fetch('http://localhost:8000/api/analyze/', {
         method: 'POST',
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
@@ -209,7 +209,7 @@ const Report: React.FC = () => {
             )}
           </div>
 
-  /* Metadata Fields */
+
           <div className="grid md:grid-cols-2 gap-6 mb-8">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

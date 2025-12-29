@@ -27,17 +27,21 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // MFA Check: If user is authenticated but MFA is pending
-  if (user?.mfa_enabled && !user?.mfa_verified) {
-    return <Navigate to="/otp-verify" state={{ from: location }} replace />;
+  // 2. MFA Enrollment Check
+  // If user is authenticated but has NOT enabled MFA yet, force enrollment.
+  if (user && !user.mfa_enabled) {
+    return <Navigate to="/otp-enroll" state={{ from: location }} replace />;
   }
 
-  // 2. MFA Check
-  // If user is authenticated but MFA is not completed (and required),
-  // redirects to OTP verify page.
-  // Note: If the backend says mfa_enabled=true, we expect mfa_verified=true.
+  // 3. MFA Verification  // 2. MFA Check
+  // If user is authenticated but MFA is not enabled (Mandatory for ALL),
+  // redirect to Enrollment
+  if (user && !user.mfa_enabled) {
+    return <Navigate to="/otp-enroll" state={{ from: location }} replace />;
+  }
+
+  // If user is authenticated, MFA enabled, but not verified in this session
   if (user?.mfa_enabled && !user?.mfa_verified) {
-    // Avoid redirect loops if we are already there (though this component shouldn't wrap /otp-verify generally)
     return <Navigate to="/otp-verify" state={{ from: location }} replace />;
   }
 

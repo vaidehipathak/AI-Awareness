@@ -42,6 +42,11 @@ class User(AbstractUser):
         help_text=_("Indicates if MFA is active for this user.")
     )
 
+    mfa_reset_required = models.BooleanField(
+        default=False,
+        help_text=_("If true, user must re-enroll MFA on next login; set when admin resets MFA.")
+    )
+
     # Explicitly mentioning is_active as per requirements, 
     # though AbstractUser already provides this with default=True.
     is_active = models.BooleanField(

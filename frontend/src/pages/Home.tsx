@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import {
   ShieldCheck,
   FileUp,
@@ -15,6 +16,7 @@ import {
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   return (
     <div className="bg-white dark:bg-gray-900 min-h-screen">
@@ -28,12 +30,14 @@ const Home: React.FC = () => {
           Securely analyze documents for AI-generated content, deepfakes, and sensitive information with transparent, privacy-first heuristics.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <button
-            onClick={() => navigate('/report')}
-            className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 font-medium py-3 px-8 rounded-full text-lg transition-colors duration-200"
-          >
-            Get Started
-          </button>
+          {!isAuthenticated && (
+            <button
+              onClick={() => navigate('/report')}
+              className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 font-medium py-3 px-8 rounded-full text-lg transition-colors duration-200"
+            >
+              Get Started
+            </button>
+          )}
           <button
             onClick={() => navigate('/awareness-hub')}
             className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium py-3 px-6 text-lg transition-colors duration-200 flex items-center gap-2"
@@ -147,20 +151,22 @@ const Home: React.FC = () => {
       </section>
 
       {/* Final CTA */}
-      <section className="py-24 px-4 text-center">
-        <h2 className="text-3xl md:text-4xl font-semibold text-gray-900 dark:text-white mb-6">
-          Ready to verify?
-        </h2>
-        <p className="text-gray-600 dark:text-gray-400 max-w-xl mx-auto mb-10 text-lg">
-          Join thousands of users securing their digital interactions.
-        </p>
-        <button
-          onClick={() => navigate('/report')}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-10 rounded-full text-lg shadow-sm hover:shadow-md transition-all duration-200"
-        >
-          Create Account
-        </button>
-      </section>
+      {!isAuthenticated && (
+        <section className="py-24 px-4 text-center">
+          <h2 className="text-3xl md:text-4xl font-semibold text-gray-900 dark:text-white mb-6">
+            Ready to verify?
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 max-w-xl mx-auto mb-10 text-lg">
+            Join thousands of users securing their digital interactions.
+          </p>
+          <button
+            onClick={() => navigate('/report')}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-10 rounded-full text-lg shadow-sm hover:shadow-md transition-all duration-200"
+          >
+            Create Account
+          </button>
+        </section>
+      )}
 
     </div>
   );

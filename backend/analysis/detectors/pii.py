@@ -16,16 +16,8 @@ def detect(extracted_text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
     """
     
     try:
-        try:
-            from backend.pii_module.pii_engine import detect_pii
-        except ImportError:
-            try:
-                from pii_module.pii_engine import detect_pii
-            except ImportError:
-                return {
-                    **PLACEHOLDER_RESPONSE,
-                    "short_explanation": "PII module not installed."
-                }
+        # Strictly use the Improved PII Engine (backend/pii_engine)
+        from pii_engine.pii_engine import detect as detect_pii
 
         # 2. Raw Detection
         findings = detect_pii(extracted_text or "")
@@ -73,13 +65,19 @@ def detect(extracted_text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
         # E.g. if count < 3, cap confidence at 0.79?
         
         num_findings = len(findings)
-        final_confidence = float(max_conf)
         
-        if num_findings < 3 and final_confidence >= 0.8:
-            # Force "MEDIUM" range for low count
-            final_confidence = 0.75
-            
-        # If >= 3, keep original high confidence.
+        # 5. Strict Risk Logic (Production Rule)
+        # Requirement: "Entity Count Sanity"
+        # - < 3 findings -> LOW Risk (Cap confidence)
+        # - >= 3 findings -> HIGH Risk (Allow high confidence)
+        
+        if num_findings < 3:
+            # Force "LOW" range logic for isolated matches
+            # Router typically uses 0.4 threshold for Medium.
+            final_confidence = 0.3
+        else:
+            # Allow actual confidence to drive risk (usually > 0.8 for valid PII)
+            final_confidence = float(max_conf)
 
         return {
             "detection_type": "pii",

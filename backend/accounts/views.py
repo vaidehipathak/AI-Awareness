@@ -12,13 +12,31 @@ import qrcode.image.svg
 import io
 import pyotp
 
-from .serializers import UserRegistrationSerializer, LoginSerializer, AuditLogSerializer
+from .serializers import UserRegistrationSerializer, LoginSerializer, AuditLogSerializer, UserListSerializer
 from .mfa_serializers import MFAEnrollmentSerializer, MFAVerifySerializer
 from .models import AuditLog, MFASecret
 from .utils import encrypt_secret, decrypt_secret, hash_backup_codes, find_and_remove_backup_code
 from .permissions import IsAdminUserRole
 
 User = get_user_model()
+
+# Helper for consistent metadata
+def get_audit_metadata(request, extra_data=None):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    
+    ua = request.META.get('HTTP_USER_AGENT', 'unknown')
+    
+    metadata = {
+        "ip": ip,
+        "user_agent": ua
+    }
+    if extra_data:
+        metadata.update(extra_data)
+    return metadata
 
 class RegisterView(APIView):
     """
@@ -34,7 +52,7 @@ class RegisterView(APIView):
                 actor=user,
                 action="USER_REGISTERED",
                 target=f"user:{user.id}",
-                metadata={"email": user.email}
+                metadata=get_audit_metadata(request, {"email": user.email})
             )
             return Response({
                 "message": "User registered successfully.",
@@ -72,7 +90,7 @@ class LoginView(APIView):
                     actor=user,
                     action="LOGIN_ATTEMPT_LOCKED",
                     target=f"user:{user.id}",
-                    metadata={"reason": "Account locked"}
+                    metadata=get_audit_metadata(request, {"reason": "Account locked"})
                 )
                 return Response(
                     {"detail": "Account is locked. Please try again later."},
@@ -97,35 +115,36 @@ class LoginView(APIView):
                 actor=auth_user,
                 action="LOGIN_SUCCESS",
                 target=f"user:{auth_user.id}",
-                metadata={"ip": self.get_client_ip(request)}
+                metadata=get_audit_metadata(request)
             )
 
             # Get Tokens (includes mfa_verified logic from Serializer)
             tokens = serializer.get_tokens(auth_user)
 
             # --- MFA LOGIC ---
-            if auth_user.role == 'ADMIN':
-                # Admins MUST complete MFA.
-                # Check if enrolled
-                if not auth_user.mfa_enabled:
-                     # FORCE ENROLLMENT
-                     return Response({
-                         "requires_enrollment": True,
-                         "user_id": auth_user.id,
-                         "email": auth_user.email
-                     }, status=status.HTTP_200_OK)
-                else:
-                    # FORCE OTP VERIFICATION
-                    # Send temp_token (Access Token with mfa_verified=False)
+            # --- MFA LOGIC ENFORCEMENT FOR ALL USERS ---
+            # Standard Users AND Admins MUST complete MFA.
+            
+            # Check if enrollment is required (never enrolled or admin-enforced reset)
+            if (not auth_user.mfa_enabled) or auth_user.mfa_reset_required:
+                    # FORCE ENROLLMENT
                     return Response({
-                        "requires_otp": True,
-                        "temp_token": tokens['access'],
+                        "requires_enrollment": True,
                         "user_id": auth_user.id,
                         "email": auth_user.email
                     }, status=status.HTTP_200_OK)
+            else:
+                # FORCE OTP VERIFICATION
+                # Send temp_token (Access Token with mfa_verified=False)
+                return Response({
+                    "requires_otp": True,
+                    "temp_token": tokens['access'],
+                    "user_id": auth_user.id,
+                    "email": auth_user.email
+                }, status=status.HTTP_200_OK)
 
-            # Learners or other roles get full access immediately
-            return Response(tokens, status=status.HTTP_200_OK)
+            # Code below is unreachable if logic is correct, but kept as fail-safe or for specific bypass if ever needed.
+            # return Response(tokens, status=status.HTTP_200_OK)
 
         # Failure Handling
         if user:
@@ -137,7 +156,7 @@ class LoginView(APIView):
                     actor=user,
                     action="ACCOUNT_LOCKED",
                     target=f"user:{user.id}",
-                    metadata={"failed_attempts": user.failed_login_attempts}
+                    metadata=get_audit_metadata(request, {"failed_attempts": user.failed_login_attempts})
                 )
             else:
                 user.save(update_fields=['failed_login_attempts'])
@@ -145,14 +164,14 @@ class LoginView(APIView):
                     actor=user,
                     action="LOGIN_FAILED",
                     target=f"user:{user.id}",
-                    metadata={"failed_attempts": user.failed_login_attempts}
+                    metadata=get_audit_metadata(request, {"failed_attempts": user.failed_login_attempts})
                 )
         else:
             AuditLog.objects.create(
                 actor=None,
                 action="LOGIN_FAILED",
                 target="unknown_user",
-                metadata={"email_attempt": email}
+                metadata=get_audit_metadata(request, {"email_attempt": email})
             )
 
         return Response(
@@ -160,13 +179,7 @@ class LoginView(APIView):
             status=status.HTTP_401_UNAUTHORIZED
         )
 
-    def get_client_ip(self, request):
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-        if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0]
-        else:
-            ip = request.META.get('REMOTE_ADDR')
-        return ip
+
 
 
 class MFAEnrollView(APIView):
@@ -185,12 +198,12 @@ class MFAEnrollView(APIView):
             user_id = request.data.get('user_id')
             password = request.data.get('password')
             if user_id and password:
-                User = get_user_model()
+                UserModel = get_user_model()
                 try:
-                    u = User.objects.get(id=user_id)
+                    u = UserModel.objects.get(id=user_id)
                     if u.check_password(password):
                          user = u
-                except User.DoesNotExist:
+                except UserModel.DoesNotExist:
                     pass
             
             if not user or not user.is_authenticated and not (isinstance(user, get_user_model())):
@@ -222,7 +235,7 @@ class MFAEnrollView(APIView):
             actor=user,
             action="MFA_ENROLL_STARTED",
             target=f"user:{user.id}",
-            metadata={}
+            metadata=get_audit_metadata(request)
         )
 
         # Generate QR Code SVG
@@ -261,19 +274,19 @@ class MFAVerifyView(APIView):
                  # Verify Token
                 from rest_framework_simplejwt.exceptions import TokenError
                 from rest_framework_simplejwt.tokens import AccessToken
+                UserModel = get_user_model()
                 try:
                     token_obj = AccessToken(temp_token)
                     user_id = token_obj['user_id']
-                    User = get_user_model()
-                    user = User.objects.get(id=user_id)
-                except (TokenError, User.DoesNotExist, KeyError):
+                    user = UserModel.objects.get(id=user_id)
+                except (TokenError, UserModel.DoesNotExist, KeyError):
                     return Response({"error": "Invalid or expired session"}, status=status.HTTP_401_UNAUTHORIZED)
             elif user_id_input:
                 # Enrollment Confirmation flow (no token yet, just user_id)
-                User = get_user_model()
+                UserModel = get_user_model()
                 try:
-                    user = User.objects.get(id=user_id_input)
-                except User.DoesNotExist:
+                    user = UserModel.objects.get(id=user_id_input)
+                except UserModel.DoesNotExist:
                     pass
             
             if not user:
@@ -317,9 +330,10 @@ class MFAVerifyView(APIView):
 
         if is_valid:
             # Mark user as MFA enabled
-            if not user.mfa_enabled:
+            if not user.mfa_enabled or user.mfa_reset_required:
                 user.mfa_enabled = True
-                user.save(update_fields=['mfa_enabled'])
+                user.mfa_reset_required = False
+                user.save(update_fields=['mfa_enabled', 'mfa_reset_required'])
             
             mfa_secret.last_used_at = timezone.now()
             mfa_secret.save(update_fields=['last_used_at'])
@@ -328,7 +342,7 @@ class MFAVerifyView(APIView):
                 actor=user,
                 action=log_action,
                 target=f"user:{user.id}",
-                metadata={"method": "otp" if otp_input else "backup"}
+                metadata=get_audit_metadata(request, {"method": "otp" if otp_input else "backup"})
             )
             
             # Issue NEW Token with mfa_verified = True
@@ -350,7 +364,7 @@ class MFAVerifyView(APIView):
                 actor=user,
                 action="MFA_FAILED",
                 target=f"user:{user.id}",
-                metadata={"attempted_method": "otp" if otp_input else "backup"}
+                metadata=get_audit_metadata(request, {"attempted_method": "otp" if otp_input else "backup"})
             )
             return Response(
                 {"detail": "Invalid authentication code."},
@@ -443,25 +457,19 @@ class ForgotPasswordView(APIView):
                 actor=user,
                 action="PASSWORD_RESET_REQUESTED",
                 target=f"user:{user.id}",
-                metadata={"ip": self.get_client_ip(request)}
+                metadata=get_audit_metadata(request)
             )
         else:
             AuditLog.objects.create(
                 actor=None,
                 action="PASSWORD_RESET_REQUESTED_UNKNOWN",
                 target="unknown",
-                metadata={"email_attempt": email}
+                metadata=get_audit_metadata(request, {"email_attempt": email})
             )
         
         return Response(response_data, status=status.HTTP_200_OK)
 
-    def get_client_ip(self, request):
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-        if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0]
-        else:
-            ip = request.META.get('REMOTE_ADDR')
-        return ip
+
 
 
 class ResetPasswordView(APIView):
@@ -544,7 +552,7 @@ class ResetPasswordView(APIView):
             actor=user,
             action="PASSWORD_RESET_COMPLETED",
             target=f"user:{user.id}",
-            metadata={"ip": self.get_client_ip(request)}
+            metadata=get_audit_metadata(request)
         )
         
         if user.role == 'ADMIN':
@@ -557,10 +565,119 @@ class ResetPasswordView(APIView):
         
         return Response({"message": "Password has been reset successfully. Please login."}, status=status.HTTP_200_OK)
 
-    def get_client_ip(self, request):
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-        if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0]
+
+
+
+class AdminUserListView(APIView):
+    """
+    API for Admins to view all users.
+    Paginated, searchable.
+    """
+    permission_classes = [IsAdminWithMFA]
+    
+    def get(self, request):
+        users = User.objects.all().order_by('-date_joined')
+        
+        search_query = request.query_params.get('search')
+        if search_query:
+            from django.db.models import Q
+            users = users.filter(
+                Q(username__icontains=search_query) |
+                Q(email__icontains=search_query)
+            )
+
+        paginator = StandardPagination()
+        paginated_users = paginator.paginate_queryset(users, request)
+        
+        serializer = UserListSerializer(paginated_users, many=True)
+        return paginator.get_paginated_response(serializer.data)
+
+
+class AdminUserActionView(APIView):
+    """
+    API for Admin actions on users: Disable, Reset MFA.
+    """
+    permission_classes = [IsAdminWithMFA]
+    
+    def post(self, request, user_id, action):
+        try:
+            target_user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+        # Prevent self-lockout
+        if target_user.id == request.user.id:
+             return Response({"error": "Cannot perform actions on yourself"}, status=status.HTTP_400_BAD_REQUEST)
+             
+        if action == "toggle_active":
+            target_user.is_active = not target_user.is_active
+            target_user.save()
+            log_action = "USER_DISABLED" if not target_user.is_active else "USER_ENABLED"
+            AuditLog.objects.create(
+                actor=request.user,
+                action=log_action,
+                target=f"user:{target_user.id}",
+                metadata=get_audit_metadata(request)
+            )
+            return Response({"message": f"User {'disabled' if not target_user.is_active else 'enabled'}"})
+            
+        elif action == "reset_mfa":
+            target_user.mfa_enabled = False
+            target_user.mfa_reset_required = True
+            target_user.save(update_fields=['mfa_enabled', 'mfa_reset_required'])
+            # Delete secret and backup codes
+            MFASecret.objects.filter(user=target_user).delete()
+            AuditLog.objects.create(
+                actor=request.user,
+                action="USER_MFA_RESET",
+                target=f"user:{target_user.id}",
+                metadata=get_audit_metadata(request)
+            )
+            return Response({"message": "User MFA reset successfully. They will need to re-enroll."})
+
+        elif action == "delete_user":
+            user_id = target_user.id # Capture before delete
+            # Log before deletion
+            AuditLog.objects.create(
+                actor=request.user,
+                action="USER_DELETED",
+                target=f"user:{user_id}",
+                metadata=get_audit_metadata(request, {"username": target_user.username, "email": target_user.email})
+            )
+            target_user.delete()
+            return Response({"message": "User permanently deleted."})
+            
         else:
-            ip = request.META.get('REMOTE_ADDR')
-        return ip
+            return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminSelfMFAReEnrollView(APIView):
+    """
+    Admin self-service MFA re-enrollment trigger.
+    Revokes current secret and backup codes and marks account for re-enrollment.
+    """
+    permission_classes = [IsAdminWithMFA]
+
+    def post(self, request):
+        user = request.user
+
+        # Revoke existing MFA artifacts
+        MFASecret.objects.filter(user=user).delete()
+        user.mfa_enabled = False
+        user.mfa_reset_required = True
+        user.save(update_fields=['mfa_enabled', 'mfa_reset_required'])
+
+        AuditLog.objects.create(
+            actor=user,
+            action="ADMIN_MFA_REENROLL_TRIGGERED",
+            target=f"user:{user.id}",
+            metadata=get_audit_metadata(request)
+        )
+
+        # Signal frontend to redirect into enrollment flow
+        return Response({
+            "requires_enrollment": True,
+            "user_id": user.id,
+            "email": user.email,
+            "message": "MFA revoked. Please re-enroll now."
+        }, status=status.HTTP_200_OK)

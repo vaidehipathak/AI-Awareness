@@ -21,8 +21,8 @@ const MarkdownComponents = {
   ol: ({ node, ...props }: any) => <ol className="list-decimal list-inside ml-2 mb-2 space-y-1" {...props} />,
   li: ({ node, ...props }: any) => <li className="text-sm" {...props} />,
   p: ({ node, ...props }: any) => <p className="mb-2" {...props} />,
-  code: ({ node, inline, ...props }: any) => 
-    inline ? 
+  code: ({ node, inline, ...props }: any) =>
+    inline ?
       <code className="bg-gray-300 dark:bg-gray-600 px-1 rounded text-xs font-mono" {...props} /> :
       <code className="bg-gray-300 dark:bg-gray-600 px-2 py-1 rounded block font-mono text-xs overflow-x-auto" {...props} />,
   blockquote: ({ node, ...props }: any) => <blockquote className="border-l-4 border-primary pl-2 italic mb-2" {...props} />,
@@ -48,15 +48,15 @@ const AskAI: React.FC = () => {
   // Reset chat to its initial state when the modal is opened
   useEffect(() => {
     if (isOpen) {
-        setHistory([initialMessage]);
-        setPrompt('');
-        setIsLoading(false);
+      setHistory([initialMessage]);
+      setPrompt('');
+      setIsLoading(false);
     }
   }, [isOpen]);
 
   const handleSendMessage = async () => {
     if (!prompt.trim() || isLoading) return;
-    
+
     const userMessage: ChatMessage = { role: 'user', text: prompt };
     setHistory(prev => [...prev, userMessage]);
     setPrompt('');
@@ -83,25 +83,25 @@ const AskAI: React.FC = () => {
       }
 
       const data = await response.json();
-      const modelMessage: ChatMessage = { 
-        role: 'model', 
-        text: data.reply || 'Sorry, I could not process your message.' 
+      const modelMessage: ChatMessage = {
+        role: 'model',
+        text: data.reply || 'Sorry, I could not process your message.'
       };
       setHistory(prev => [...prev, modelMessage]);
     } catch (error: any) {
       console.error('Error:', error);
       let errorText = 'Sorry, I encountered an error. ';
-      
+
       if (error.name === 'AbortError') {
         errorText += 'The request timed out. LM Studio may be busy. Please try again.';
       } else if (error instanceof TypeError && error.message.includes('fetch')) {
-        errorText += 'Cannot connect to the backend server at http://localhost:9000. Make sure Django is running.';
+        errorText += 'Cannot connect to the backend server at http://localhost:8000. Make sure Django is running.';
       } else {
         errorText += error.message || 'Please try again or check if the backend is running.';
       }
-      
-      const errorMessage: ChatMessage = { 
-        role: 'model', 
+
+      const errorMessage: ChatMessage = {
+        role: 'model',
         text: errorText
       };
       setHistory(prev => [...prev, errorMessage]);
@@ -118,7 +118,7 @@ const AskAI: React.FC = () => {
         aria-label="Ask AI"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
         </svg>
       </button>
 
@@ -145,7 +145,7 @@ const AskAI: React.FC = () => {
                       <p>{msg.text}</p>
                     ) : (
                       <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <ReactMarkdown 
+                        <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
                           components={MarkdownComponents}
                         >
@@ -156,17 +156,17 @@ const AskAI: React.FC = () => {
                   </div>
                 </div>
               ))}
-               {isLoading && (
-                 <div className="flex justify-start">
-                    <div className="bg-gray-200 dark:bg-gray-700 p-3 rounded-xl">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></div>
-                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse [animation-delay:0.2s]"></div>
-                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse [animation-delay:0.4s]"></div>
-                      </div>
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-200 dark:bg-gray-700 p-3 rounded-xl">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></div>
+                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse [animation-delay:0.2s]"></div>
+                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse [animation-delay:0.4s]"></div>
                     </div>
                   </div>
-               )}
+                </div>
+              )}
             </div>
 
             <footer className="p-4 border-t border-gray-200 dark:border-gray-700">
@@ -187,7 +187,7 @@ const AskAI: React.FC = () => {
                   aria-label="Send message"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M1.946 9.315c-.522-.174-.527-.455.01-.634l19.087-6.362c.529-.176.832.12.684.638l-5.454 19.086c-.15.529-.455.547-.679.045L12 14l6-8-8 6-8.054-2.685z"/>
+                    <path d="M1.946 9.315c-.522-.174-.527-.455.01-.634l19.087-6.362c.529-.176.832.12.684.638l-5.454 19.086c-.15.529-.455.547-.679.045L12 14l6-8-8 6-8.054-2.685z" />
                   </svg>
                 </button>
               </div>

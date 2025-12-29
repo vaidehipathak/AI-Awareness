@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const OtpVerify: React.FC = () => {
-  const { requiresOtp, otpTempToken, pendingEmail, verifyOtp, isAuthenticated } = useAuth();
+  const { requiresOtp, otpTempToken, pendingEmail, verifyOtp, isAuthenticated, user } = useAuth();
   const [otp, setOtp] = useState('');
   const [isBackup, setIsBackup] = useState(false);
   const [error, setError] = useState('');
@@ -37,7 +37,7 @@ const OtpVerify: React.FC = () => {
     setLoading(true);
     try {
       await verifyOtp(otp.trim(), isBackup ? 'backup' : 'otp');
-      const from = (location.state as any)?.from || '/admin/dashboard';
+      const from = (location.state as any)?.from || (user?.role === 'ADMIN' ? '/admin/dashboard' : '/');
       navigate(from, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid authentication code');

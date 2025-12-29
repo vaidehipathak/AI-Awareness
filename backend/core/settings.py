@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -48,6 +49,7 @@ INSTALLED_APPS = [
     'django_otp.plugins.otp_totp',
     'accounts',
     'analysis',
+    'content',
 ]
 
 MIDDLEWARE = [
@@ -92,18 +94,32 @@ def _get_env(name: str, *, required: bool = False) -> str:
     return value or ""
 
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': _get_env('DB_NAME', required=True),
-        'USER': _get_env('DB_USER', required=True),
-        'PASSWORD': _get_env('DB_PASSWORD', required=True),
-        'HOST': _get_env('DB_HOST', required=True),
-        'PORT': _get_env('DB_PORT', required=True),
-        # Keep connections open for reuse; override with DB_CONN_MAX_AGE if needed
-        'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '60')),
+_db_url = os.getenv("DATABASE_URL")
+if _db_url:
+    # Prefer unified DATABASE_URL if provided
+    DATABASES = {
+        'default': dj_database_url.parse(
+            _db_url,
+            conn_max_age=int(os.getenv('DB_CONN_MAX_AGE', '60')),
+        )
     }
-}
+else:
+    # Fallback to discrete DB_* environment variables
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': _get_env('DB_NAME', required=True),
+            'USER': _get_env('DB_USER', required=True),
+            'PASSWORD': _get_env('DB_PASSWORD', required=True),
+            'HOST': _get_env('DB_HOST', required=True),
+            'PORT': _get_env('DB_PORT', required=True),
+            # Keep connections open for reuse; override with DB_CONN_MAX_AGE if needed
+            'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '60')),
+        }
+    }
+
+# NewsAPI Configuration
+NEWS_API_KEY = os.getenv('NEWS_API_KEY', '')
 
 
 # Password validation

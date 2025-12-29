@@ -27,11 +27,12 @@ class ReportListSerializer(serializers.ModelSerializer):
     submitted_at = serializers.DateTimeField(source='created_at', read_only=True)
     submitted_by = serializers.SerializerMethodField()
     file_type = serializers.SerializerMethodField()
+    file_metadata = serializers.SerializerMethodField()
     overall_risk = serializers.CharField(source='risk_label', read_only=True)
     
     class Meta:
         model = DetectionRun
-        fields = ('report_id', 'submitted_at', 'submitted_by', 'file_type', 'overall_risk', 'status')
+        fields = ('report_id', 'submitted_at', 'submitted_by', 'file_type', 'file_metadata', 'overall_risk', 'status')
         read_only_fields = fields
     
     def get_report_id(self, obj):
@@ -52,6 +53,13 @@ class ReportListSerializer(serializers.ModelSerializer):
             return 'Image'
         else:
             return 'Text'
+
+    def get_file_metadata(self, obj):
+        """Return partial file metadata (original name)."""
+        file_obj = obj.file
+        return {
+            'original_name': file_obj.original_name,
+        }
 
 
 class ReportDetailSerializer(serializers.ModelSerializer):

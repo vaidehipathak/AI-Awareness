@@ -3,9 +3,12 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const OtpEnroll: React.FC = () => {
-  const { pendingEmail, pendingUserId, requiresEnrollment, enroll2FA, confirmEnrollment } = useAuth();
+  const { user, pendingEmail, pendingUserId, requiresEnrollment, enroll2FA, confirmEnrollment } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const enrollUserId = pendingUserId || (location.state as any)?.userId || user?.id || null;
+  const enrollEmail = pendingEmail || (location.state as any)?.email || user?.email || null;
 
   const [password, setPassword] = useState('');
   const [otpCode, setOtpCode] = useState('');
@@ -17,7 +20,12 @@ const OtpEnroll: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'credentials' | 'verify'>('credentials');
 
-  if (!requiresEnrollment || !pendingUserId || !pendingEmail) {
+  // Allow enrollment if:
+  // 1. Pending login enrollment (requiresEnrollment)
+  // 2. Already logged in but forcing enrollment (user exists)
+  const canProceed = requiresEnrollment || !!user;
+
+  if (!canProceed || !enrollUserId || !enrollEmail) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-6">
         <div className="max-w-md w-full bg-white dark:bg-gray-800 shadow rounded-lg p-6 text-center">
@@ -62,7 +70,9 @@ const OtpEnroll: React.FC = () => {
     setLoading(true);
     try {
       await confirmEnrollment(deviceId, otpCode.trim());
-      const from = (location.state as any)?.from || '/admin/dashboard';
+      // Default to Home for new users/enrollments. Only redirect to Admin DB if explicitly known as Admin (e.g. key rotation).
+      const defaultPath = user?.role === 'ADMIN' ? '/admin/dashboard' : '/';
+      const from = (location.state as any)?.from || defaultPath;
       navigate(from, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid authentication code');
@@ -94,7 +104,7 @@ const OtpEnroll: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Email</label>
               <input
                 disabled
-                value={pendingEmail}
+                value={enrollEmail || ''}
                 className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 px-3 py-2 text-gray-700 dark:text-white"
               />
             </div>

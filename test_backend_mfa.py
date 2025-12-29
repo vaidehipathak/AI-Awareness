@@ -2,7 +2,7 @@
 import requests
 import json
 
-BASE_URL = "http://localhost:9000/auth"
+BASE_URL = "http://localhost:8000/auth"
 
 # 1. Register Admin
 email = "backend_test_admin_fixed@example.com"

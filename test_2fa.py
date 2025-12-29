@@ -2,7 +2,7 @@
 import requests
 import json
 
-BASE_URL = "http://localhost:9000/auth"
+BASE_URL = "http://localhost:8000/auth"
 
 # Test 1: Register ADMIN user
 print("=" * 60)
