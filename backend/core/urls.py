@@ -1,9 +1,3 @@
-"""
-URL configuration for core project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.2/topics/http/urls/
-"""
 from accounts.admin import admin_site
 from django.urls import path, include
 from django.http import JsonResponse
@@ -12,76 +6,37 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 import logging
 
+# Import the chatbot safety logic
 from .safety import generate_safe_reply
-# --- IMPORT YOUR NEW VIEW HERE ---
-from core.ai_detection.views import detect_ai_content 
 
 logger = logging.getLogger(__name__)
-
 
 @csrf_exempt
 @require_http_methods(["POST"])
 def ask_ai(request):
-    """
-    Safe AI chat endpoint with two-stage classifier + assistant pipeline.
-    
-    POST /api/ask-ai/
-    Body: {"message": "<user message>"}
-    Response: {"reply": "<assistant text>"}
-    """
     try:
         data = json.loads(request.body)
         user_message = data.get('message', '').strip()
-        
         if not user_message:
-            return JsonResponse({
-                'reply': 'Please provide a message.'
-            }, status=400)
-        
-        logger.info(f"Processing message: {user_message[:50]}...")
-        
-        # Two-stage pipeline: classify + generate
+            return JsonResponse({'reply': 'Please provide a message.'}, status=400)
         reply = generate_safe_reply(user_message)
-        
-        logger.info(f"Generated reply: {reply[:50]}...")
         return JsonResponse({'reply': reply})
-        
-    except json.JSONDecodeError:
-        logger.error("Invalid JSON in request")
-        return JsonResponse({
-            'reply': 'Invalid request format. Please send valid JSON.'
-        }, status=400)
     except Exception as e:
-        logger.exception(f"Error in ask_ai: {e}")
         return JsonResponse({
-            'reply': (
-                'I encountered an error processing your request. '
-                'Please ensure LM Studio is running on http://localhost:1234 '
-                'with the Gemma 3 12B model loaded, and try again.'
-            )
+            'reply': 'Ensure LM Studio is running on http://localhost:1234 with Gemma 3 loaded.'
         }, status=500)
-
 
 @require_http_methods(["GET"])
 def health_check(request):
-    """Health check endpoint"""
-    return JsonResponse({
-        'status': 'ok',
-        'message': 'Backend server is running and ready for AI chat'
-    })
-
-
-from analysis.views import analyze
+    return JsonResponse({'status': 'ok'})
 
 urlpatterns = [
     path('admin/', admin_site.urls),
     path('api/ask-ai/', ask_ai, name='ask-ai'),
-    path('api/analyze/', analyze, name='analyze'),
-    
-    # --- YOUR NEW ROUTE ---
-    path('api/detect-pdf-ai/', detect_ai_content, name='detect-pdf-ai'),
-    
-    path('api/', include('analysis.urls')),
     path('api/health/', health_check, name='health-check'),
+    
+    # This covers /api/analyze/ and /api/admin/reports/
+    path('api/', include('analysis.urls')), 
+    
     path('auth/', include('accounts.urls')),
 ]

@@ -78,12 +78,10 @@ const Report: React.FC = () => {
 
       const token = localStorage.getItem('auth_token');
 
-      
       const fileExt = file.name.split('.').pop()?.toLowerCase();
       const targetUrl = (fileExt === 'pdf' || fileExt === 'txt')
         ? 'http://localhost:8000/api/detect-pdf-ai/' 
         : 'http://localhost:8000/api/analyze/';
-      
 
       const response = await fetch(targetUrl, {
         method: 'POST',
@@ -100,9 +98,17 @@ const Report: React.FC = () => {
         return;
       }
 
-      
-      const firstResult = data.results?.[0] ?? null;
-      setResult(firstResult);
+      // === FIX: Handle PDF/TXT and image results correctly ===
+      let analysisResult: AnalysisResultData | null = null;
+      if (Array.isArray(data.results) && data.results.length > 0 && data.results[0].results) {
+        // PDF/TXT response format
+        analysisResult = data.results[0];
+      } else {
+        // Image response format
+        analysisResult = data;
+      }
+
+      setResult(analysisResult);
 
       setFile(null);
       setMetadata({ source: '', notes: '' });

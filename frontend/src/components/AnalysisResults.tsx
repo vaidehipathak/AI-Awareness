@@ -26,9 +26,9 @@ export interface AnalysisResultData {
         size_bytes?: number;
         file_type?: string;
     };
-    detectors_executed: string[];
-    results: DetectorResult[];
-    risk_label: string;
+    detectors_executed?: string[];
+    results?: DetectorResult[];
+    risk_label?: string;
 }
 
 interface AnalysisResultsProps {
@@ -39,7 +39,7 @@ interface AnalysisResultsProps {
 const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) => {
     const [showDetails, setShowDetails] = useState(false);
 
-    // Safe fallback
+    // Safe fallback (UNCHANGED LOGIC)
     const safeResult: AnalysisResultData = result || {
         file_metadata: {},
         detectors_executed: [],
@@ -48,7 +48,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) =>
     };
 
     // Helper styles based on risk
-    const getRiskStyles = (label: string) => {
+    const getRiskStyles = (label?: string) => {
         switch (label?.toUpperCase()) {
             case 'LOW':
                 return {
@@ -98,7 +98,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) =>
         }
     };
 
-    const formatBytes = (bytes: number) => {
+    const formatBytes = (bytes?: number) => {
         if (!bytes) return '0 Bytes';
         const k = 1024;
         const sizes = ['Bytes', 'KB', 'MB', 'GB'];
@@ -112,7 +112,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) =>
             {/* 1. Top Summary Card */}
             <div className={`p-6 rounded-xl border ${riskStyle.bg} ${riskStyle.border} flex flex-col md:flex-row items-center justify-between gap-6`}>
                 <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-full bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700`}>
+                    <div className="p-3 rounded-full bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
                         {riskStyle.icon}
                     </div>
                     <div>
@@ -127,14 +127,14 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) =>
                         {safeResult.file_metadata?.name ?? 'Unknown file'}
                     </p>
                     <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                        {formatBytes(safeResult.file_metadata?.size_bytes ?? 0)} • {safeResult.file_metadata?.file_type ?? 'N/A'}
+                        {formatBytes(safeResult.file_metadata?.size_bytes)} • {safeResult.file_metadata?.file_type ?? 'N/A'}
                     </p>
                 </div>
             </div>
 
             {/* 2. Detector Sections */}
             <div className="grid gap-6">
-                {safeResult.results.length > 0 ? (
+                {Array.isArray(safeResult.results) && safeResult.results.length > 0 ? (
                     safeResult.results.map((detector, idx) => (
                         <div key={idx} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
                             <div className="flex justify-between items-start mb-4">
@@ -149,8 +149,8 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) =>
                                         <div className="flex items-center gap-3 mt-1">
                                             <div className="w-24 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                                                 <div
-                                                    className={`h-full rounded-full transition-all duration-1000 ${(detector.confidence_score ?? 0) > 0.7 ? 'bg-amber-500' : 'bg-blue-500'}`}
-                                                    style={{ width: `${Math.round((detector.confidence_score ?? 0) * 100)}%` }} 
+                                                    className={`h-full rounded-full ${(detector.confidence_score ?? 0) > 0.7 ? 'bg-amber-500' : 'bg-blue-500'}`}
+                                                    style={{ width: `${Math.round((detector.confidence_score ?? 0) * 100)}%` }}
                                                 />
                                             </div>
                                             <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -162,11 +162,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) =>
                             </div>
 
                             <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-4">
-                                {detector.short_explanation
-                                    ? detector.short_explanation === "PII detection failed unexpectedly."
-                                        ? "PII scan could not be completed."
-                                        : detector.short_explanation
-                                    : "No explanation provided."}
+                                {detector.short_explanation ?? 'No explanation provided.'}
                             </p>
 
                             {detector.flags && detector.flags.length > 0 && (

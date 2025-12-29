@@ -1,16 +1,28 @@
-from typing import Dict, Any, List
-
+# backend/analysis/detectors/text_pdf.py
+from core.ai_detection.pdf_text_detector import detect_pdf_ai
 
 def detect(text: str, metadata: dict) -> dict:
-    # Basic logic: If text contains words like "confidential" or "password"
-    threats = ["password", "secret", "private key", "confidential"]
-    found = [word for word in threats if word in text.lower()]
+    """
+    This bridges the Router to the heavy-duty DistilGPT2 model.
+    """
+    if not text or len(text.strip()) < 10:
+        return {
+            "detection_type": "text_pdf",
+            "confidence_score": 0.0,
+            "flags": ["Empty or too short"],
+            "short_explanation": "Not enough text to analyze."
+        }
+
+    # Call the heavy-duty logic from core
+    # We pass the text directly. 
+    raw_result = detect_pdf_ai(text)
     
-    score = 0.8 if found else 0.1
-    
+    # Extract the internal result dictionary
+    data = raw_result["results"][0]
+
     return {
         "detection_type": "text_pdf",
-        "confidence_score": score,
-        "flags": found,
-        "short_explanation": f"Detected {len(found)} suspicious keywords." if found else "No suspicious keywords found."
+        "confidence_score": data.get("risk_score", 0.0),
+        "flags": [data.get("verdict", "Unknown")],
+        "short_explanation": data.get("explanation", "")
     }

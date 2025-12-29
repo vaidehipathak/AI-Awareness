@@ -243,11 +243,11 @@ def detect_pdf_ai(input_data: str) -> Dict:
             verdict = "Likely AI-generated"
             ai_msg = "Text is highly predictable (low perplexity)."
             risk_label = "HIGH"
-        elif ai_score >= 0.50: 
+        elif ai_score >= 0.50: # Medium predictability
             verdict = "Suspicious"
             ai_msg = "Text predictability is slightly lower than average human text."
             risk_label = "MEDIUM"
-        else: 
+        else: # Low predictability (High Perplexity) -> Safe
             verdict = "Safe"
             ai_msg = "Text exhibits sufficient linguistic variance."
             risk_label = "LOW"
