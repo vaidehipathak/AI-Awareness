@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 # Configuration constants
 LM_STUDIO_URL = "http://localhost:1234/v1/chat/completions"
-MODEL_NAME = "google/gemma-3-12b"
+MODEL_NAME = "gemma-3-12b-it-asteriaocr-merge-q4km"
 
 
 def lmstudio_chat(

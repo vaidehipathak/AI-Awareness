@@ -10,11 +10,6 @@ PLACEHOLDER_RESPONSE = {
 }
 
 def detect(extracted_text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Adapter for PII Detection.
-    Connects to the dedicated PII Engine in backend.pii_engine.
-    """
-    
     try:
         # Strictly use the Improved PII Engine (backend/pii_engine)
         from pii_engine.pii_engine import detect as detect_pii

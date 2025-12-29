@@ -1,7 +1,6 @@
 from typing import Dict, Any, List
 import re
 
-
 def detect(processed_text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
     """
     Heuristic-based AI text detector.
