@@ -78,36 +78,107 @@ class AwarenessTopicViewSet(ContentAuditViewSet):
 @api_view(['GET'])
 def fetch_news(request):
     """
-    NewsAPI proxy endpoint with database fallback.
-    Fetches live AI news from NewsAPI, falls back to database articles if API fails.
+    NewsAPI.ai (Event Registry) proxy endpoint with strict AI relevance filtering.
     """
-    api_key = getattr(settings, 'NEWS_API_KEY', '')
+    # Use the new API Key provided by the user
+    # Ideally should be in settings/env, but hardcoding as per direct instructions for now or fallback
+    api_key = getattr(settings, 'NEWS_API_KEY', '5924a2b1-6217-4525-9d20-2861524ffd32')
     
-    # Try NewsAPI if key is available
+    # Strong keywords for AI relevance
+    strong_keywords = [
+        "artificial intelligence", "machine learning", "deep learning", 
+        "generative ai", "large language model", "neural network",
+        "computer vision", "natural language processing", "ai research",
+        "ai ethics", "openai", "deepmind", "anthropic"
+    ]
+    
     if api_key:
         try:
-            response = requests.get(
-                'https://newsapi.org/v2/everything',
-                params={
-                    'q': 'artificial intelligence OR machine learning OR AI OR deep learning',
-                    'language': 'en',
-                    'sortBy': 'publishedAt',
-                    'pageSize': 20,
-                    'apiKey': api_key
-                },
-                timeout=5
-            )
+            # NewsAPI.ai / Event Registry Endpoint
+            url = "http://eventregistry.org/api/v1/article/getArticles"
+            
+            # Request Payload
+            payload = {
+                "action": "getArticles",
+                "keyword": "artificial intelligence", # Primary keyword
+                "lang": ["eng"],
+                "articlesPage": 1,
+                "articlesCount": 50, # Fetch plenty to allow for filtering
+                "articlesSortBy": "date",
+                "articlesSortByAsc": False,
+                "apiKey": api_key,
+                "resultType": "articles",
+                "dataType": ["news", "blog"]
+            }
+            
+            response = requests.post(url, json=payload, timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
-                if data.get('status') == 'ok' and data.get('articles'):
-                    # Return NewsAPI articles directly
-                    return Response(data['articles'])
+                # Check for nested results structure
+                valid_articles = []
+                
+                # NewsAPI.ai structure: data['articles']['results']
+                if 'articles' in data and 'results' in data['articles']:
+                    raw_articles = data['articles']['results']
+                    
+                    for article in raw_articles:
+                        # 2. Backend Relevance Filtering
+                        # Check title and body (description)
+                        title_text = (article.get('title') or '').lower()
+                        # Use FULL body for relevance check, truncate only for display
+                        desc_text = (article.get('body') or '').lower() 
+                        
+                        # Count keyword matches
+                        title_matches = any(kw in title_text for kw in strong_keywords)
+                        desc_matches = sum(1 for kw in strong_keywords if kw in desc_text)
+                        
+                        # Accept if Title has 1 strong keyword OR Description has 2+ keywords
+                        if title_matches or desc_matches >= 2:
+                            
+                            # 3. Data Mapping & Sanitization (NewsAPI.ai -> Frontend Contract)
+                            
+                            # Image: 'image' field
+                            image_url = article.get('image')
+                            if not image_url and 'media' in article:
+                                # Sometimes in media list
+                                pass 
+                            
+                            # Source
+                            source_name = 'AI News'
+                            if 'source' in article and 'title' in article['source']:
+                                source_name = article['source']['title']
+                                
+                            # Author
+                            author_name = 'Unknown Author'
+                            if 'authors' in article and isinstance(article['authors'], list) and len(article['authors']) > 0:
+                                author_name = article['authors'][0].get('name', 'Unknown Author')
+
+                            sanitized_article = {
+                                'title': article.get('title') or 'Untitled AI Article',
+                                'author': author_name,
+                                'publishedAt': article.get('dateTime') or timezone.now().isoformat(),
+                                'description': (article.get('body') or 'Click to read more.')[:250] + '...', # Truncate body for description
+                                'url': article.get('url'),
+                                'urlToImage': image_url,
+                                'source': {'name': source_name},
+                                'content': (article.get('body') or '')[:200]
+                            }
+                            
+                            # MUST have a URL to be effective
+                            if sanitized_article['url']:
+                                valid_articles.append(sanitized_article)
+                    
+                    # If we found valid articles, return them
+                    if valid_articles:
+                        return Response(valid_articles)
+
         except Exception as e:
-            print(f"NewsAPI request failed: {e}")
+            # 5. Log errors silent
+            print(f"NewsAPI.ai ERROR: {e}")
             # Fall through to database fallback
     
-    # Fallback to database articles
+    # Fallback to database articles if API fails or returns nothing
     articles = Article.objects.filter(is_active=True, is_deleted=False).order_by('-published_at')
     serializer = ArticleSerializer(articles, many=True)
     

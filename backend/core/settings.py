@@ -97,10 +97,12 @@ def _get_env(name: str, *, required: bool = False) -> str:
 _db_url = os.getenv("DATABASE_URL")
 if _db_url:
     # Prefer unified DATABASE_URL if provided
+    # Prefer unified DATABASE_URL if provided
     DATABASES = {
-        'default': dj_database_url.parse(
-            _db_url,
-            conn_max_age=int(os.getenv('DB_CONN_MAX_AGE', '60')),
+        'default': dj_database_url.config(
+            default=_db_url,
+            conn_max_age=0,
+            ssl_require=True
         )
     }
 else:
