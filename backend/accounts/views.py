@@ -436,22 +436,12 @@ class ForgotPasswordView(APIView):
             )
             
             # Send Email
-            from django.core.mail import send_mail
-            from django.conf import settings
+            from .utils_email import send_password_reset_email
             
-            reset_link = f"http://localhost:5173/reset-password?token={raw_token}"
+            # Frontend uses HashRouter, so we need /#/ in the URL
+            reset_link = f"http://localhost:5173/#/reset-password?token={raw_token}"
             
-            try:
-                send_mail(
-                    subject="Password Reset Request",
-                    message=f"Click the following link to reset your password:\n\n{reset_link}\n\nIf you did not request this, please ignore this email.",
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[email],
-                    fail_silently=False,
-                )
-            except Exception:
-                # Log error internally via Django logger if configured, but suppress for now as per "Silent" requirement
-                pass
+            send_password_reset_email(email, reset_link)
 
             AuditLog.objects.create(
                 actor=user,

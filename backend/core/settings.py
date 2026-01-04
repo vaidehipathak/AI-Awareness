@@ -87,38 +87,19 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-def _get_env(name: str, *, required: bool = False) -> str:
-    value = os.getenv(name)
-    if required and not value:
-        raise RuntimeError(f"Missing required environment variable: {name}")
-    return value or ""
+# Database
+# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-
-_db_url = os.getenv("DATABASE_URL")
-if _db_url:
-    # Prefer unified DATABASE_URL if provided
-    # Prefer unified DATABASE_URL if provided
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=_db_url,
-            conn_max_age=0,
-            ssl_require=True
-        )
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "postgres",
+        "USER": "postgres.aeeaxplbtyjzlccsoukj",
+        "PASSWORD": "Strongpassword@12345",
+        "HOST": "aws-1-ap-northeast-1.pooler.supabase.com",
+        "PORT": "5432",
     }
-else:
-    # Fallback to discrete DB_* environment variables
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': _get_env('DB_NAME', required=True),
-            'USER': _get_env('DB_USER', required=True),
-            'PASSWORD': _get_env('DB_PASSWORD', required=True),
-            'HOST': _get_env('DB_HOST', required=True),
-            'PORT': _get_env('DB_PORT', required=True),
-            # Keep connections open for reuse; override with DB_CONN_MAX_AGE if needed
-            'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '60')),
-        }
-    }
+}
 
 # NewsAPI Configuration
 NEWS_API_KEY = os.getenv('NEWS_API_KEY', '')
@@ -214,8 +195,23 @@ SIMPLE_JWT = {
 # Default to Console backend for safety if not configured.
 # To use SMTP, set EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend in .env
 # Email Configuration
-# Development-safe Console Backend (Prints emails to stdout)
+# Default to Console backend for development/safety
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'noreply@awareness.io'
+
+# Check if Brevo credentials are provided in env
+_brevo_user = os.getenv('BREVO_SMTP_USER')
+_brevo_password = os.getenv('BREVO_SMTP_PASSWORD')
+
+if _brevo_user and _brevo_password:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp-relay.brevo.com'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = _brevo_user
+    EMAIL_HOST_PASSWORD = _brevo_password
+    DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@awareness.io')
+else:
+    # Fallback to Console
+    DEFAULT_FROM_EMAIL = 'noreply@awareness.io'
 
 CORS_ALLOW_ALL_ORIGINS = True
