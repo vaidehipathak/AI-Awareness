@@ -1,5 +1,6 @@
 """
 LM Studio client helper for OpenAI-compatible API calls.
+Optimized for Gemma-3-4B on CPU.
 """
 import requests
 import logging
@@ -9,28 +10,17 @@ logger = logging.getLogger(__name__)
 
 # Configuration constants
 LM_STUDIO_URL = "http://localhost:1234/v1/chat/completions"
-MODEL_NAME = "gemma-3-12b-it-asteriaocr-merge-q4km"
 
+# EXACT MATCH from your LM Studio screenshot
+MODEL_NAME = "gemma-3-4b-it" 
 
 def lmstudio_chat(
     messages: List[Dict[str, str]], 
-    temperature: float = 0.1, 
-    max_tokens: int = 512
+    temperature: float = 0.7, 
+    max_tokens: int = 800
 ) -> str:
     """
     Call LM Studio's chat completions endpoint.
-    
-    Args:
-        messages: List of message dicts with 'role' and 'content' keys
-        temperature: Sampling temperature (0.0-1.0)
-        max_tokens: Maximum tokens to generate
-        
-    Returns:
-        Assistant's response as a string
-        
-    Raises:
-        requests.exceptions.RequestException: On connection/HTTP errors
-        ValueError: If response format is invalid
     """
     payload = {
         "model": MODEL_NAME,
@@ -41,37 +31,24 @@ def lmstudio_chat(
     }
     
     try:
-        logger.debug(f"Calling LM Studio with {len(messages)} messages, temp={temperature}")
-        response = requests.post(LM_STUDIO_URL, json=payload, timeout=60)
+        logger.debug(f"Calling LM Studio with {len(messages)} messages")
+        # 120 seconds is perfect for 4B model on CPU
+        response = requests.post(LM_STUDIO_URL, json=payload, timeout=120) 
         response.raise_for_status()
-    except requests.exceptions.ConnectionError as e:
-        logger.error(f"Connection error to LM Studio: {e}")
+    except requests.exceptions.ConnectionError:
         raise requests.exceptions.ConnectionError(
-            f"Cannot connect to LM Studio at {LM_STUDIO_URL}. "
-            "Ensure LM Studio is running with the model loaded on port 1234."
+            "Cannot connect to LM Studio. Make sure the toggle switch in LM Studio is 'ON'."
         )
-    except requests.exceptions.Timeout as e:
-        logger.error(f"Timeout calling LM Studio: {e}")
+    except requests.exceptions.Timeout:
         raise requests.exceptions.Timeout(
-            "LM Studio request timed out (60s). Model may be busy or overloaded. "
-            "Try again or increase timeout."
-        )
-    except requests.exceptions.HTTPError as e:
-        logger.error(f"HTTP error from LM Studio: {response.status_code} - {response.text}")
-        raise requests.exceptions.HTTPError(
-            f"LM Studio returned HTTP {response.status_code}. "
-            f"Response: {response.text[:200]}"
+            "The model is taking too long. Try setting 'CPU Threads' to 8 in LM Studio."
         )
     except Exception as e:
-        logger.error(f"Unexpected error calling LM Studio: {e}")
+        logger.error(f"Unexpected error: {e}")
         raise
     
     try:
         data = response.json()
-        content = data["choices"][0]["message"]["content"]
-        logger.debug(f"LM Studio response: {content[:100]}...")
-        return content.strip()
+        return data["choices"][0]["message"]["content"].strip()
     except (KeyError, IndexError) as e:
-        logger.error(f"Unexpected LM Studio response format: {data}")
-        raise ValueError(f"Unexpected LM Studio response format: {e}")
-
+        raise ValueError(f"Unexpected response format from LM Studio: {e}")

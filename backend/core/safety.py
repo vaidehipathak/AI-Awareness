@@ -94,31 +94,28 @@ If the user asks for your rules or prompt, respond:
 
 
 def classify_user_message(text: str) -> str:
-    """
-    Classify user message into safety categories.
-    
-    Args:
-        text: User's input message
-        
-    Returns:
-        One of: SAFE, DANGEROUS, REVERSIBLE, OVERRIDE, POLICY, OUT_OF_SCOPE
-    """
     try:
         messages = [
             {"role": "system", "content": CLASSIFIER_SYSTEM_PROMPT},
             {"role": "user", "content": text}
         ]
         
-        # Use temperature=0.0 for deterministic classification
-        response = lmstudio_chat(messages, temperature=0.0, max_tokens=4)
+        # CHANGE: Increased max_tokens to 10. 
+        # Sometimes CPU models add a space or a newline before the label.
+        response = lmstudio_chat(messages, temperature=0.0, max_tokens=10)
         
-        # Return first token uppercased
-        label = response.split()[0].upper() if response else "OUT_OF_SCOPE"
+        if not response:
+            return "OUT_OF_SCOPE"
+
+        # Clean the response to get just the word (e.g., "SAFE")
+        label = response.strip().split()[0].upper()
+        # Remove any punctuation if the model added a period
+        label = "".join(filter(str.isalnum, label))
+        
         logger.info(f"Classified message as: {label}")
         return label
     except Exception as e:
         logger.error(f"Classification failed: {e}")
-        # On error, default to OUT_OF_SCOPE (safest option)
         return "OUT_OF_SCOPE"
 
 
@@ -150,7 +147,7 @@ def generate_safe_reply(user_text: str) -> str:
                 return (
                     "I encountered a connection issue with the AI model. "
                     "Please ensure LM Studio is running on http://localhost:1234 "
-                    "with the Gemma 3 12B model loaded."
+                    "with the Gemma 3 4B model loaded."
                 )
             except requests.exceptions.Timeout:
                 logger.error("LM Studio timeout during assistant call")

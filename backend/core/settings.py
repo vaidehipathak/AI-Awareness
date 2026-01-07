@@ -91,15 +91,16 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "postgres",
-        "USER": "postgres.aeeaxplbtyjzlccsoukj",
-        "PASSWORD": "Strongpassword@12345",
-        "HOST": "aws-1-ap-northeast-1.pooler.supabase.com",
-        "PORT": "5432",
-    }
+    'default': dj_database_url.config(
+        default=os.getenv('DATABASE_URL'),
+        conn_max_age=0,  # Set to 0 when using a pooler like PgBouncer/Supavisor
+        ssl_require=True
+    )
 }
+
+# ADD THIS LINE RIGHT BELOW THE DATABASES BLOCK
+# This is required for Supabase port 6543
+DATABASES['default']['DISABLE_SERVER_SIDE_CURSORS'] = True
 
 # NewsAPI Configuration
 NEWS_API_KEY = os.getenv('NEWS_API_KEY', '')
