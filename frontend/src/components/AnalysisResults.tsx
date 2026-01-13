@@ -11,12 +11,13 @@ import {
     Fingerprint
 } from 'lucide-react';
 
-// Interfaces
+
 interface DetectorResult {
     detection_type?: string;
     confidence_score?: number;
     flags?: string[];
     short_explanation?: string;
+    risk_label?: string;
 }
 
 export interface AnalysisResultData {
@@ -27,7 +28,7 @@ export interface AnalysisResultData {
         file_type?: string;
     };
     detectors_executed?: string[];
-    results?: DetectorResult[];
+    results?: DetectorResult[]; // This holds the LIST of results from the router's output
     risk_label?: string;
 }
 
@@ -39,15 +40,14 @@ interface AnalysisResultsProps {
 const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) => {
     const [showDetails, setShowDetails] = useState(false);
 
-    // Safe fallback (UNCHANGED LOGIC)
-    const safeResult: AnalysisResultData = result || {
-        file_metadata: {},
-        detectors_executed: [],
-        results: [],
-        risk_label: 'UNKNOWN'
-    };
+    
+    const mainResult = Array.isArray(result?.results) && result.results.length > 0 ? result.results[0] : {};
+    
+    
+    const finalRiskLabel = mainResult.risk_label || result?.risk_label || 'UNKNOWN';
+    const finalResultObject = (mainResult as AnalysisResultData) || result; 
 
-    // Helper styles based on risk
+    
     const getRiskStyles = (label?: string) => {
         switch (label?.toUpperCase()) {
             case 'LOW':
@@ -85,14 +85,16 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) =>
         }
     };
 
-    const riskStyle = getRiskStyles(safeResult.risk_label);
+    const riskStyle = getRiskStyles(finalRiskLabel);
 
+    
     const getDetectorIcon = (type?: string) => {
         switch (type) {
             case 'pii': return <Fingerprint className="w-5 h-5" />;
             case 'text_pdf': return <FileText className="w-5 h-5" />;
             case 'image_deepfake':
             case 'ai_generated_content':
+            case 'pdf_text_ai': // ADDED for new detector name
                 return <ImageIcon className="w-5 h-5" />;
             default: return <Binary className="w-5 h-5" />;
         }
@@ -124,18 +126,19 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) =>
                 </div>
                 <div className="text-right hidden md:block">
                     <p className="text-sm text-gray-500 dark:text-gray-400 font-mono">
-                        {safeResult.file_metadata?.name ?? 'Unknown file'}
+                        {result.file_metadata?.name ?? 'Unknown file'}
                     </p>
                     <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                        {formatBytes(safeResult.file_metadata?.size_bytes)} • {safeResult.file_metadata?.file_type ?? 'N/A'}
+                        {formatBytes(result.file_metadata?.size_bytes)} • {result.file_metadata?.file_type ?? 'N/A'}
                     </p>
                 </div>
             </div>
 
             {/* 2. Detector Sections */}
             <div className="grid gap-6">
-                {Array.isArray(safeResult.results) && safeResult.results.length > 0 ? (
-                    safeResult.results.map((detector, idx) => (
+                {/* Check results on the mainResult object which holds the actual detector output */}
+                {Array.isArray(finalResultObject.results) && finalResultObject.results.length > 0 ? (
+                    finalResultObject.results.map((detector, idx) => (
                         <div key={idx} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
                             <div className="flex justify-between items-start mb-4">
                                 <div className="flex items-center gap-3">
@@ -195,7 +198,8 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) =>
 
                 {showDetails && (
                     <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 font-mono text-xs text-gray-600 dark:text-gray-400 overflow-x-auto whitespace-pre-wrap">
-                        {JSON.stringify(safeResult, null, 2)}
+                        {JSON.stringify(result, null, 2)} 
+                        {/* Changed from safeResult to result for full context */}
                     </div>
                 )}
             </div>

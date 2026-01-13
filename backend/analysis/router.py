@@ -2,22 +2,39 @@ from __future__ import annotations
 from typing import Any, Dict, List
 from django.db import transaction
 from .models import AnalysisFile, DetectionRun, DetectorResult
-from .detectors import text_pdf as text_pdf_detector
-from .detectors import image_deepfake as image_detector
-from .detectors import pii as pii_detector
+
+from core.ai_detection.pdf_text_detector import detect_pdf_ai 
+
+from .detectors import image_deepfake as image_detector 
+
+
 from io import BytesIO
 import os
 
-# --- 1. HELPER FUNCTIONS ---
+import logging
+logger = logging.getLogger(__name__)
+
+
+
 
 def _extract_pdf_text(file_obj) -> str:
+    """Extracts text from PDF using pypdf (like the detector)."""
+    extracted_text = []
     try:
-        raw = file_obj.read()
+        
+        from pypdf import PdfReader 
+        reader = PdfReader(file_obj)
+        for page in reader.pages:
+            content = page.extract_text()
+            if content and content.strip():
+                extracted_text.append(content)
+    except Exception as e:
+        logger.error(f"pypdf Extraction failed in router: {str(e)}")
+        # Fallback: If pypdf fails, read raw content as a last resort
         file_obj.seek(0)
-        if not raw: return ""
-        from pdfminer.high_level import extract_text
-        return extract_text(BytesIO(raw)) or ""
-    except Exception: return ""
+        return file_obj.read().decode(errors="ignore") 
+        
+    return " ".join(extracted_text).strip()
 
 def _classify_file_type(filename: str, content_type: str) -> str:
     fn = filename.lower()
@@ -27,19 +44,23 @@ def _classify_file_type(filename: str, content_type: str) -> str:
     return "unsupported"
 
 def _route_detectors(file_type: str) -> List[str]:
-    if file_type in ("text", "pdf"): return ["text_pdf", "pii"]
+    
+    if file_type in ("text", "pdf"): return ["pdf_text_ai"] 
     if file_type == "image": return ["image_deepfake"]
     return []
 
 def _invoke_detector(name: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Invokes the specific detector function based on name."""
     try:
-        if name == "text_pdf": 
-            return text_pdf_detector.detect(payload.get("text", ""), payload.get("metadata", {}))
-        if name == "pii": 
-            return pii_detector.detect(payload.get("text", ""), payload.get("metadata", {}))
+        if name == "pdf_text_ai": 
+            
+            return detect_pdf_ai(payload.get("text", ""), payload.get("metadata", {}))
+            
+        
         if name == "image_deepfake": 
             return image_detector.detect(payload.get("bytes", b""), payload.get("metadata", {}))
-        return {"detection_type": name, "confidence_score": 0.0, "flags": [], "short_explanation": "Unknown"}
+            
+        return {"detection_type": name, "confidence_score": 0.0, "flags": [], "short_explanation": "Unknown detector name"}
     except Exception as e:
         return {"detection_type": name, "confidence_score": 0.0, "flags": ["error"], "short_explanation": f"Error: {str(e)}"}
 
@@ -50,7 +71,7 @@ def _risk_label_from_scores(scores: List[float]) -> str:
     if m >= 0.3: return "MEDIUM"
     return "LOW"
 
-# --- 2. MAIN ROUTER FUNCTION ---
+
 
 def route_and_detect(*, user, uploaded_file, metadata: Dict[str, Any]) -> Dict[str, Any]:
     fname = getattr(uploaded_file, 'name', 'uploaded')
@@ -58,23 +79,33 @@ def route_and_detect(*, user, uploaded_file, metadata: Dict[str, Any]) -> Dict[s
     fsize = getattr(uploaded_file, 'size', 0)
     ftype = _classify_file_type(fname, ctype)
     
+    detectors_to_run = _route_detectors(ftype)
+
     if ftype == "unsupported":
+       
         return {
             "file_metadata": {"name": fname, "content_type": ctype, "size_bytes": fsize, "file_type": "N/A"},
-            "results": [], "risk_label": "LOW"
+            "detectors_executed": [],
+            "results": [{
+                "detection_type": "unsupported_file",
+                "confidence_score": 0.0,
+                "flags": [],
+                "short_explanation": f"File type {ctype} is unsupported."
+            }],
+            "risk_label": "LOW"
         }
 
-    detectors_to_run = _route_detectors(ftype)
     payload = {"metadata": metadata}
     
     if ftype == "image":
         payload["bytes"] = uploaded_file.read()
         uploaded_file.seek(0)
     else:
+        
         payload["text"] = _extract_pdf_text(uploaded_file) if ftype == "pdf" else uploaded_file.read().decode(errors="ignore")
         uploaded_file.seek(0)
 
-    outputs_list = [] # Temporary list to hold results
+    outputs_list = [] 
     with transaction.atomic():
         af = AnalysisFile.objects.create(original_name=fname, content_type=ctype, size_bytes=fsize)
         scores = []
@@ -91,7 +122,7 @@ def route_and_detect(*, user, uploaded_file, metadata: Dict[str, Any]) -> Dict[s
         for out in outputs_list:
             DetectorResult.objects.create(run=run_obj, detector_name=out.get("detection_type", "unknown"), output=out)
 
-    # BHAI, THIS IS THE KEY: We return the FULL DICTIONARY
+   
     full_report = {
         "file_metadata": {
             "name": fname,
@@ -100,7 +131,7 @@ def route_and_detect(*, user, uploaded_file, metadata: Dict[str, Any]) -> Dict[s
             "file_type": ftype.upper()
         },
         "detectors_executed": detectors_to_run,
-        "results": outputs_list,  # CRITICAL: React line 138 needs this!
+        "results": outputs_list,
         "risk_label": risk_str
     }
     return full_report

@@ -22,7 +22,7 @@ def _load_model_safely():
         return True
     try:
         tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-        # MODIFIED: Load for Causal Language Modeling
+        
         model = AutoModelForCausalLM.from_pretrained(MODEL_NAME) 
         model.eval()
         logger.info(f"Model {MODEL_NAME} loaded successfully for perplexity scoring.")
@@ -31,6 +31,7 @@ def _load_model_safely():
         logger.error(f"Failed to load model: {e}")
         tokenizer, model = None, None
         return False
+        
 def _analyze_and_scrub_pii(text: str) -> Tuple[str, bool, bool]:
     """
     Masks PII including Email, Phone, SSN, Credit Cards, Aadhar.
@@ -69,33 +70,47 @@ def _analyze_and_scrub_pii(text: str) -> Tuple[str, bool, bool]:
 
 def _clean_text(text: str) -> str:
     text = re.sub(r"\s+", " ", text)
-    text = re.sub(r"[^\x00-\x7F]+", " ", text)
+    
+    text = re.sub(r"[^\x00-\x7F]+", " ", text) 
     return text.strip()
 
 def _extract_text_from_pdf(file_path: str) -> Tuple[str, str]:
+    """
+    Extracts text from a PDF file. 
+    Returns the extracted text and a status note.
+    """
     extracted_text = []
     has_images = False
+    full_text = ""
+    status_note = ""
+
     try:
         reader = PdfReader(file_path)
+        
         for page in reader.pages:
             content = page.extract_text()
-            if content and content.strip():
-                extracted_text.append(content)
+            
             
             if hasattr(page, "/Resources") and "/XObject" in page["/Resources"]:
                 has_images = True
-                
+            
+            if content and content.strip():
+                extracted_text.append(content)
+
+        full_text = " ".join(extracted_text).strip()
+
+        if not full_text:
+            if has_images:
+                status_note = "Note: PDF appears to be a scanned image or text layer is missing/corrupted (no selectable text found)."
+            else:
+                status_note = "Note: PDF is empty or text extraction yielded no content."
+    
+            
     except Exception as e:
+    
+        status_note = f"Error during PDF structure reading: {str(e)}"
         raise RuntimeError(f"Could not read PDF structure: {str(e)}")
     
-    full_text = " ".join(extracted_text).strip()
-    
-    status_note = ""
-    if not full_text and has_images:
-        status_note = "Note: PDF appears to be a scanned image (no selectable text)."
-    elif not full_text:
-        status_note = "Note: PDF is empty."
-        
     return full_text, status_note
 
 
@@ -143,7 +158,8 @@ def _calculate_perplexity_score(text: str) -> float:
         
     return max(0.0, min(1.0, risk_score))
 
-def detect_pdf_ai(input_data: str) -> Dict:
+# --- MODIFIED FUNCTION SIGNATURE TO ACCEPT TEXT AND METADATA ---
+def detect_pdf_ai(text_input: str, metadata: Dict) -> Dict:
     logger.info("AI Detection process started.")
     
     result = {
@@ -153,7 +169,8 @@ def detect_pdf_ai(input_data: str) -> Dict:
         "explanation": "",
         "limitations": "Accuracy drops on very short text. Results based on perplexity, which may flag highly structured/boilerplate text.",
         "error": None,
-        "file_metadata": {"name": "raw_input"},
+        
+        "file_metadata": {"name": metadata.get("source", "analyzed_text_input"), "metadata_received": metadata}, 
         "detectors_executed": [],
         "results": [],
         "risk_label": "UNKNOWN"
@@ -162,38 +179,17 @@ def detect_pdf_ai(input_data: str) -> Dict:
     if not _load_model_safely():
         result["error"] = "AI Model failed to load locally."
         result["verdict"] = "Unknown"
-        return {"results": [result]}
+        return {
+            "file_metadata": result["file_metadata"],
+            "detectors_executed": [],
+            "results": [{"detection_type": "model_load_failure", "confidence_score": 0.0, "flags": [], "short_explanation": result["error"]}],
+            "risk_label": "ERROR"
+        }
 
     try:
-        raw_text = ""
-        status_note = ""
-        is_file_path = input_data.lower().endswith((".pdf", ".txt"))
+        raw_text = text_input
+        status_note = "" 
         
-        if is_file_path:
-            if not os.path.exists(input_data):
-                result["error"] = f"File not found at: {input_data}"
-                result["verdict"] = "Error"
-                return {"results": [result]}
-            
-            filename = os.path.basename(input_data)
-            result["file_metadata"]["name"] = filename
-            result["file_metadata"]["size_bytes"] = os.path.getsize(input_data)
-            result["file_metadata"]["file_type"] = input_data.split('.')[-1].upper()
-            
-            if input_data.lower().endswith(".pdf"):
-                logger.info(f"Extracting PDF: {input_data}")
-                raw_text, status_note = _extract_text_from_pdf(input_data)
-                result["content_type"] = "pdf"
-            else:
-                logger.info(f"Reading Text File: {input_data}")
-                with open(input_data, 'r', encoding='utf-8') as f:
-                    raw_text = f.read()
-                result["content_type"] = "text"
-        else:
-            logger.info("Treating input as raw text string.")
-            raw_text = input_data
-            result["content_type"] = "text"
-
         scrubbed_text, pii_detected, pii_only = _analyze_and_scrub_pii(raw_text)
         cleaned_text = _clean_text(scrubbed_text)
 
@@ -218,22 +214,25 @@ def detect_pdf_ai(input_data: str) -> Dict:
 
         if word_count < 60: 
             pii_msg = "PII detected. " if pii_detected else ""
+            explanation_text = f"{pii_msg}{status_note or 'Insufficient text for analysis.'}".strip()
+            
             result.update({
                 "risk_score": 0.0,
                 "verdict": "Too Short for Reliable AI Detection",
-                "explanation": f"{pii_msg}{status_note or 'Insufficient text for analysis.'}".strip(),
+                "explanation": explanation_text,
                 "risk_label": "UNKNOWN",
-                "detectors_executed": ["pii_detection"] if pii_detected else [],
+                "detectors_executed": ["pii_detection"] if pii_detected else ["short_text_check"],
                 "results": [{
                     "detection_type": "pii_detection" if pii_detected else "short_text",
                     "confidence_score": 0.0,
                     "flags": [result["verdict"]],
-                    "short_explanation": f"{pii_msg}{status_note or 'Insufficient text for analysis.'}".strip()
+                    "short_explanation": explanation_text
                 }]
             })
             return {"results": [result]}
 
-        
+
+
         ai_score = _calculate_perplexity_score(cleaned_text) 
         
         result["risk_score"] = round(ai_score, 3)
@@ -243,11 +242,11 @@ def detect_pdf_ai(input_data: str) -> Dict:
             verdict = "Likely AI-generated"
             ai_msg = "Text is highly predictable (low perplexity)."
             risk_label = "HIGH"
-        elif ai_score >= 0.50: # Medium predictability
+        elif ai_score >= 0.50: 
             verdict = "Suspicious"
             ai_msg = "Text predictability is slightly lower than average human text."
             risk_label = "MEDIUM"
-        else: # Low predictability (High Perplexity) -> Safe
+        else: 
             verdict = "Safe"
             ai_msg = "Text exhibits sufficient linguistic variance."
             risk_label = "LOW"
@@ -268,6 +267,7 @@ def detect_pdf_ai(input_data: str) -> Dict:
         })
 
         logger.info(f"Analysis complete. Score: {result['risk_score']}")
+        
         return {"results": [result]}
 
     except Exception as e:
@@ -278,7 +278,8 @@ def detect_pdf_ai(input_data: str) -> Dict:
             "verdict": "Error",
             "explanation": "Failed to analyze document content.",
             "limitations": "File might be corrupted, password protected, or unreadable.",
-            "error": str(e),
+            
+            "error": f"Error: {str(e)} - Metadata for error context: {metadata.get('metadata_received', 'N/A')}", 
             "file_metadata": {
                 "name": "Error Processing File", 
                 "size_bytes": 0,
@@ -288,4 +289,5 @@ def detect_pdf_ai(input_data: str) -> Dict:
             "results": [],
             "risk_label": "ERROR"
         }
+        
         return {"results": [error_detail]}
