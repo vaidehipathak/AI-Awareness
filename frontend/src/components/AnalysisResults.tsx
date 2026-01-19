@@ -46,8 +46,7 @@ interface AnalysisResultsProps {
 }
 
 const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) => {
-  console.log('FULL RESULT FROM BACKEND:', result);
-
+  
   const [showDetails, setShowDetails] = useState(false);
 
   const finalRiskLabel = result?.risk_label || result.results?.[0]?.label || 'UNKNOWN';
