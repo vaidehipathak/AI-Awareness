@@ -106,6 +106,18 @@ const Report: React.FC = () => {
         analysisResult = data;
       }
 
+      // ✅ Inject file metadata so AnalysisResults can display it
+      if (file) {
+        if (analysisResult) {
+          analysisResult.file_metadata = {
+            name: file.name,
+            original_name: file.name,
+            size_bytes: file.size,
+            file_type: file.type || 'N/A',
+          };
+        }
+      }
+
       setResult(analysisResult);
 
       setFile(null);

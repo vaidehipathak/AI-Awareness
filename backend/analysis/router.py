@@ -6,7 +6,6 @@ from .models import AnalysisFile, DetectionRun, DetectorResult
 from core.ai_detection.pdf_text_detector import detect_pdf_ai
 from .detectors import image_deepfake as image_detector
 from io import BytesIO
-import os
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,15 +15,24 @@ def _extract_pdf_text(file_obj) -> str:
     extracted_text = []
     try:
         from pypdf import PdfReader
-        reader = PdfReader(file_obj)
+
+        # IMPORTANT: make sure pointer is at start
+        file_obj.seek(0)
+        pdf_bytes = file_obj.read()
+        reader = PdfReader(BytesIO(pdf_bytes))
+
         for page in reader.pages:
             content = page.extract_text()
             if content and content.strip():
                 extracted_text.append(content)
+
     except Exception as e:
         logger.error(f"pypdf Extraction failed in router: {str(e)}")
-        file_obj.seek(0)
-        return file_obj.read().decode(errors="ignore")
+        try:
+            file_obj.seek(0)
+            return file_obj.read().decode(errors="ignore")
+        except Exception:
+            return ""
 
     return " ".join(extracted_text).strip()
 
@@ -115,13 +123,18 @@ def route_and_detect(*, user, uploaded_file, metadata: Dict[str, Any]) -> Dict[s
     payload = {"metadata": metadata}
 
     if ftype == "image":
+        uploaded_file.seek(0)
         payload["bytes"] = uploaded_file.read()
         uploaded_file.seek(0)
     else:
         if ftype == "pdf":
             payload["text"] = _extract_pdf_text(uploaded_file)
         else:
-            payload["text"] = uploaded_file.read().decode(errors="ignore")
+            uploaded_file.seek(0)
+            try:
+                payload["text"] = uploaded_file.read().decode("utf-8", errors="ignore")
+            except Exception:
+                payload["text"] = ""
         uploaded_file.seek(0)
 
     outputs_list = []
