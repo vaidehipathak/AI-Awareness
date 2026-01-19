@@ -11,11 +11,13 @@ interface Metadata {
 const Report: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
   const [file, setFile] = useState<File | null>(null);
   const [metadata, setMetadata] = useState<Metadata>({ source: '', notes: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResultData | null>(null);
+
   const dragOverRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -45,6 +47,7 @@ const Report: React.FC = () => {
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     dragOverRef.current = false;
+
     const droppedFiles = e.dataTransfer.files;
     if (droppedFiles.length > 0) {
       handleFileSelect(droppedFiles[0]);
@@ -72,6 +75,7 @@ const Report: React.FC = () => {
     try {
       const formData = new FormData();
       formData.append('file', file);
+
       if (metadata.source || metadata.notes) {
         formData.append('metadata', JSON.stringify(metadata));
       }
@@ -81,7 +85,7 @@ const Report: React.FC = () => {
       const response = await fetch('http://localhost:8000/api/analyze/', {
         method: 'POST',
         headers: {
-          'Authorization': token ? `Bearer ${token}` : '',
+          Authorization: token ? `Bearer ${token}` : '',
         },
         body: formData,
       });
@@ -89,17 +93,16 @@ const Report: React.FC = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || `Server error: ${response.status}`);
+        setError(data?.error || `Server error: ${response.status}`);
         return;
       }
 
-      // === FIX: Handle PDF/TXT and image results correctly ===
+      // Handle PDF/TXT vs Image formats
       let analysisResult: AnalysisResultData | null = null;
-      if (Array.isArray(data.results) && data.results.length > 0 && data.results[0].results) {
-        // PDF/TXT response format
+
+      if (Array.isArray(data?.results) && data.results.length > 0 && data.results[0]?.results) {
         analysisResult = data.results[0];
       } else {
-        // Image response format
         analysisResult = data;
       }
 
@@ -107,6 +110,7 @@ const Report: React.FC = () => {
 
       setFile(null);
       setMetadata({ source: '', notes: '' });
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Network error or server is down');
     } finally {
@@ -122,7 +126,6 @@ const Report: React.FC = () => {
 
   return (
     <div className="container mx-auto max-w-4xl min-h-[calc(100vh-200px)]">
-
       {!result ? (
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-8 md:p-12 animate-in fade-in zoom-in-95 duration-300">
           <div className="text-center mb-10">
@@ -172,11 +175,7 @@ const Report: React.FC = () => {
                   </p>
                 </div>
                 <div className="flex gap-2 justify-center text-xs text-gray-400 uppercase tracking-wide">
-                  <span>PDF</span>
-                  <span>•</span>
-                  <span>TXT</span>
-                  <span>•</span>
-                  <span>Images</span>
+                  <span>PDF</span><span>•</span><span>TXT</span><span>•</span><span>Images</span>
                 </div>
               </div>
             ) : (
@@ -206,8 +205,7 @@ const Report: React.FC = () => {
             )}
           </div>
 
-
-          {/* Metadata Fields */}
+          {/* Metadata */}
           <div className="grid md:grid-cols-2 gap-6 mb-8">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -221,6 +219,7 @@ const Report: React.FC = () => {
                 placeholder="e.g. Email attachment, Social media"
               />
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Context Notes
@@ -234,17 +233,12 @@ const Report: React.FC = () => {
             </div>
           </div>
 
-          {/* Error Message */}
           {error && (
             <div className="mb-8 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg flex items-center gap-3">
-              <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
               {error}
             </div>
           )}
 
-          {/* Submit Button */}
           <div className="flex justify-center">
             <button
               onClick={handleAnalyze}
@@ -257,17 +251,7 @@ const Report: React.FC = () => {
                 }
               `}
             >
-              {loading ? (
-                <div className="flex items-center justify-center gap-3">
-                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Processing...
-                </div>
-              ) : (
-                'Run Analysis'
-              )}
+              {loading ? 'Processing...' : 'Run Analysis'}
             </button>
           </div>
         </div>
