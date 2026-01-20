@@ -29,10 +29,9 @@ load_dotenv(BASE_DIR / ".env", override=True)
 SECRET_KEY = 'django-insecure-1#b(vqc-b6vvoe*#j1a-k#c&rsl&*)rrnv%g1kn%nby77d@ft6'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '*']
-
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 # Application definition
 
@@ -161,8 +160,16 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.IsAuthenticated',
     ),
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/day',
+        'user': '1000/day'
+    }
 }
 
 # Simple JWT Configuration
@@ -211,4 +218,3 @@ else:
     # Fallback to Console
     DEFAULT_FROM_EMAIL = 'noreply@awareness.io'
 
-CORS_ALLOW_ALL_ORIGINS = True

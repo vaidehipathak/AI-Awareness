@@ -40,9 +40,17 @@ const QuizPage: React.FC = () => {
       const response = await axios.get('http://localhost:8000/api/transform/quizzes/');
       // Transform logic if needed, but for now assuming backend returns compatible structure
       // If backend fails or empty, fall back to static catalog
-      if (response.data && response.data.length > 0) {
-        setCategories(response.data);
+      let fetchedData = response.data;
+
+      // Handle Django Rest Framework pagination results { count: ..., results: [...] }
+      if (!Array.isArray(fetchedData) && fetchedData?.results && Array.isArray(fetchedData.results)) {
+        fetchedData = fetchedData.results;
+      }
+
+      if (Array.isArray(fetchedData) && fetchedData.length > 0) {
+        setCategories(fetchedData);
       } else {
+        console.warn("API returned non-array or empty data, falling back to catalog:", response.data);
         setCategories(quizCatalog);
       }
     } catch (err) {

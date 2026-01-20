@@ -9,7 +9,7 @@ interface ChatMessage {
 
 const initialMessage: ChatMessage = {
   role: 'model',
-  text: "Hello! I'm the AI assistant for Awareness.io. Ask me about AI awareness, digital safety, online privacy, or responsible technology use. How can I help you today?"
+  text: "Hello! I'm the AI assistant for AI AwareX. Ask me about AI awareness, digital safety, online privacy, or responsible technology use. How can I help you today?"
 };
 
 // Markdown component styling

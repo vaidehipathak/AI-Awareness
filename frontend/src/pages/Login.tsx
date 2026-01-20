@@ -46,7 +46,7 @@ const Login: React.FC = () => {
       <div className="flex w-full lg:w-1/2 bg-gray-50 dark:bg-gray-800/50 p-8 lg:p-12 flex-col justify-between border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-800">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            Awareness.io
+            AI AwareX
           </h1>
           <p className="text-gray-500 dark:text-gray-400">
             A cybersecurity awareness and AI-powered incident analysis platform.
@@ -94,7 +94,7 @@ const Login: React.FC = () => {
         </div>
 
         <div className="hidden lg:block text-sm text-gray-400 dark:text-gray-500">
-          © {new Date().getFullYear()} Awareness.io Platform. All rights reserved.
+          © {new Date().getFullYear()} AI AwareX Platform. All rights reserved.
         </div>
       </div>
 
@@ -207,7 +207,7 @@ const Login: React.FC = () => {
                 </div>
                 <div className="relative flex justify-center text-sm">
                   <span className="px-2 bg-white dark:bg-gray-900 text-gray-500">
-                    Protected by Awareness.io Analysis Engine
+                    Protected by AI AwareX Analysis Engine
                   </span>
                 </div>
               </div>

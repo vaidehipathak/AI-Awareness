@@ -1,4 +1,4 @@
-# AI-Awareness: Explainable Cybersecurity Risk Detection Platform
+# AI-AwareX: Explainable Cybersecurity Risk Detection Platform
 
 ## Project Overview
 

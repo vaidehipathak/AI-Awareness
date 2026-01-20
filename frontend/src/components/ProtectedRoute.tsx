@@ -28,20 +28,16 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // 2. MFA Enrollment Check
-  // If user is authenticated but has NOT enabled MFA yet, force enrollment.
-  if (user && !user.mfa_enabled) {
+  // If user is authenticated but has NOT enabled MFA yet, enforce enrollment ONLY for ADMINs.
+  if (user && !user.mfa_enabled && user.role === 'ADMIN') {
     return <Navigate to="/otp-enroll" state={{ from: location }} replace />;
   }
 
-  // 3. MFA Verification  // 2. MFA Check
-  // If user is authenticated but MFA is not enabled (Mandatory for ALL),
-  // redirect to Enrollment
-  if (user && !user.mfa_enabled) {
-    return <Navigate to="/otp-enroll" state={{ from: location }} replace />;
-  }
+
 
   // If user is authenticated, MFA enabled, but not verified in this session
-  if (user?.mfa_enabled && !user?.mfa_verified) {
+  // Enforce ONLY for ADMINs
+  if (user?.mfa_enabled && !user?.mfa_verified && user?.role === 'ADMIN') {
     return <Navigate to="/otp-verify" state={{ from: location }} replace />;
   }
 

@@ -1,6 +1,6 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
-from rest_framework.decorators import action, api_view
+from rest_framework.decorators import action, api_view, permission_classes
 from django.utils import timezone
 from django.conf import settings
 import requests
@@ -76,6 +76,7 @@ class AwarenessTopicViewSet(ContentAuditViewSet):
 
 
 @api_view(['GET'])
+@permission_classes([permissions.AllowAny])
 def fetch_news(request):
     """
     NewsAPI.ai (Event Registry) proxy endpoint with strict AI relevance filtering.

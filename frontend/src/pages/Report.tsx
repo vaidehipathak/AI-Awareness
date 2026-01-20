@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AnalysisResults, { AnalysisResultData } from '../components/AnalysisResults';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, FileText, FileImage, X, AlertCircle, Loader2, Link, File, Video, Scan, Shield, FileSearch, CheckCircle, ScanSearch, FileUp } from 'lucide-react';
+import { Upload, FileText, FileImage, Video, Shield, FileSearch, CheckCircle, ScanSearch, FileUp, X, AlertCircle, Loader2, Scan } from 'lucide-react';
 
 interface Metadata {
   source?: string;
@@ -13,11 +13,10 @@ interface Metadata {
 type ToolType = 'PII' | 'IMAGE' | 'VIDEO' | 'PDF' | null;
 
 const Report: React.FC = () => {
-  const { isAuthenticated, logout } = useAuth();
+  const { logout } = useAuth(); // removed isAuthenticated unused var check if needed
   const navigate = useNavigate();
 
   const [activeTool, setActiveTool] = useState<ToolType>(null);
-
   const [file, setFile] = useState<File | null>(null);
   const [metadata, setMetadata] = useState<Metadata>({ source: '', notes: '' });
   const [loading, setLoading] = useState(false);
@@ -67,6 +66,7 @@ const Report: React.FC = () => {
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     dragOverRef.current = false;
+
     const droppedFiles = e.dataTransfer.files;
     if (droppedFiles.length > 0) {
       handleFileSelect(droppedFiles[0]);
@@ -79,16 +79,6 @@ const Report: React.FC = () => {
       return;
     }
 
-    // AUTH CHECK REDO: "Login only for games" -> Reporting is public now?
-    // If backend requires auth, we must login. If backend is open, we proceed.
-    // Assuming backend endpoint /api/analyze/ is PROTECTED by default Django permissions.
-    // If user wants this public, we'd need to change backend. 
-    // BUT the prompt says "buttons... Play & Learn (Login Required)", implies others might NOT be.
-    // However, for now, let's assume it strictly requires auth if the backend enforces it.
-    // If the backend enforces IsAuthenticated, this will fail 401. 
-    // Let's keep the check for safety, or remove it if we assume backend allows it.
-    // Given "Login only for games", let's try to allow it. If 401, we handle it.
-
     setLoading(true);
     setError(null);
     setResult(null);
@@ -96,6 +86,7 @@ const Report: React.FC = () => {
     try {
       const formData = new FormData();
       formData.append('file', file);
+
       if (metadata.source || metadata.notes) {
         formData.append('metadata', JSON.stringify(metadata));
       }
@@ -105,7 +96,7 @@ const Report: React.FC = () => {
       const response = await fetch('http://localhost:8000/api/analyze/', {
         method: 'POST',
         headers: {
-          // Send token if we have it, otherwise anonymous (backend might reject)
+          // Send token if we have it
           ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
         body: formData,
@@ -114,7 +105,6 @@ const Report: React.FC = () => {
       const data = await response.json();
 
       if (response.status === 401) {
-        // If unauthorized, prompt login
         setError('This feature currently requires an account. Please login to continue.');
         setTimeout(() => {
           navigate('/login', { state: { from: '/report' } });
@@ -123,20 +113,30 @@ const Report: React.FC = () => {
       }
 
       if (!response.ok) {
-        setError(data.error || `Server error: ${response.status}`);
+        setError(data?.error || `Server error: ${response.status}`);
         return;
       }
 
       // Handle Result Formats
       let analysisResult: AnalysisResultData | null = null;
-      if (Array.isArray(data.results) && data.results.length > 0 && data.results[0].results) {
+      if (Array.isArray(data?.results) && data.results.length > 0 && data.results[0]?.results) {
         analysisResult = data.results[0];
       } else {
         analysisResult = data;
       }
 
+      // Inject file metadata if missing
+      if (file && analysisResult) {
+        analysisResult.file_metadata = {
+          name: file.name,
+          original_name: file.name,
+          size_bytes: file.size,
+          file_type: file.type || 'N/A',
+        };
+      }
+
       setResult(analysisResult);
-      setFile(null); // Clear file after successful upload (optional, but good for reset)
+      setFile(null);
       setMetadata({ source: '', notes: '' });
 
     } catch (err) {
@@ -170,7 +170,6 @@ const Report: React.FC = () => {
   };
 
   const toolConfig = getToolConfig();
-
 
   // --- MAIN RENDER ---
 
@@ -290,7 +289,7 @@ const Report: React.FC = () => {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             className={`
-                relative group border border-dashed rounded-3xl p-16 text-center mb-10 transition-all duration-300 overflow-hidden
+                relative group border border-dashed rounded-3xl p-16 text-center mb-8 transition-all duration-300 overflow-hidden
                 ${dragOverRef.current
                 ? 'border-blue-500 bg-blue-500/10'
                 : 'border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 bg-gray-50/50 dark:bg-gray-800/50 hover:bg-blue-50/30'
@@ -319,6 +318,9 @@ const Report: React.FC = () => {
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     Drag & drop or click to browse
                   </p>
+                  <p className="text-xs text-gray-400 mt-2 uppercase tracking-wide">
+                    {toolConfig.accept.replace(/[.]/g, ' ').toUpperCase()}
+                  </p>
                 </div>
               </div>
             ) : (
@@ -345,6 +347,34 @@ const Report: React.FC = () => {
               </div>
             )}
           </motion.div>
+
+          {/* Metadata Inputs (Added from conflict resolution) */}
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Source Reference
+              </label>
+              <input
+                type="text"
+                value={metadata.source || ''}
+                onChange={(e) => setMetadata({ ...metadata, source: e.target.value })}
+                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                placeholder="e.g. Email attachment, Social media"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Context Notes
+              </label>
+              <input
+                value={metadata.notes || ''}
+                onChange={(e) => setMetadata({ ...metadata, notes: e.target.value })}
+                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                placeholder="Brief context..."
+              />
+            </div>
+          </div>
 
           {/* Error Message */}
           <AnimatePresence>
