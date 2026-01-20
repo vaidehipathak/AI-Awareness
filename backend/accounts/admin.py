@@ -10,9 +10,9 @@ class RoleBasedAdminSite(admin.AdminSite):
     Only users with role='ADMIN' can access the admin panel,
     in addition to standard is_active and is_staff checks.
     """
-    site_header = "AI Awareness Administration"
-    site_title = "AI Awareness Admin"
-    index_title = "Welcome to AI Awareness Admin Panel"
+    site_header = "AI AwareX Administration"
+    site_title = "AI AwareX Admin"
+    index_title = "Welcome to AI AwareX Admin Panel"
     
     def has_permission(self, request):
         """

@@ -67,7 +67,7 @@ const Signup: React.FC = () => {
             <div className="hidden lg:flex lg:w-1/2 bg-gray-50 dark:bg-gray-800/50 p-12 flex-col justify-between border-r border-gray-200 dark:border-gray-800">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                        Awareness.io
+                        AI AwareX
                     </h1>
                     <p className="text-gray-500 dark:text-gray-400">
                         A cybersecurity awareness and AI-powered incident analysis platform.
@@ -115,7 +115,7 @@ const Signup: React.FC = () => {
                 </div>
 
                 <div className="text-sm text-gray-400 dark:text-gray-500">
-                    © {new Date().getFullYear()} Awareness.io Platform. All rights reserved.
+                    © {new Date().getFullYear()} AI AwareX Platform. All rights reserved.
                 </div>
             </div>
 

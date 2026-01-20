@@ -19,7 +19,7 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Load environment variables from backend/.env if present (keeps prod env-only safe)
-load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR / ".env", override=True)
 
 
 # Quick-start development settings - unsuitable for production
@@ -29,10 +29,9 @@ load_dotenv(BASE_DIR / ".env")
 SECRET_KEY = 'django-insecure-1#b(vqc-b6vvoe*#j1a-k#c&rsl&*)rrnv%g1kn%nby77d@ft6'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '*']
-
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 # Application definition
 
@@ -91,16 +90,12 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL'),
-        conn_max_age=0,  # Set to 0 when using a pooler like PgBouncer/Supavisor
+    "default": dj_database_url.parse(
+        os.environ["DATABASE_URL"],
+        conn_max_age=600,
         ssl_require=True
     )
 }
-
-# ADD THIS LINE RIGHT BELOW THE DATABASES BLOCK
-# This is required for Supabase port 6543
-DATABASES['default']['DISABLE_SERVER_SIDE_CURSORS'] = True
 
 # NewsAPI Configuration
 NEWS_API_KEY = os.getenv('NEWS_API_KEY', '')
@@ -165,8 +160,16 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.IsAuthenticated',
     ),
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/day',
+        'user': '1000/day'
+    }
 }
 
 # Simple JWT Configuration
@@ -215,4 +218,3 @@ else:
     # Fallback to Console
     DEFAULT_FROM_EMAIL = 'noreply@awareness.io'
 
-CORS_ALLOW_ALL_ORIGINS = True
