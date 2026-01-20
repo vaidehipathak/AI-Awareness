@@ -12,7 +12,8 @@ import BackButton from '../components/BackButton';
 import GamificationDashboard from '../components/games/GamificationDashboard';
 import ContentEditModal from '../components/admin/ContentEditModal';
 import AdminActionButtons from '../components/admin/AdminActionButtons';
-import { quizCatalog, QuizCategory, QuizQuestion } from '../data/quizCatalog';
+// Corrected imports: Alias Quiz/Question to match component usage
+import { quizCatalog, Quiz as QuizCategory, Question as QuizQuestion } from '../data/quizCatalog';
 
 const QuizPage: React.FC = () => {
   const { user } = useAuth();
@@ -38,8 +39,7 @@ const QuizPage: React.FC = () => {
     try {
       // Try to fetch from backend first
       const response = await axios.get('http://localhost:8000/api/transform/quizzes/');
-      // Transform logic if needed, but for now assuming backend returns compatible structure
-      // If backend fails or empty, fall back to static catalog
+
       let fetchedData = response.data;
 
       // Handle Django Rest Framework pagination results { count: ..., results: [...] }
@@ -51,11 +51,15 @@ const QuizPage: React.FC = () => {
         setCategories(fetchedData);
       } else {
         console.warn("API returned non-array or empty data, falling back to catalog:", response.data);
-        setCategories(quizCatalog);
+        // Flatten the dictionary object into an array for the state
+        const flattenedCatalog = Object.values(quizCatalog).flat();
+        setCategories(flattenedCatalog);
       }
     } catch (err) {
       console.warn("Backend quiz fetch failed, using static catalog.", err);
-      setCategories(quizCatalog);
+      // Flatten the dictionary object into an array for the state
+      const flattenedCatalog = Object.values(quizCatalog).flat();
+      setCategories(flattenedCatalog);
     } finally {
       setLoading(false);
     }
@@ -82,7 +86,9 @@ const QuizPage: React.FC = () => {
     setIsAnswered(true);
 
     const currentQuestion = selectedCategory?.questions[currentQuestionIndex];
-    if (currentQuestion && optionIndex === currentQuestion.correctAnswer) {
+    // Fix: Access correctIndex property from Question type, not 'correctAnswer' if type mismatch
+    // Checking quizCatalog.ts: Key is 'correctIndex'
+    if (currentQuestion && optionIndex === currentQuestion.correctIndex) {
       setScore(s => s + 10);
       confetti({
         particleCount: 30,
@@ -125,12 +131,13 @@ const QuizPage: React.FC = () => {
       className={`group relative overflow-hidden rounded-2xl p-6 h-full border ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-slate-200'} shadow-lg hover:shadow-xl transition-all cursor-pointer flex flex-col`}
       onClick={() => handleStartQuiz(category)}
     >
-      <div className={`absolute top-0 right-0 p-4 transition-transform group-hover:rotate-12 ${category.color.replace('bg-', 'text-').replace('/10', '')} opacity-20`}>
+      {/* Fallback for color/icon if missing in type (added defensive checks) */}
+      <div className={`absolute top-0 right-0 p-4 transition-transform group-hover:rotate-12 ${category.difficulty === 'hard' ? 'text-red-500' : category.difficulty === 'medium' ? 'text-yellow-500' : 'text-green-500'} opacity-20`}>
         <Brain size={64} />
       </div>
 
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${category.color} text-white shadow-md`}>
-        <category.icon size={24} />
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${category.difficulty === 'hard' ? 'bg-red-100 text-red-600' : category.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-600' : 'bg-green-100 text-green-600'} shadow-md`}>
+        <Brain size={24} />
       </div>
 
       <h3 className={`text-xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-slate-900'}`}>{category.title}</h3>
@@ -177,24 +184,20 @@ const QuizPage: React.FC = () => {
         >
           <div className="flex items-start gap-4 mb-6">
             <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold px-3 py-1 rounded-lg text-sm">
-              {question.difficulty.toUpperCase()}
+              {selectedCategory.difficulty.toUpperCase()}
             </span>
             <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'} leading-tight`}>
-              {question.question}
+              {question.prompt}
             </h2>
           </div>
 
           <div className="space-y-4">
             {question.options.map((option, idx) => {
               // Styling Logic
-              // Default: Gray/White
-              // Selected & Correct: Green
-              // Selected & Wrong: Red
-              // Not Selected but Correct (Reveal): Green Outline
               let baseStyle = `${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-slate-50 hover:bg-slate-100'} border-2 border-transparent`;
 
               if (isAnswered) {
-                if (idx === question.correctAnswer) {
+                if (idx === question.correctIndex) { // Using correctIndex
                   baseStyle = "bg-green-100 dark:bg-green-900/30 border-green-500 text-green-800 dark:text-green-300";
                 } else if (idx === selectedAnswer) {
                   baseStyle = "bg-red-100 dark:bg-red-900/30 border-red-500 text-red-800 dark:text-red-300";
@@ -211,8 +214,8 @@ const QuizPage: React.FC = () => {
                   className={`w-full text-left p-4 rounded-xl transition-all duration-200 flex justify-between items-center ${baseStyle}`}
                 >
                   <span className="font-medium text-lg">{option}</span>
-                  {isAnswered && idx === question.correctAnswer && <CheckCircle size={20} className="text-green-600" />}
-                  {isAnswered && idx === selectedAnswer && idx !== question.correctAnswer && <XCircle size={20} className="text-red-600" />}
+                  {isAnswered && idx === question.correctIndex && <CheckCircle size={20} className="text-green-600" />}
+                  {isAnswered && idx === selectedAnswer && idx !== question.correctIndex && <XCircle size={20} className="text-red-600" />}
                 </button>
               );
             })}
@@ -226,10 +229,10 @@ const QuizPage: React.FC = () => {
                 animate={{ opacity: 1, height: 'auto' }}
                 className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700"
               >
-                <div className={`p-4 rounded-xl mb-6 ${question.correctAnswer === selectedAnswer ? 'bg-green-50 dark:bg-green-900/10' : 'bg-orange-50 dark:bg-orange-900/10'}`}>
-                  <h4 className={`font-bold mb-1 flex items-center gap-2 ${question.correctAnswer === selectedAnswer ? 'text-green-700 dark:text-green-400' : 'text-orange-700 dark:text-orange-400'}`}>
-                    {question.correctAnswer === selectedAnswer ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
-                    {question.correctAnswer === selectedAnswer ? "Correct!" : "Not quite right..."}
+                <div className={`p-4 rounded-xl mb-6 ${question.correctIndex === selectedAnswer ? 'bg-green-50 dark:bg-green-900/10' : 'bg-orange-50 dark:bg-orange-900/10'}`}>
+                  <h4 className={`font-bold mb-1 flex items-center gap-2 ${question.correctIndex === selectedAnswer ? 'text-green-700 dark:text-green-400' : 'text-orange-700 dark:text-orange-400'}`}>
+                    {question.correctIndex === selectedAnswer ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
+                    {question.correctIndex === selectedAnswer ? "Correct!" : "Not quite right..."}
                   </h4>
                   <p className="text-gray-600 dark:text-gray-300 text-sm">{question.explanation}</p>
                 </div>
@@ -327,8 +330,6 @@ const QuizPage: React.FC = () => {
   const AdminQuizList = () => {
     const [isCreating, setIsCreating] = useState(false);
 
-    // In strict mode, admin doesn't see quizzes
-    // But let's show them the management table
     return (
       <div className={`min-h-screen ${darkMode ? 'bg-slate-900' : 'bg-slate-50'} p-8`}>
         <div className="max-w-7xl mx-auto">
@@ -366,10 +367,9 @@ const QuizPage: React.FC = () => {
                   <tr key={cat.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
                     <td className="px-6 py-4 font-mono text-xs opacity-50">#{cat.id}</td>
                     <td className={`px-6 py-4 font-medium ${darkMode ? 'text-white' : 'text-slate-900'}`}>{cat.title}</td>
-                    <td className="px-6 py-4 capitalize">{cat.questions[0]?.difficulty || 'Mixed'}</td>
+                    <td className="px-6 py-4 capitalize">{cat.difficulty}</td>
                     <td className="px-6 py-4">{cat.questions.length}</td>
                     <td className="px-6 py-4 text-right">
-                      {/* Using AdminActionButtons roughly adapts to 'quizzes' type if updated, otherwise manual logic */}
                       <div className="flex justify-end gap-2">
                         <button className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-blue-500">Edit</button>
                         <button className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-red-500">Delete</button>
@@ -442,7 +442,11 @@ const QuizPage: React.FC = () => {
 
         {/* Categories Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          {categories.filter(c => c.questions.some(q => q.difficulty === difficulty || c.questions[0].difficulty === 'mixed')).map(category => (
+          {/* Robust filter logic to prevent crashes if questions array is missing or empty */}
+          {categories.filter(c =>
+            c?.questions?.length > 0 &&
+            (c.questions.some(q => q.difficulty === difficulty) || c.difficulty === difficulty)
+          ).map(category => (
             <QuizCard key={category.id} category={category} />
           ))}
 
