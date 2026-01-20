@@ -46,6 +46,33 @@ const Home: React.FC = () => {
       navigate('/report');
     }, 1500);
   };
+  
+  const trustedPlatforms = [
+  {
+    name: "Elements of AI",
+    url: "https://www.elementsofai.com/",
+  },
+  {
+    name: "Ethics of AI (University of Helsinki)",
+    url: "https://ethics-of-ai.mooc.fi/",
+  },
+  {
+    name: "IBM SkillsBuild – Artificial Intelligence",
+    url: "https://skillsbuild.org/students/course-catalog/artificial-intelligence",
+  },
+  {
+    name: "Great Learning – Free AI Courses",
+    url: "https://www.mygreatlearning.com/ai/free-courses",
+  },
+  {
+    name: "Alison – AI Governance & Ethics",
+    url: "https://alison.com/course/ai-governance-and-ethics",
+  },
+  {
+      name: "AI For All (AI-For-All.in)",
+    url: "https://ai-for-all.in/#/home",
+  },
+];
 
   return (
     <div className="min-h-screen overflow-hidden bg-slate-50 dark:bg-[#0a0a0a] transition-colors duration-500 font-sans selection:bg-indigo-500 selection:text-white">
@@ -429,14 +456,46 @@ const Home: React.FC = () => {
       </section>
 
       {/* --- 7. GOVT & TRUST --- */}
-      <section className="py-24 text-center">
-        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-12">Trusted Learning Platforms for AI</p>
-        <div className="flex flex-wrap justify-center gap-8 md:gap-16 opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
-          {["AICTE", "MeitY", "CERT-In", "NPTEL", "CyberSafe"].map((logo, i) => (
-            <span key={i} className="text-2xl font-black text-slate-300 hover:text-indigo-500 transition-colors cursor-default select-none">{logo}</span>
-          ))}
-        </div>
-      </section>
+<section className="py-24 text-center">
+  <p className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-12">
+    Trusted Learning Platforms for AI Awareness
+  </p>
+
+  <div
+    className="
+      grid grid-cols-1 
+      sm:grid-cols-2 
+      md:grid-cols-3 
+      gap-10 
+      max-w-5xl 
+      mx-auto
+    "
+  >
+    {trustedPlatforms.map((platform, i) => (
+      <a
+        key={i}
+        href={platform.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="
+          group
+          flex items-center justify-center gap-2
+          text-lg font-extrabold
+          text-slate-700 dark:text-slate-200
+          hover:text-indigo-500 dark:hover:text-indigo-400
+          transition-colors duration-300
+        "
+      >
+        <span>{platform.name}</span>
+        <ExternalLink
+          size={18}
+          className="opacity-70 group-hover:opacity-100 transition-opacity"
+        />
+      </a>
+    ))}
+  </div>
+</section>
+
 
       {/* --- FOOTER --- */}
       <footer className="bg-slate-50 dark:bg-[#050505] border-t border-slate-200 dark:border-white/5 py-16 px-4">
