@@ -22,7 +22,7 @@ class MFAEnrollmentSerializer(serializers.Serializer):
         # 2. Generate Provisioning URI (for QR Code)
         otp_uri = pyotp.totp.TOTP(secret).provisioning_uri(
             name=user.email,
-            issuer_name="AI-Awareness-Platform"
+            issuer_name="AI-AwareX-Platform"
         )
         
         # 3. Generate 10 random backup codes (8 chars hex)

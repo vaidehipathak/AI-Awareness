@@ -122,26 +122,30 @@ class LoginView(APIView):
             tokens = serializer.get_tokens(auth_user)
 
             # --- MFA LOGIC ---
-            # --- MFA LOGIC ENFORCEMENT FOR ALL USERS ---
-            # Standard Users AND Admins MUST complete MFA.
+            # --- MFA LOGIC ENFORCEMENT FOR ADMINS ONLY ---
+            # Standard Users bypass MFA. Admins MUST complete MFA.
             
-            # Check if enrollment is required (never enrolled or admin-enforced reset)
-            if (not auth_user.mfa_enabled) or auth_user.mfa_reset_required:
-                    # FORCE ENROLLMENT
+            if auth_user.role == 'ADMIN':
+                # Check if enrollment is required (never enrolled or admin-enforced reset)
+                if (not auth_user.mfa_enabled) or auth_user.mfa_reset_required:
+                        # FORCE ENROLLMENT
+                        return Response({
+                            "requires_enrollment": True,
+                            "user_id": auth_user.id,
+                            "email": auth_user.email
+                        }, status=status.HTTP_200_OK)
+                else:
+                    # FORCE OTP VERIFICATION
+                    # Send temp_token (Access Token with mfa_verified=False)
                     return Response({
-                        "requires_enrollment": True,
+                        "requires_otp": True,
+                        "temp_token": tokens['access'],
                         "user_id": auth_user.id,
                         "email": auth_user.email
                     }, status=status.HTTP_200_OK)
-            else:
-                # FORCE OTP VERIFICATION
-                # Send temp_token (Access Token with mfa_verified=False)
-                return Response({
-                    "requires_otp": True,
-                    "temp_token": tokens['access'],
-                    "user_id": auth_user.id,
-                    "email": auth_user.email
-                }, status=status.HTTP_200_OK)
+            
+            # For non-admins or if MFA logic is bypassed, return tokens immediately
+            return Response(tokens, status=status.HTTP_200_OK)
 
             # Code below is unreachable if logic is correct, but kept as fail-safe or for specific bypass if ever needed.
             # return Response(tokens, status=status.HTTP_200_OK)

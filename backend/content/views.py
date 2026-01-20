@@ -192,7 +192,7 @@ def fetch_news(request):
             'description': article['description'],
             'url': article.get('source_url', '#'),
             'urlToImage': article.get('image_url'),
-            'source': {'name': article.get('source_name', 'AI Awareness')},
+            'source': {'name': article.get('source_name', 'AI AwareX')},
             'content': article.get('content', '')
         })
     

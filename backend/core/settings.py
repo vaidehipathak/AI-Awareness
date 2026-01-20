@@ -19,7 +19,7 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Load environment variables from backend/.env if present (keeps prod env-only safe)
-load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR / ".env", override=True)
 
 
 # Quick-start development settings - unsuitable for production
@@ -91,16 +91,12 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL'),
-        conn_max_age=0,  # Set to 0 when using a pooler like PgBouncer/Supavisor
+    "default": dj_database_url.parse(
+        os.environ["DATABASE_URL"],
+        conn_max_age=600,
         ssl_require=True
     )
 }
-
-# ADD THIS LINE RIGHT BELOW THE DATABASES BLOCK
-# This is required for Supabase port 6543
-DATABASES['default']['DISABLE_SERVER_SIDE_CURSORS'] = True
 
 # NewsAPI Configuration
 NEWS_API_KEY = os.getenv('NEWS_API_KEY', '')

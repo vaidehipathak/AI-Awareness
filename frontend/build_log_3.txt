@@ -1,0 +1,122 @@
+﻿[36mvite v6.4.1 [32mbuilding for production...[36m[39m
+transforming...
+[32mΓ£ô[39m 36 modules transformed.
+node.exe : 
+[31mΓ£ù[39m Build 
+failed in 3.59s
+At line:1 char:1
++ & "C:\Program Files
+\nodejs/node.exe" "C:
+\Users\pasad\AppData\
+Roaming\ ...
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: ([31mΓ£   
+ ù[39m Build fai    
+led in 3.59s:Str    
+ing) [], RemoteE    
+xception
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+[31merror during 
+build:
+[31m[vite]: Rollup 
+failed to resolve 
+import 
+"canvas-confetti" 
+from "C:/Users/pasad/
+OneDrive/Desktop/awar
+ex/AI-Awareness/front
+end/src/pages/Quiz.ts
+x".
+This is most likely 
+unintended because 
+it can break your 
+application at 
+runtime.
+If you do want to 
+externalize this 
+module explicitly 
+add it to
+`build.rollupOptions.
+external`[31m
+    at viteLog (file:
+///C:/Users/pasad/One
+Drive/Desktop/awarex/
+AI-Awareness/frontend
+/node_modules/vite/di
+st/node/chunks/dep-D4
+NMHUTW.js:46374:15)
+    at file:///C:/Use
+rs/pasad/OneDrive/Des
+ktop/awarex/AI-Awaren
+ess/frontend/node_mod
+ules/vite/dist/node/c
+hunks/dep-D4NMHUTW.js
+:46432:18
+    at onwarn (file:/
+//C:/Users/pasad/OneD
+rive/Desktop/awarex/A
+I-Awareness/frontend/
+node_modules/@vitejs/
+plugin-react/dist/ind
+ex.js:90:7)
+    at file:///C:/Use
+rs/pasad/OneDrive/Des
+ktop/awarex/AI-Awaren
+ess/frontend/node_mod
+ules/vite/dist/node/c
+hunks/dep-D4NMHUTW.js
+:46430:7
+    at onRollupLog (f
+ile:///C:/Users/pasad
+/OneDrive/Desktop/awa
+rex/AI-Awareness/fron
+tend/node_modules/vit
+e/dist/node/chunks/de
+p-D4NMHUTW.js:46422:5
+)
+    at onLog (file://
+/C:/Users/pasad/OneDr
+ive/Desktop/awarex/AI
+-Awareness/frontend/n
+ode_modules/vite/dist
+/node/chunks/dep-D4NM
+HUTW.js:46072:7)
+    at file:///C:/Use
+rs/pasad/OneDrive/Des
+ktop/awarex/AI-Awaren
+ess/frontend/node_mod
+ules/rollup/dist/es/s
+hared/node-entry.js:2
+1032:32
+    at Object.logger 
+[as onLog] (file:///C
+:/Users/pasad/OneDriv
+e/Desktop/awarex/AI-A
+wareness/frontend/nod
+e_modules/rollup/dist
+/es/shared/node-entry
+.js:22919:9)
+    at ModuleLoader.h
+andleInvalidResolvedI
+d (file:///C:/Users/p
+asad/OneDrive/Desktop
+/awarex/AI-Awareness/
+frontend/node_modules
+/rollup/dist/es/share
+d/node-entry.js:21663
+:26)
+    at file:///C:/Use
+rs/pasad/OneDrive/Des
+ktop/awarex/AI-Awaren
+ess/frontend/node_mod
+ules/rollup/dist/es/s
+hared/node-entry.js:2
+1621:26[39m
