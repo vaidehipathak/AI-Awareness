@@ -20,6 +20,14 @@ interface DeepfakeDetectorProps {
 const DeepfakeDetector: React.FC<DeepfakeDetectorProps> = ({ data, onScoreUpdate }) => {
     const [currentRound, setCurrentRound] = useState(0);
     const [score, setScore] = useState(0);
+
+    if (!data || !data.rounds || data.rounds.length === 0) {
+        return (
+            <div className="text-center p-12 bg-gray-100 dark:bg-gray-800 rounded-xl">
+                <p className="text-gray-500 dark:text-gray-400">No deepfake challenges available at the moment.</p>
+            </div>
+        );
+    }
     const [selectedImage, setSelectedImage] = useState<'a' | 'b' | null>(null);
     const [showResult, setShowResult] = useState(false);
     const [revealedClues, setRevealedClues] = useState<number[]>([]);

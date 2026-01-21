@@ -24,6 +24,14 @@ interface PhishingSorterProps {
 const PhishingSorter: React.FC<PhishingSorterProps> = ({ data, onScoreUpdate }) => {
     const [currentEmail, setCurrentEmail] = useState(0);
     const [score, setScore] = useState(0);
+
+    if (!data || !data.emails || data.emails.length === 0) {
+        return (
+            <div className="text-center p-12 bg-gray-100 dark:bg-gray-800 rounded-xl">
+                <p className="text-gray-500 dark:text-gray-400">No phishing emails available at the moment.</p>
+            </div>
+        );
+    }
     const [combo, setCombo] = useState(0);
     const [timeLeft, setTimeLeft] = useState(60);
     const [gameActive, setGameActive] = useState(false);

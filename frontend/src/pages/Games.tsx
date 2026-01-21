@@ -1,786 +1,338 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Gamepad2, Trophy, Brain, Zap, Target, Eye, AlertTriangle, Play,
-  RotateCcw, Check, X, ChevronRight, Star, Clock, Shield, Lock,
-  Unlock, User, Activity, AlertOctagon, HelpCircle, ArrowLeft, Plus
-} from 'lucide-react';
-import { useTheme } from 'next-themes';
-import confetti from 'canvas-confetti';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import BackButton from '../components/BackButton';
+import { useTheme } from 'next-themes';
+import {
+  Clock, Trophy, Target, Eye, Zap, Lock, Play, AlertTriangle
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+import confetti from 'canvas-confetti';
 
-// Game Components Imports
+import { useAuth } from '../contexts/AuthContext';
+import AdminActionButtons from '../components/admin/AdminActionButtons';
+import ContentEditModal from '../components/admin/ContentEditModal';
+import BackButton from '../components/BackButton';
+import GamificationDashboard from '../components/games/GamificationDashboard';
+
+// Complex Game Components
 import DeepfakeDetector from '../components/games/DeepfakeDetector';
 import BiasSpotter from '../components/games/BiasSpotter';
 import PhishingSorter from '../components/games/PhishingSorter';
-import GamificationDashboard from '../components/games/GamificationDashboard';
-import ContentEditModal from '../components/admin/ContentEditModal';
-import AdminActionButtons from '../components/admin/AdminActionButtons';
+
+/* ---------------- STATIC FALLBACK DATA ---------------- */
+// Ensures games are always playable even if API fails
+
+const FALLBACK_TF_DATA = [
+  { question: "AI can feel human emotions.", answer: false },
+  { question: "Deep learning is a subset of Machine Learning.", answer: true },
+  { question: "All AI requires the internet to function.", answer: false },
+  { question: "GPT stands for Generative Pre-trained Transformer.", answer: true },
+  { question: "Machine Learning models never make mistakes.", answer: false },
+  { question: "AI bias comes from the data it is trained on.", answer: true },
+  { question: "Siri and Alexa are examples of Narrow AI.", answer: true },
+  { question: "AI can legally hold a copyright in the US.", answer: false }
+];
+
+const FALLBACK_DEEPFAKE_DATA = {
+  rounds: [
+    {
+      image_a: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=600&h=600",
+      image_b: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&q=80&w=600&h=600&blur=2", // Simulate slight blur/AI feel
+      clues: ["Look closely at the hair strands.", "Check for asymmetry in the earrings.", "Examine the background texture."],
+      correct_answer: "b", // Assuming B is the 'fake' one for this simulation
+      explanation: "Image B shows subtle blurring in the background and unnatural hair blending, common artifacts in AI generation."
+    },
+    {
+      image_a: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600&h=600",
+      image_b: "https://plus.unsplash.com/premium_photo-1664474619075-644dd191935f?auto=format&fit=crop&q=80&w=600&h=600",
+      clues: ["Check the teeth alignment.", "Look at the lighting on the face.", "Are the glasses symmetrical?"],
+      correct_answer: "b",
+      explanation: "The lighting on the subject's face in Image B doesn't consistently match the background light source."
+    }
+  ]
+};
+
+const FALLBACK_BIAS_DATA = {
+  scenarios: [
+    {
+      title: "Hiring Algorithm",
+      ai_decision: "Resume Rejected: 'Captain of Women's Chess Club'",
+      visible_data: ["GPA: 3.9", "Experience: 4 years", "Skills: Python, Java"],
+      hidden_data: [
+        { clue: "Training data was 85% male resumes.", is_bias: true },
+        { clue: "The role requires 5 years experience.", is_bias: false },
+        { clue: "The model penalizes the word 'Women's'.", is_bias: true },
+        { clue: "The applicant lacks a specific requested certification.", is_bias: false }
+      ],
+      bias_type: "Gender Bias / Selection Bias"
+    },
+    {
+      title: "Loan Approval System",
+      ai_decision: "Loan Denied: Applicant D",
+      visible_data: ["Income: $80,000", "Credit Score: 720", "Debt: Low"],
+      hidden_data: [
+        { clue: "Model uses zip code as a risk proxy.", is_bias: true },
+        { clue: "Applicant has a recent bankruptcy explicitly listed.", is_bias: false },
+        { clue: "Historically redlined districts are weighted negatively.", is_bias: true },
+        { clue: "Debt-to-income ratio is actually acceptable.", is_bias: true }
+      ],
+      bias_type: "Socioeconomic Bias / Redlining"
+    }
+  ]
+};
+
+const FALLBACK_PHISHING_DATA = {
+  emails: [
+    {
+      sender: "security@paypa1-support.com",
+      subject: "URGENT: Your account has been suspended!",
+      body: "Dear User,\n\nWe noticed suspicious activity on your account. Please click the link below to verify your identity within 24 hours or your account will be permanently closed.\n\n[Verify Now]",
+      headers: { from: "security@paypa1-support.com", reply_to: "no-reply@paypa1.com" },
+      red_flags: ["Mispelled domain (paypa1)", "Urgent threat", "Generic greeting"],
+      is_phishing: true
+    },
+    {
+      sender: "newsletter@techweekly.io",
+      subject: "This Week in AI: New breakthroughs",
+      body: "Hi Jane,\n\nHere are the top stories in Artificial Intelligence this week...\n\nRead more on our blog.",
+      headers: { from: "newsletter@techweekly.io", reply_to: "newsletter@techweekly.io" },
+      red_flags: [],
+      is_phishing: false
+    },
+    {
+      sender: "hr-department@company-intranet.net",
+      subject: "Update your direct deposit info",
+      body: "Please log in to the portal to update your banking information for the upcoming payroll cycle.",
+      headers: { from: "hr-department@company-intranet.net", reply_to: "hr-admin@gmail.com" },
+      red_flags: [" mismatched reply-to", "asking for sensitive info via email link"],
+      is_phishing: true
+    }
+  ]
+};
+
 
 const GamesPage: React.FC = () => {
   const { user } = useAuth();
   const { theme } = useTheme();
   const darkMode = theme === 'dark';
-  const [activeTab, setActiveTab] = useState<'arcade' | 'leaderboard'>('arcade');
   const [currentGame, setCurrentGame] = useState<string | null>(null);
 
-  // --- GAME STATE ---
-  interface Game {
-    id: number;
-    title: string;
-    game_type: string;
-    description: string;
-    game_data: any;
-    is_active: boolean;
-  }
-
-  const [allGames, setAllGames] = useState<Game[]>([]); // For admin list & data source
-  const [loading, setLoading] = useState(true);
-
-  // User Stats (Mock or from LocalStorage/Backend)
-  const [lifetimeScores, setLifetimeScores] = useState<Record<string, number>>({
-    dragdrop: 0,
-    truefalse: 0,
-    quiz: 0,
-    memory: 0,
-    deepfake: 0,
-    biasspotter: 0,
-    phishing: 0
-  });
-
-  // Fetch games
-  const fetchGames = async () => {
-    try {
-      setLoading(true);
-      const res = await axios.get('http://localhost:8000/api/transform/games/'); // Adjusted endpoint
-      setAllGames(res.data);
-    } catch (err) {
-      console.error("Failed to fetch games", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchGames();
-    // Load scores from LS
-    const savedScores = localStorage.getItem('ai_game_scores');
-    if (savedScores) {
-      setLifetimeScores(JSON.parse(savedScores));
-    }
-  }, []);
-
-  const updateLifetimeScore = (gameKey: string, score: number) => {
-    const newScores = { ...lifetimeScores, [gameKey]: (lifetimeScores[gameKey] || 0) + score };
-    setLifetimeScores(newScores);
-    localStorage.setItem('ai_game_scores', JSON.stringify(newScores));
-
-    // Trigger confetti if high score or milestone (simple version)
-    if (score > 100) {
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
-    }
-  };
-
-
-  /* ---------------- UI COMPONENTS ---------------- */
-
-  const GameCard = ({ icon: Icon, title, description, onClick, color, locked = false }: any) => (
-    <motion.div
-      whileHover={{ y: -5, scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      onClick={!locked ? onClick : undefined}
-      className={`relative overflow-hidden group cursor-pointer rounded-2xl p-6 h-full border-l-4 ${color} ${darkMode ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white hover:bg-indigo-50'} shadow-lg hover:shadow-xl transition-all duration-300`}
-    >
-      <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-        <Icon size={120} />
-      </div>
-
-      <div className="relative z-10 flex flex-col h-full">
-        <div className={`p-3 w-fit rounded-xl mb-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} group-hover:bg-white/20 transition-colors`}>
-          <Icon size={32} className={darkMode ? 'text-white' : 'text-gray-800'} />
-        </div>
-
-        <h3 className={`text-xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{title}</h3>
-        <p className={`text-sm mb-6 flex-grow ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{description}</p>
-
-        <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100 dark:border-gray-700">
-          {locked ? (
-            <div className="flex items-center gap-2 text-gray-500 text-sm font-medium">
-              <Lock size={16} />
-              <span>Locked</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-indigo-500 font-bold text-sm group-hover:translate-x-1 transition-transform">
-              <span>Play Now</span>
-              <Play size={16} className="fill-current" />
-            </div>
-          )}
-        </div>
-      </div>
-    </motion.div>
-  );
-
-  /* ---------------- GAME IMPLEMENTATIONS (Internal) ---------------- */
-  // NOTE: More complex games (Deepfake, Bias, Phishing) are imported components.
-  // Simple games (DragDrop, TrueFalse, Memory) are implemented here for demo.
-
-  // 1. Drag & Drop Terminology
-  const DragDropGame = () => {
-    const [score, setScore] = useState(0);
-    const [items, setItems] = useState([
-      { id: '1', term: 'Neural Network', type: 'concept' },
-      { id: '2', term: 'GPU', type: 'hardware' },
-      { id: '3', term: 'Python', type: 'tool' },
-      { id: '4', term: 'Dataset', type: 'resource' },
-    ]);
-    const [targets] = useState(['concept', 'hardware', 'tool', 'resource']);
-    const [draggedItem, setDraggedItem] = useState<any>(null);
-
-    const handleDrop = (target: string) => {
-      if (draggedItem && draggedItem.type === target) {
-        setScore(s => s + 10);
-        setItems(items.filter(i => i.id !== draggedItem.id));
-        confetti({ particleCount: 30, spread: 30, origin: { y: 0.7 } });
-      }
-      setDraggedItem(null);
-    };
-
-    return (
-      <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-8`}>
-        <div className="flex justify-between items-center mb-8">
-          <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>AI Terminology Sort</h2>
-          <div className="text-xl font-bold text-indigo-500">Score: {score}</div>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-          {targets.map(t => (
-            <div
-              key={t}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={() => handleDrop(t)}
-              className={`h-32 rounded-xl border-2 border-dashed flex flex-col items-center justify-center capitalize font-bold ${darkMode ? 'border-gray-600 bg-gray-700/50' : 'border-gray-300 bg-gray-50'}`}
-            >
-              {t}
-            </div>
-          ))}
-        </div>
-
-        <div className="flex gap-4 flex-wrap justify-center min-h-[100px]">
-          {items.map(item => (
-            <motion.div
-              key={item.id}
-              draggable
-              onDragStart={() => setDraggedItem(item)}
-              whileHover={{ scale: 1.05 }}
-              whileDrag={{ scale: 1.1 }}
-              className="px-6 py-3 bg-indigo-500 text-white rounded-full shadow-lg cursor-move font-medium"
-            >
-              {item.term}
-            </motion.div>
-          ))}
-          {items.length === 0 && (
-            <div className="text-center w-full">
-              <h3 className="text-xl font-bold text-green-500 mb-4">All Sorted!</h3>
-              <button
-                onClick={() => {
-                  setItems([
-                    { id: '1', term: 'Neural Network', type: 'concept' },
-                    { id: '2', term: 'GPU', type: 'hardware' },
-                    { id: '3', term: 'Python', type: 'tool' },
-                    { id: '4', term: 'Dataset', type: 'resource' },
-                  ]);
-                  updateLifetimeScore('dragdrop', score);
-                  setScore(0);
-                }}
-                className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-              >
-                Play Again
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-
-  // 2. True/False Speed Run
-  const TrueFalseGame = () => {
-    const questions = [
-      { q: "AI can feel human emotions.", a: false },
-      { q: "Deep learning is a subset of Machine Learning.", a: true },
-      { q: "All AI requires the internet to function.", a: false },
-      { q: "GPT stands for Generative Pre-trained Transformer.", a: true },
-    ];
-    const [index, setIndex] = useState(0);
+  // --- INTERNAL TRUE/FALSE GAME ---
+  const TrueFalseGame: React.FC = () => {
+    const [questions, setQuestions] = useState<any[]>(FALLBACK_TF_DATA);
+    const [currentIndex, setCurrentIndex] = useState(0);
     const [score, setScore] = useState(0);
     const [timeLeft, setTimeLeft] = useState(30);
-    const [active, setActive] = useState(false);
-    const [gameOver, setGameOver] = useState(false);
+    const [gameActive, setGameActive] = useState(false);
+    const [gameComplete, setGameComplete] = useState(false);
+    const [answered, setAnswered] = useState(false);
+    const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+    const timerRef = useRef<any>(null);
 
     useEffect(() => {
-      let interval: any;
-      if (active && timeLeft > 0) {
-        interval = setInterval(() => setTimeLeft(t => t - 1), 1000);
-      } else if (timeLeft === 0) {
-        setGameOver(true);
-        setActive(false);
-        updateLifetimeScore('truefalse', score);
+      // Shuffle fallback data on load
+      setQuestions([...FALLBACK_TF_DATA].sort(() => Math.random() - 0.5));
+    }, []);
+
+    useEffect(() => {
+      if (gameActive && timeLeft > 0) {
+        timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+      } else if (timeLeft === 0 && gameActive) {
+        endGame();
       }
-      return () => clearInterval(interval);
-    }, [active, timeLeft]);
+      return () => clearTimeout(timerRef.current);
+    }, [timeLeft, gameActive]);
+
+    const startGame = () => {
+      setCurrentIndex(0);
+      setScore(0);
+      setTimeLeft(30);
+      setGameActive(true);
+      setGameComplete(false);
+      setAnswered(false);
+      setIsCorrect(null);
+    };
+
+    const endGame = () => {
+      setGameActive(false);
+      setGameComplete(true);
+      if (score > 50) confetti({ spread: 70, origin: { y: 0.6 } });
+    };
 
     const handleAnswer = (ans: boolean) => {
-      if (questions[index].a === ans) {
-        setScore(s => s + 100);
-      } else {
-        setTimeLeft(t => Math.max(0, t - 5)); // Penalty
-      }
-      if (index < questions.length - 1) {
-        setIndex(i => i + 1);
-      } else {
-        setGameOver(true);
-        setActive(false);
-        updateLifetimeScore('truefalse', score + timeLeft * 10);
-      }
+      if (answered) return;
+      setAnswered(true);
+      const correct = ans === questions[currentIndex].answer;
+      setIsCorrect(correct);
+
+      if (correct) setScore(s => s + 20); // Simple scoring
+
+      setTimeout(() => {
+        if (currentIndex < questions.length - 1) {
+          setCurrentIndex(i => i + 1);
+          setAnswered(false);
+          setIsCorrect(null);
+        } else {
+          endGame();
+        }
+      }, 1000);
     };
 
     return (
-      <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-8 max-w-2xl mx-auto overflow-hidden relative`}>
-        {!active && !gameOver ? (
-          <div className="text-center py-12">
-            <Zap size={64} className="mx-auto text-yellow-400 mb-6" />
-            <h2 className={`text-3xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Speed Run</h2>
-            <p className="mb-8 text-gray-500">Answer as many as you can in 30 seconds!</p>
-            <button
-              onClick={() => { setActive(true); setScore(0); setTimeLeft(30); setIndex(0); }}
-              className="px-8 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-xl text-lg transition-transform hover:scale-105"
-            >
-              Start!
-            </button>
+      <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-8 max-w-2xl mx-auto`}>
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-2xl font-bold">Lightning Round</h2>
+          {gameActive && <div className="text-xl font-bold text-red-500">{timeLeft}s</div>}
+        </div>
+
+        {!gameActive && !gameComplete ? (
+          <div className="text-center py-8">
+            <Zap className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+            <p className="text-lg mb-6">Answer as many as you can!</p>
+            <button onClick={startGame} className="px-8 py-3 bg-blue-600 text-white rounded-lg font-bold">Start</button>
           </div>
-        ) : gameOver ? (
-          <div className="text-center py-12">
-            <Trophy size={64} className="mx-auto text-yellow-400 mb-6" />
-            <h2 className={`text-3xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Game Over!</h2>
-            <div className="text-5xl font-black text-indigo-500 mb-8">{score}</div>
-            <button
-              onClick={() => setGameOver(false)}
-              className="px-8 py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-xl"
-            >
-              Try Again
-            </button>
+        ) : gameComplete ? (
+          <div className="text-center py-8">
+            <Trophy className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+            <h3 className="text-2xl font-bold mb-2">Time's Up!</h3>
+            <p className="text-xl mb-4">Score: {score}</p>
+            <button onClick={startGame} className="px-6 py-2 bg-blue-600 text-white rounded-lg">Retry</button>
           </div>
         ) : (
-          <div>
-            <div className="flex justify-between items-center mb-8">
-              <div className="text-2xl font-bold text-yellow-500">{timeLeft}s</div>
-              <div className="text-xl font-bold text-indigo-500">Score: {score}</div>
+          <div className="text-center">
+            <div className="mb-8 p-6 bg-gray-100 dark:bg-gray-700 rounded-xl">
+              <h3 className="text-xl font-bold">{questions[currentIndex].question}</h3>
             </div>
-
-            <div className={`text-center py-12 text-2xl font-bold mb-8 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              {questions[index].q}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+            <div className="flex justify-center gap-4">
               <button
                 onClick={() => handleAnswer(true)}
-                className="py-6 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold text-xl transition-transform active:scale-95"
+                disabled={answered}
+                className={`px-8 py-4 rounded-xl font-bold text-white transition-transform hover:scale-105 ${answered && isCorrect ? 'bg-green-500' : 'bg-green-600'}`}
               >
                 TRUE
               </button>
               <button
                 onClick={() => handleAnswer(false)}
-                className="py-6 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-xl transition-transform active:scale-95"
+                disabled={answered}
+                className={`px-8 py-4 rounded-xl font-bold text-white transition-transform hover:scale-105 ${answered && !isCorrect ? 'bg-red-500' : 'bg-red-600'}`}
               >
                 FALSE
               </button>
             </div>
+            {answered && (
+              <div className={`mt-4 font-bold text-lg ${isCorrect ? 'text-green-500' : 'text-red-500'}`}>
+                {isCorrect ? 'Correct!' : 'Incorrect'}
+              </div>
+            )}
           </div>
         )}
       </div>
     );
   };
 
+  /* ---------------- MAIN RENDER ---------------- */
 
-  // 3. Mini Trivia
-  const MultipleChoiceGame = () => {
-    // This is basically a mini-quiz, could reuse the Quiz component logic but simplified.
-    // For now, let's skip implementing a 2nd quiz here to avoid redundancy with Quiz Page.
-    // We will assume "Quiz" in games list redirects to Quiz Page or is a quick version.
+  const GameCard = ({ icon: Icon, title, description, onClick, color }: any) => (
+    <motion.div
+      whileHover={{ y: -5, scale: 1.02 }}
+      onClick={onClick}
+      className={`relative overflow-hidden cursor-pointer rounded-2xl p-6 h-full border-l-4 ${color} ${darkMode ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white hover:bg-gray-50'} shadow-lg transition-all`}
+    >
+      <div className="absolute top-0 right-0 p-4 opacity-10"><Icon size={100} /></div>
+      <div className="relative z-10 flex flex-col h-full">
+        <div className={`p-3 w-fit rounded-xl mb-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}><Icon size={32} /></div>
+        <h3 className="text-xl font-bold mb-2">{title}</h3>
+        <p className="text-sm text-gray-500 mb-6 flex-grow">{description}</p>
+        <div className="mt-auto pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center gap-2 text-indigo-500 font-bold text-sm">
+          Play Now <Play size={16} />
+        </div>
+      </div>
+    </motion.div>
+  );
+
+  if (user?.role === 'ADMIN' && !currentGame) {
+    // Basic Admin view placeholder or link to full dashboard
     return (
-      <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-12 text-center`}>
-        <Brain size={48} className="mx-auto text-indigo-500 mb-4" />
-        <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'} mb-2`}>Knowledge Challenge</h3>
-        <p className="text-gray-500 mb-6">Test your deep knowledge in our dedicated Quiz Section.</p>
-        <a href="/quiz" className="px-6 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 inline-block">Go to Quizzes</a>
+      <div className="min-h-screen p-8 text-center text-gray-500">
+        Admin Game Management available in Dashboard.
       </div>
     );
-  };
+  }
 
-  // 4. Spot the Bias (Simplified Visual Demo)
-  const SpotBiasGame = () => {
-    // A simplified text-based scenario version
-    const scenarios = [
-      {
-        text: "An AI recruiting tool penalizes resumes with the word 'women's' (e.g. 'women's chess club captain').",
-        bias: "Gender Bias",
-        explanation: "The model learned from historical data where men were dominant in tech roles."
-      },
-      {
-        text: "A facial recognition system struggles to identify people with darker skin tones.",
-        bias: "Racial Bias",
-        explanation: "The training dataset lacked diversity."
-      }
-    ];
+  if (currentGame) {
+    const bgClass = darkMode ? 'bg-gray-900' : 'bg-slate-50';
+    let GameComponent = null;
 
-    const [current, setCurrent] = useState(0);
-    const [showReveal, setShowReveal] = useState(false);
-
-    const next = () => {
-      setShowReveal(false);
-      setCurrent(c => (c + 1) % scenarios.length);
-    };
+    switch (currentGame) {
+      case 'truefalse':
+        GameComponent = <TrueFalseGame />;
+        break;
+      case 'deepfake':
+        // Pass fallback data directly
+        GameComponent = <DeepfakeDetector data={FALLBACK_DEEPFAKE_DATA} />;
+        break;
+      case 'bias-spotter':
+        GameComponent = <BiasSpotter data={FALLBACK_BIAS_DATA} />;
+        break;
+      case 'phishing':
+        GameComponent = <PhishingSorter data={FALLBACK_PHISHING_DATA} />;
+        break;
+      default:
+        GameComponent = <div>Game Not Found</div>;
+    }
 
     return (
-      <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-8`}>
-        <div className="flex items-center gap-3 mb-6">
-          <AlertTriangle className="text-orange-500" />
-          <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>Spot the Bias</h2>
-        </div>
-
-        <div className={`p-6 rounded-xl mb-6 ${darkMode ? 'bg-gray-700' : 'bg-indigo-50'} border-l-4 border-indigo-500`}>
-          <p className={`text-lg italic ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>"{scenarios[current].text}"</p>
-        </div>
-
-        {!showReveal ? (
-          <div className="text-center">
-            <p className="mb-4 text-gray-500">What kind of bias is this?</p>
-            <button
-              onClick={() => setShowReveal(true)}
-              className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-            >
-              Reveal Answer
-            </button>
-          </div>
-        ) : (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center">
-            <h3 className="text-2xl font-bold text-red-500 mb-2">{scenarios[current].bias}</h3>
-            <p className="text-gray-500 mb-6">{scenarios[current].explanation}</p>
-            <button onClick={next} className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">Next Scenario</button>
-          </motion.div>
-        )}
-      </div>
-    );
-  };
-
-  // 5. Memory Match Game
-  const MemoryGame = () => {
-    const [cards, setCards] = useState<any[]>([]);
-    const [flippedCards, setFlippedCards] = useState<number[]>([]);
-    const [matchedCards, setMatchedCards] = useState<number[]>([]);
-    const [moves, setMoves] = useState(0);
-    const [score, setScore] = useState(0);
-    const [gameComplete, setGameComplete] = useState(false);
-
-    const terms = [
-      { id: 1, content: 'AI', type: 'term' },
-      { id: 2, content: 'Artificial Intelligence', type: 'def' },
-      { id: 3, content: 'ML', type: 'term' },
-      { id: 4, content: 'Machine Learning', type: 'def' },
-      { id: 5, content: 'NN', type: 'term' },
-      { id: 6, content: 'Neural Network', type: 'def' },
-      { id: 7, content: 'NLP', type: 'term' },
-      { id: 8, content: 'Natural Language Processing', type: 'def' },
-    ];
-
-    useEffect(() => {
-      initializeGame();
-    }, []);
-
-    const initializeGame = () => {
-      const shuffled = [...terms].sort(() => Math.random() - 0.5);
-      setCards(shuffled);
-      setFlippedCards([]);
-      setMatchedCards([]);
-      setMoves(0);
-      setScore(0);
-      setGameComplete(false);
-    };
-
-    const handleCardClick = (id: number) => {
-      if (flippedCards.length === 2 || matchedCards.includes(id) || flippedCards.includes(id)) return;
-
-      const newFlipped = [...flippedCards, id];
-      setFlippedCards(newFlipped);
-
-      if (newFlipped.length === 2) {
-        setMoves(moves + 1);
-        const card1 = cards.find(c => c.id === newFlipped[0]);
-        const card2 = cards.find(c => c.id === newFlipped[1]);
-
-        if (
-          (card1.type === 'term' && card2.type === 'def' && card1.id === card2.id - 1) ||
-          (card1.type === 'def' && card2.type === 'term' && card1.id === card2.id + 1)
-        ) {
-          const newMatched = [...matchedCards, ...newFlipped];
-          setMatchedCards(newMatched);
-          setScore(score + 10);
-          setFlippedCards([]);
-
-          if (newMatched.length === cards.length) {
-            setGameComplete(true);
-            updateLifetimeScore('memory', score + 20);
-          }
-        } else {
-          setTimeout(() => {
-            setFlippedCards([]);
-          }, 1000);
-        }
-      }
-    };
-
-    return (
-      <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-8`}>
-        <div className="flex justify-between items-center mb-6">
-          <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>Memory Match</h2>
-          <div className="flex items-center space-x-4">
-            <div className={`text-lg font-semibold ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>Score: {score}</div>
-            <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Moves: {moves}</div>
-            <button onClick={initializeGame} className={`px-4 py-2 ${darkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white rounded-lg`}>
-              New Game
-            </button>
-          </div>
-        </div>
-
-        {gameComplete ? (
-          <div className="text-center py-8">
-            <Trophy className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-            <h3 className={`text-2xl font-bold ${darkMode ? 'text-green-400' : 'text-green-600'} mb-2`}>Excellent!</h3>
-            <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'} mb-4`}>Matched all pairs in {moves} moves!</p>
-            <button onClick={initializeGame} className={`px-6 py-3 ${darkMode ? 'bg-green-600 hover:bg-green-700' : 'bg-green-500 hover:bg-green-600'} text-white rounded-lg`}>
-              Play Again
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {cards.map((card) => {
-              const isFlipped = flippedCards.includes(card.id) || matchedCards.includes(card.id);
-              const isMatched = matchedCards.includes(card.id);
-
-              return (
-                <div
-                  key={card.id}
-                  onClick={() => handleCardClick(card.id)}
-                  className={`h-32 rounded-lg cursor-pointer transition-all duration-300 flex items-center justify-center text-center p-2 ${isMatched
-                    ? `${darkMode ? 'bg-green-900 border-2 border-green-600' : 'bg-green-100 border-2 border-green-300'}`
-                    : isFlipped
-                      ? card.type === 'term'
-                        ? `${darkMode ? 'bg-blue-900 border-2 border-blue-600' : 'bg-blue-100 border-2 border-blue-300'}`
-                        : `${darkMode ? 'bg-purple-900 border-2 border-purple-600' : 'bg-purple-100 border-2 border-purple-300'}`
-                      : `${darkMode ? 'bg-gray-700 border-2 border-gray-600 hover:bg-gray-600' : 'bg-gray-200 border-2 border-gray-300 hover:bg-gray-300'}`
-                    }`}
-                >
-                  {isFlipped ? (
-                    <span className={`text-sm font-semibold ${isMatched
-                      ? `${darkMode ? 'text-green-300' : 'text-green-700'}`
-                      : card.type === 'term'
-                        ? `${darkMode ? 'text-blue-300' : 'text-blue-700'}`
-                        : `${darkMode ? 'text-purple-300' : 'text-purple-700'}`
-                      }`}>
-                      {card.content}
-                    </span>
-                  ) : (
-                    <span className="text-4xl">🤖</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  /* ---------------- ADMIN VIEW ---------------- */
-
-  const AdminGameList = () => {
-    const [isCreating, setIsCreating] = useState(false);
-
-    // If somehow a non-admin gets here, show nothing (though parent hides it too)
-    if (user?.role !== 'ADMIN') return null;
-
-    return (
-      <div className={`min-h-screen ${darkMode ? 'bg-slate-900' : 'bg-slate-50'} p-8`}>
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Game Management</h1>
-              <p className={`mt-2 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                Create, edit, and manage educational games.
-              </p>
-            </div>
-            <button
-              onClick={() => setIsCreating(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors shadow-sm"
-            >
-              <Plus className="w-5 h-5" />
-              Create New Game
-            </button>
-          </div>
-
-          {/* Management Table */}
-          <div className={`rounded-xl shadow-sm border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} overflow-hidden`}>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className={`bg-slate-50 dark:bg-slate-700/50 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  <tr>
-                    <th className="px-6 py-4 font-semibold">ID</th>
-                    <th className="px-6 py-4 font-semibold">Title</th>
-                    <th className="px-6 py-4 font-semibold">Type</th>
-                    <th className="px-6 py-4 font-semibold">Content Items</th>
-                    <th className="px-6 py-4 font-semibold">Status</th>
-                    <th className="px-6 py-4 font-semibold text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className={`divide-y ${darkMode ? 'divide-slate-700' : 'divide-slate-100'}`}>
-                  {allGames.map(game => (
-                    <tr key={game.id} className="group hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                      <td className="px-6 py-4 font-mono text-xs opacity-50">#{game.id}</td>
-                      <td className={`px-6 py-4 font-medium ${darkMode ? 'text-white' : 'text-slate-900'}`}>{game.title}</td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
-                          {game.game_type?.replace('_', ' ')}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-xs opacity-75">
-                        {Array.isArray(game.game_data) ? game.game_data.length : (game.game_data?.items?.length || 0)} items
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${game.is_active
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                          : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                          }`}>
-                          {game.is_active ? 'Active' : 'Disabled'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2">
-                          <AdminActionButtons item={game} contentType="games" onUpdate={fetchGames} />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {allGames.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                        No games found. Get started by creating one.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <ContentEditModal
-            isOpen={isCreating}
-            onClose={() => setIsCreating(false)}
-            item={null}
-            contentType="games"
-            onSuccess={fetchGames}
-          />
+      <div className={`min-h-screen ${bgClass} p-8`}>
+        <div className="max-w-6xl mx-auto">
+          <BackButton onClick={() => setCurrentGame(null)} />
+          {GameComponent}
         </div>
       </div>
     );
-  };
+  }
 
-  /* ---------------- LEARNER VIEW ---------------- */
-
-  const LearnerGamesMenu = () => (
+  return (
     <div className={`min-h-screen ${darkMode ? 'bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-blue-50 to-indigo-100'} p-8`}>
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div className="text-center flex-1">
-            <h1 className={`text-4xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'} mb-4`}>AI Learning Games</h1>
-            <p className={`text-xl ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Master AI concepts through interactive challenges</p>
-          </div>
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold mb-4">AI Learning Games</h1>
+          <p className="text-xl text-gray-500">Master AI concepts with these interactive challenges.</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           <GameCard
             icon={Clock}
             title="True/False Lightning"
-            description="Quick-fire True/False questions under time pressure."
+            description="Quick-fire questions to test your AI knowledge under pressure."
             onClick={() => setCurrentGame('truefalse')}
             color="border-l-red-500"
           />
-
           <GameCard
             icon={Eye}
             title="Deepfake Detective"
-            description="Can you spot AI-generated faces? Use clues and zoom to identify deepfakes!"
+            description="Can you spot the difference? Identify AI-generated images."
             onClick={() => setCurrentGame('deepfake')}
             color="border-l-purple-600"
           />
-
           <GameCard
             icon={Target}
-            title="AI Bias Investigation"
-            description="Investigate AI decisions and uncover hidden biases in algorithms!"
+            title="Bias Investigation"
+            description="Uncover hidden biases in AI decision making systems."
             onClick={() => setCurrentGame('bias-spotter')}
             color="border-l-orange-500"
           />
-
           <GameCard
             icon={Zap}
-            title="Phishing Email Sorter"
-            description="Sort emails as phishing or legitimate under time pressure. Build combos!"
+            title="Phishing Sorter"
+            description="Sort legitimate emails from malicious phishing attempts."
             onClick={() => setCurrentGame('phishing')}
             color="border-l-cyan-500"
           />
         </div>
 
-        <div className="mt-12">
-          <GamificationDashboard />
-        </div>
+        <GamificationDashboard />
       </div>
     </div>
   );
-
-  // Main Render Switch
-  // If User is Admin -> Show AdminGameList ONLY
-  // If User is Learner -> Show LearnerGamesMenu
-
-  if (user?.role === 'ADMIN' && !currentGame) {
-    return <AdminGameList />;
-  }
-
-  // If Admin is somehow "playing" (e.g. testing) we could allow it via a hidden toggle, 
-  // but strictly following requirements: "Admins CONTROL ... DO NOT play".
-  // So if currentGame is set but user is ADMIN, we should probably reset/redirect or just show the admin list.
-  // However, "Modify existing components" implies we might want to keep the "Play" logic available if explicitly navigated?
-  // Let's enforce the restriction: Admin sees ONLY management.
-
-  if (user?.role === 'ADMIN') {
-    return <AdminGameList />;
-  }
-
-  // Learner Logic
-  const renderCurrentGame = () => {
-    const bgClass = darkMode ? 'bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-blue-50 to-indigo-100';
-
-    switch (currentGame) {
-      case 'dragdrop':
-        return (
-          <div className={`min-h-screen ${bgClass} p-8`}>
-            <div className="max-w-7xl mx-auto">
-              <div className="flex justify-between items-center mb-6">
-                <BackButton onClick={() => setCurrentGame(null)} />
-              </div>
-              <DragDropGame />
-            </div>
-          </div>
-        );
-      case 'truefalse':
-        return (
-          <div className={`min-h-screen ${bgClass} p-8`}>
-            <div className="max-w-5xl mx-auto">
-              <div className="flex justify-between items-center mb-6">
-                <BackButton onClick={() => setCurrentGame(null)} />
-              </div>
-              <TrueFalseGame />
-            </div>
-          </div>
-        );
-      case 'quiz':
-        return (
-          <div className={`min-h-screen ${bgClass} p-8`}>
-            <div className="max-w-5xl mx-auto">
-              <div className="flex justify-between items-center mb-6">
-                <BackButton onClick={() => setCurrentGame(null)} />
-              </div>
-              <MultipleChoiceGame />
-            </div>
-          </div>
-        );
-      case 'bias':
-        return (
-          <div className={`min-h-screen ${bgClass} p-8`}>
-            <div className="max-w-6xl mx-auto">
-              <div className="flex justify-between items-center mb-6">
-                <BackButton onClick={() => setCurrentGame(null)} />
-              </div>
-              <SpotBiasGame />
-            </div>
-          </div>
-        );
-      case 'memory':
-        return (
-          <div className={`min-h-screen ${bgClass} p-8`}>
-            <div className="max-w-5xl mx-auto">
-              <div className="flex justify-between items-center mb-6">
-                <BackButton onClick={() => setCurrentGame(null)} />
-              </div>
-              <MemoryGame />
-            </div>
-          </div>
-        );
-      case 'deepfake':
-        return (
-          <div className={`min-h-screen ${bgClass} p-8`}>
-            <div className="max-w-6xl mx-auto">
-              <div className="flex justify-between items-center mb-6">
-                <BackButton onClick={() => setCurrentGame(null)} />
-              </div>
-              <DeepfakeDetector
-                data={allGames.find(g => g.game_type === 'DEEPFAKE_DETECTOR')?.game_data || { rounds: [] }}
-                onScoreUpdate={(score: number) => updateLifetimeScore('deepfake', score)}
-              />
-            </div>
-          </div>
-        );
-      case 'bias-spotter':
-        return (
-          <div className={`min-h-screen ${bgClass} p-8`}>
-            <div className="max-w-6xl mx-auto">
-              <div className="flex justify-between items-center mb-6">
-                <BackButton onClick={() => setCurrentGame(null)} />
-              </div>
-              <BiasSpotter
-                data={allGames.find(g => g.game_type === 'BIAS_SPOTTER')?.game_data || { scenarios: [] }}
-                onScoreUpdate={(score: number) => updateLifetimeScore('biasspotter', score)}
-              />
-            </div>
-          </div>
-        );
-      case 'phishing':
-        return (
-          <div className={`min-h-screen ${bgClass} p-8`}>
-            <div className="max-w-6xl mx-auto">
-              <div className="flex justify-between items-center mb-6">
-                <BackButton onClick={() => setCurrentGame(null)} />
-              </div>
-              <PhishingSorter
-                data={allGames.find(g => g.game_type === 'PHISHING_SORTER')?.game_data || { emails: [] }}
-                onScoreUpdate={(score: number) => updateLifetimeScore('phishing', score)}
-              />
-            </div>
-          </div>
-        );
-      default:
-        return <LearnerGamesMenu />;
-    }
-  };
-
-  return renderCurrentGame();
 };
 
 export default GamesPage;
