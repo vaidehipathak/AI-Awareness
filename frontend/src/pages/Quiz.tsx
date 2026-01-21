@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import ContentEditModal from '../components/admin/ContentEditModal';
 import { quizCatalog, Difficulty, Quiz, Question } from '../data/quizCatalog';
 import GamificationDashboard from '../components/games/GamificationDashboard';
+import AdminActionButtons from '../components/admin/AdminActionButtons';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
@@ -230,6 +231,37 @@ const QuestionRenderer: React.FC<{
     );
 };
 
+const fetchAllQuizzes = async (): Promise<Record<Difficulty, Quiz[]>> => {
+    try {
+        const res = await axios.get('http://localhost:8000/api/content/quiz/');
+        const data = res.data;
+        const newCatalog: Record<Difficulty, Quiz[]> = {
+            easy: [],
+            medium: [],
+            hard: []
+        };
+
+        if (Array.isArray(data)) {
+            data.forEach((q: any) => {
+                if (['easy', 'medium', 'hard'].includes(q.difficulty)) {
+                    newCatalog[q.difficulty as Difficulty].push({
+                        ...q,
+                        id: String(q.id) // Ensure ID is string to match types
+                    });
+                }
+            });
+        }
+
+        // Only return if we actually got data, otherwise fallback
+        if (newCatalog.easy.length > 0 || newCatalog.medium.length > 0 || newCatalog.hard.length > 0) {
+            return newCatalog;
+        }
+    } catch (err) {
+        console.error("Failed to fetch dynamic quizzes", err);
+    }
+    return quizCatalog;
+};
+
 const QuizPage: React.FC = () => {
     const { user } = useAuth();
     const { theme } = useTheme();
@@ -242,8 +274,31 @@ const QuizPage: React.FC = () => {
     const [answers, setAnswers] = useState<number[]>([]);
     const [result, setResult] = useState<QuizResult | null>(null);
 
-    const [allQuizzes, setAllQuizzes] = useState<any[]>([]);
+    // Dynamic Catalog State
+    const [catalog, setCatalog] = useState<Record<Difficulty, Quiz[]>>(quizCatalog);
+    const [allQuizzes, setAllQuizzes] = useState<any[]>([]); // Keep this for Admin List
     const [loadingAdmin, setLoadingAdmin] = useState(false);
+
+    useEffect(() => {
+        // Fetch dynamic quizzes for the learner view
+        fetchAllQuizzes().then(dynamicCatalog => {
+            setCatalog(dynamicCatalog);
+
+            // Re-initialize progress to ensure the first quiz of the new catalog is unlocked
+            // This merges with existing progress but ensures at least the valid first item is open
+            setProgress(prev => {
+                const updated = initProgress(dynamicCatalog, prev);
+                // Force ensure the first ID of the NEW catalog is in the unlocked list if not present
+                (['easy', 'medium', 'hard'] as Difficulty[]).forEach(d => {
+                    const first = dynamicCatalog[d][0];
+                    if (first && !updated[d].unlocked.includes(first.id)) {
+                        updated[d].unlocked.push(first.id);
+                    }
+                });
+                return updated;
+            });
+        });
+    }, []);
 
     const storageKey = useMemo(() => storageKeyForUser(user?.id ?? user?.email ?? undefined), [user?.id, user?.email]);
     const [progress, setProgress] = useState<ProgressState>(() => {
@@ -293,7 +348,7 @@ const QuizPage: React.FC = () => {
     };
 
     const unlockNextQuiz = (difficulty: Difficulty, currentQuizId: string) => {
-        const quizzes = quizCatalog[difficulty];
+        const quizzes = catalog[difficulty];
         const currentIdx = quizzes.findIndex((q) => q.id === currentQuizId);
         const next = quizzes[currentIdx + 1];
         if (!next) return;
@@ -357,7 +412,51 @@ const QuizPage: React.FC = () => {
                     </div>
                     {/* Re-use existing tables if preferred, or simplified placeholder for brevity since user is learner focused generally */}
                     <div className={`rounded-xl shadow-sm border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} overflow-hidden`}>
-                        <div className="p-8 text-center opacity-50">Admin panel content hidden for brevity in refactor. Functionality preserved.</div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className={`text-xs uppercase tracking-wider ${darkMode ? 'bg-slate-700/50 text-slate-400' : 'bg-slate-50 text-slate-500'}`}>
+                                        <th className={`p-4 font-bold border-b ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>Title</th>
+                                        <th className={`p-4 font-bold border-b ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>Difficulty</th>
+                                        <th className={`p-4 font-bold border-b ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>Questions</th>
+                                        <th className={`p-4 font-bold border-b ${darkMode ? 'border-slate-700' : 'border-slate-100'} text-right`}>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className={`divide-y ${darkMode ? 'divide-slate-700' : 'divide-slate-100'}`}>
+                                    {allQuizzes.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={4} className={`p-8 text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                                                No quizzes found. Create one to get started.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        allQuizzes.map((quiz: any) => (
+                                            <tr key={quiz.id} className={`transition-colors ${darkMode ? 'hover:bg-slate-700/30' : 'hover:bg-slate-50'}`}>
+                                                <td className={`p-4 align-middle font-medium ${darkMode ? 'text-white' : 'text-slate-900'}`}>
+                                                    {quiz.title}
+                                                </td>
+                                                <td className="p-4 align-middle">
+                                                    <span className={`px-2 py-1 rounded text-xs font-bold uppercase tracking-wider
+                                          ${quiz.difficulty === 'easy' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                                            quiz.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                                                                'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                                        {quiz.difficulty}
+                                                    </span>
+                                                </td>
+                                                <td className={`p-4 align-middle ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                                                    {quiz.questions?.length || 0} Questions
+                                                </td>
+                                                <td className="p-4 align-middle text-right">
+                                                    <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+                                                        <AdminActionButtons item={quiz} contentType="quiz" onUpdate={fetchQuizzesForAdmin} />
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
                     <ContentEditModal isOpen={isCreating} onClose={() => setIsCreating(false)} item={null} contentType="quiz" onSuccess={fetchQuizzesForAdmin} />
@@ -368,7 +467,7 @@ const QuizPage: React.FC = () => {
 
     if (user?.role === 'ADMIN') return <AdminQuizList />;
 
-    const currentDifficultyQuizzes = activeDifficulty ? quizCatalog[activeDifficulty] : [];
+    const currentDifficultyQuizzes = activeDifficulty ? catalog[activeDifficulty] : [];
     const currentQuizStatus = (quiz: Quiz) => progress[quiz.difficulty];
 
     const renderDifficultyMenu = () => (
@@ -421,7 +520,7 @@ const QuizPage: React.FC = () => {
                                 <Shield className="w-8 h-8" />
                             </div>
                             <span className="px-4 py-1.5 rounded-full bg-slate-900/5 dark:bg-white/10 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                                {quizCatalog[diff].length} Missions
+                                {catalog[diff].length} Missions
                             </span>
                         </div>
 

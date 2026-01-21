@@ -11,15 +11,18 @@ declare global {
 
 const GoogleTranslateWidget = () => {
   useEffect(() => {
-    window.googleTranslateElementInit = () => {
+    // Function to initialize the Google Translate Element
+    const initGoogleTranslate = () => {
       if (window.google && window.google.translate) {
+        // Clear previous instance if it seemingly exists (though hard to clear Google's DOM mess)
+        const target = document.getElementById('google_translate_element');
+        if (target) target.innerHTML = '';
+
         new window.google.translate.TranslateElement(
           {
             pageLanguage: 'en',
-            includedLanguages:
-              'en,hi,es,fr,de,ja,ko,zh-CN,ar,pt,ru,it',
-            layout:
-              window.google.translate.TranslateElement.InlineLayout.SIMPLE,
+            includedLanguages: 'en,hi,es,fr,de,ja,ko,zh-CN,ar,pt,ru,it',
+            layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE,
             autoDisplay: false,
           },
           'google_translate_element'
@@ -27,11 +30,19 @@ const GoogleTranslateWidget = () => {
       }
     }
 
-    if (!document.getElementById('google-translate-script')) {
+    // Assign to window for the callback to find
+    window.googleTranslateElementInit = initGoogleTranslate;
+
+    // Check if script is already present
+    if (document.getElementById('google-translate-script')) {
+      // If script is loaded, try initializing manually
+      // Use a small timeout to ensure DOM is ready or previous cleanup is done
+      setTimeout(initGoogleTranslate, 100);
+    } else {
+      // Load script if not present
       const script = document.createElement('script')
       script.id = 'google-translate-script'
-      script.src =
-        'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit'
+      script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit'
       script.async = true
       document.body.appendChild(script)
     }
@@ -59,7 +70,7 @@ const GoogleTranslateWidget = () => {
             border: 1px solid #64FFDA;
             padding: 6px 12px;
             height: 32px;
-            overflow: hidden;
+            /* overflow: hidden; Removed to ensure dropdown isn't clipped */
             cursor: pointer;
             transition: background 0.2s ease;
             margin-left: 10px; /* add spacing after mail icon */
@@ -77,110 +88,36 @@ const GoogleTranslateWidget = () => {
             color: #64FFDA;
           }
 
-          /* Core Google element */
+          /* Core Google element - Overlay Mode */
           #google_translate_element {
-            display: inline-block !important;
-            line-height: 1 !important;
-            height: 20px !important;
-            max-height: 20px !important;
-            overflow: hidden !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            opacity: 0 !important;
+            z-index: 20 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer !important;
           }
 
           .goog-te-gadget {
-            font-family: 'Inter', sans-serif !important;
-            font-size: 0 !important;
-            line-height: 1 !important;
-            height: auto !important;
+            width: 100% !important;
+            height: 100% !important;
+            display: block !important;
           }
 
           .goog-te-gadget-simple {
-            background: none !important;
-            border: none !important;
-            box-shadow: none !important;
+            width: 100% !important;
+            height: 100% !important;
+            display: block !important;
             padding: 0 !important;
             margin: 0 !important;
-            color: #E6F1FF !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            gap: 0 !important;
-            height: 20px !important;
-            white-space: nowrap !important;
           }
 
-          .goog-te-gadget-simple:hover {
-            color: #64FFDA !important;
-          }
-
-          /* Hide Google icon */
-          .goog-te-gadget-icon {
-            display: none !important;
-            width: 0 !important;
-            height: 0 !important;
-          }
-
-          /* Keep only language text */
-          .goog-te-menu-value {
-            font-family: 'Fira Code', monospace !important;
-            font-size: 13px !important;
-            line-height: 1 !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            color: #E6F1FF !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            white-space: nowrap !important;
-            overflow: hidden !important;
-          }
-
-          /* Remove divider and arrow ▼ */
-          .goog-te-menu-value > span:first-child {
-            display: inline !important;
-            color: inherit !important;
-            font-size: 13px !important;
-            line-height: 1 !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            vertical-align: middle !important;
-          }
-
-          .goog-te-menu-value > span:nth-child(2),
-          .goog-te-menu-value > span:last-child,
-          .goog-te-menu-value span[style*="border-left"],
-          .goog-te-menu-value span[style*="inline-block"],
-          .goog-te-menu-value span > img,
-          .goog-te-menu-value img {
-            display: none !important;
-            width: 0 !important;
-            height: 0 !important;
-            visibility: hidden !important;
-          }
-
-          /* Dropdown menu styling */
-          .goog-te-menu2 {
-            background-color: #0a192f !important;
-            border: 1px solid #64FFDA !important;
-            border-radius: 7px !important;
-            box-shadow: 0 10px 24px rgba(0,0,0,0.3) !important;
-          }
-
-          .goog-te-menu2-item div,
-          .goog-te-menu2-item span {
-            color: #E6F1FF !important;
-            font-family: 'Inter', sans-serif !important;
-            font-size: 13px !important;
-            padding: 6px 12px !important;
-          }
-
-          .goog-te-menu2-item:hover {
-            background-color: #112240 !important;
-          }
-
-          .goog-te-menu2-item-selected div,
-          .goog-te-menu2-item-selected span {
-            color: #64FFDA !important;
-          }
-
-          /* Dropdown positioning */
+          /* Dropdown menu positioning */
           .goog-te-menu-frame {
             z-index: 9999 !important;
             position: absolute !important;
@@ -190,8 +127,9 @@ const GoogleTranslateWidget = () => {
         `}</style>
       </Helmet>
 
-      <div className="translate-container">
-        <Languages className="google-logo" />
+      <div className="translate-container relative group">
+        <Languages className="google-logo z-10" />
+        <span className="text-sm font-medium text-gray-200 group-hover:text-[#64FFDA] transition-colors relative z-10">Language</span>
         <div id="google_translate_element"></div>
       </div>
     </>
