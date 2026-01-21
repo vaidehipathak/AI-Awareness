@@ -47,39 +47,71 @@ const ReportPage: React.FC = () => {
         const formData = new FormData();
 
         try {
-            // BACKEND URLS: http://localhost:8000/api/...
-            let endpoint = 'http://localhost:8000/api/analyze/'; // Default for generic/image/video
+            // All file uploads go to /api/analyze/ - backend router handles file type detection
+            const endpoint = 'http://localhost:8000/api/analyze/';
 
             if (activeTab === 'pii') {
                 // Backend requires a file, so we convert text to a .txt file
                 if (!text.trim()) { alert('Please enter text to analyze'); setLoading(false); return; }
 
-                endpoint = 'http://localhost:8000/api/detect-pii/';
                 const blob = new Blob([text], { type: 'text/plain' });
                 formData.append('file', blob, 'pii_scan_input.txt');
 
             } else {
                 if (!file) { alert('Please select a file'); setLoading(false); return; }
                 formData.append('file', file);
-
-                if (activeTab === 'pdf') {
-                    endpoint = 'http://localhost:8000/api/detect-pdf-ai/';
-                } else if (activeTab === 'image') {
-                    // Uses default /analyze/ or specific if backend supported it, but based on urls.py, analyze is generic
-                    endpoint = 'http://localhost:8000/api/analyze/';
-                } else if (activeTab === 'video') {
-                    // No specific video endpoint in urls, use generic
-                    endpoint = 'http://localhost:8000/api/analyze/';
-                }
             }
 
             const res = await axios.post(endpoint, formData, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`, // Ensure auth if needed
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
                     'Content-Type': 'multipart/form-data'
                 }
             });
-            setResult(res.data);
+
+            console.log('🔍 Raw Backend Response:', res.data);
+
+            // Transform nested response structure to flat structure
+            let transformedResult = res.data;
+
+            // Check if response has nested results structure
+            if (res.data.results && res.data.results.length > 0 && res.data.results[0].results) {
+                console.log('🔄 Transforming nested response structure...');
+
+                const nestedResults = res.data.results[0].results;
+
+                // Extract PII detection results (prioritize over AI_ANALYSIS)
+                const piiDetection = nestedResults.find((r: any) => r.type === 'PII_DETECTION');
+                const aiAnalysis = nestedResults.find((r: any) => r.type === 'AI_ANALYSIS');
+
+                // Build flattened structure
+                transformedResult = {
+                    ...res.data,
+                    results: nestedResults, // Use the nested results array directly
+                    risk_label: res.data.risk_label || res.data.results[0].risk_label,
+                    risk_score: res.data.results[0].risk_score || 0,
+                    verdict: res.data.results[0].verdict || 'Analysis Complete',
+                    explanation: res.data.results[0].explanation || ''
+                };
+
+                // If PII was detected with high-risk entities, override risk label
+                if (piiDetection && piiDetection.found && piiDetection.entities) {
+                    const highRiskPII = ['AADHAAR', 'VID', 'PAN', 'CREDIT_DEBIT_CARD', 'CVV', 'BANK_ACCOUNT'];
+                    const hasHighRisk = piiDetection.entities.some((e: any) => highRiskPII.includes(e.type));
+
+                    if (hasHighRisk) {
+                        transformedResult.risk_label = 'HIGH';
+                        transformedResult.risk_score = 0.9;
+                    } else if (piiDetection.risk_score_weighted >= 6) {
+                        transformedResult.risk_label = 'MEDIUM';
+                        transformedResult.risk_score = 0.6;
+                    }
+                }
+
+                console.log('✅ Transformed Response:', transformedResult);
+            }
+
+            setResult(transformedResult);
         } catch (err: any) {
             console.error("Analysis Error:", err);
             const msg = err.response?.data?.error || err.message || 'Analysis failed';
