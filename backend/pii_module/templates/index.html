@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy-Aware PII Detection</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Privacy-Aware PII Detection System</h1>
+        <p class="subtitle">Intelligent detection and protection of personally identifiable information</p>
+
+        <div class="card">
+            <form method="POST" enctype="multipart/form-data">
+                <div class="input-group">
+                    <h3>🔹 Enter Text</h3>
+                    <textarea name="text_input" rows="6" 
+                        placeholder="Paste or type text to analyze for PII (e.g., names, emails, phone numbers, SSN...)"></textarea>
+                </div>
+
+                <div class="divider">OR</div>
+
+                <div class="input-group">
+                    <h3>🔹 Upload PDF / Image</h3>
+                    <div class="file-input-wrapper">
+                        <input type="file" name="file" accept=".pdf,.png,.jpg,.jpeg">
+                    </div>
+                </div>
+
+                <button type="submit">🔍 Analyze for PII</button>
+            </form>
+        </div>
+
+        {% if extracted_text %}
+        <div class="card">
+            <h3>📄 Extracted Text (Preview)</h3>
+            <pre>{{ extracted_text[:1000] }}{% if extracted_text|length > 1000 %}...{% endif %}</pre>
+        </div>
+        {% endif %}
+
+        {% if result %}
+        <div class="card result-section">
+            <h2>📊 Analysis Results</h2>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Action</div>
+                    <div class="stat-value">{{ result.action }}</div>
+                </div>
+                <div class="stat-card {% if result.risk_level == 'HIGH' %}risk-high{% elif result.risk_level == 'MEDIUM' %}risk-medium{% else %}risk-low{% endif %}">
+                    <div class="stat-label">Risk Level</div>
+                    <div class="stat-value">{{ result.risk_level }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Risk Score</div>
+                    <div class="stat-value">{{ "%.2f"|format(result.risk_score) }}</div>
+                </div>
+            </div>
+
+            <h3>🔍 Detected PII</h3>
+            <ul>
+            {% for p in result.detected_pii %}
+                <li>
+                    <strong>{{ p.type }}</strong> → {{ p.masked_value }}
+                    <span class="badge {% if p.confidence|float > 0.8 %}badge-success{% elif p.confidence|float > 0.5 %}badge-warning{% else %}badge-danger{% endif %}">
+                        {{ "%.0f"|format(p.confidence|float * 100) }}% confidence
+                    </span>
+                </li>
+            {% else %}
+                <li>✅ No PII detected - Your text appears safe!</li>
+            {% endfor %}
+            </ul>
+        </div>
+
+        <div class="card">
+            <h3>🧠 Privacy Education</h3>
+            <ul>
+            {% for msg in education %}
+                <li>{{ msg }}</li>
+            {% else %}
+                <li>💡 Great! No sensitive information detected in your text.</li>
+            {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
+

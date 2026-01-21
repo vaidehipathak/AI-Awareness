@@ -218,3 +218,6 @@ else:
     # Fallback to Console
     DEFAULT_FROM_EMAIL = 'noreply@awarex.io'
 
+# News API Configuration
+NEWS_API_KEY = '9da7c3728fa940d3b50541c9cd5ca6c9'
+

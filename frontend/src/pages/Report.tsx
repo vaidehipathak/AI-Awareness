@@ -44,8 +44,11 @@ const Report: React.FC = () => {
       setError("Please upload a video file (MP4, AVI).");
       return;
     }
-    if ((activeTool === 'PII' || activeTool === 'PDF') && selectedFile.type !== 'application/pdf' && selectedFile.type !== 'text/plain') {
-      setError("Please upload a document (PDF, TXT).");
+    if ((activeTool === 'PII' || activeTool === 'PDF') &&
+      selectedFile.type !== 'application/pdf' &&
+      selectedFile.type !== 'text/plain' &&
+      !selectedFile.type.startsWith('image/')) {
+      setError("Please upload a document (PDF, TXT) or image (JPG, PNG).");
       return;
     }
 
@@ -161,7 +164,7 @@ const Report: React.FC = () => {
 
   const getToolConfig = () => {
     switch (activeTool) {
-      case 'PII': return { title: 'PII Detection', accept: '.pdf,.txt', icon: Shield, desc: 'Scans text documents for sensitive personal information.' };
+      case 'PII': return { title: 'PII Detection', accept: '.pdf,.txt,.jpg,.jpeg,.png', icon: Shield, desc: 'Scans documents and images for sensitive personal information.' };
       case 'IMAGE': return { title: 'AI Image Detector', accept: 'image/*', icon: FileImage, desc: 'Analyzes images for synthetic generation markers.' };
       case 'VIDEO': return { title: 'Deepfake Analysis', accept: 'video/*', icon: Video, desc: 'Examines video frames for facial manipulation.' };
       case 'PDF': return { title: 'PDF Forensics', accept: '.pdf', icon: FileSearch, desc: 'Detailed metadata and structural analysis of PDFs.' };

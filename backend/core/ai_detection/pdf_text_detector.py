@@ -7,6 +7,7 @@ import numpy as np
 from typing import Dict, Tuple, List, Any
 from pypdf import PdfReader
 from transformers import AutoTokenizer, AutoModelForCausalLM
+from pii_module.pii_engine import detect_pii
 
 logger = logging.getLogger(__name__)
 
@@ -33,54 +34,6 @@ def _load_model_safely():
         logger.error(f"Failed to load model: {e}")
         tokenizer, model = None, None
         return False
-
-
-def _analyze_and_scrub_pii(text: str) -> Tuple[str, bool, bool, List[Dict[str, Any]]]:
-    """
-    Masks PII including Email, Phone, SSN, Credit Cards, Aadhar.
-    Returns:
-    scrubbed_text: text with placeholders
-    pii_found: True if any PII was found
-    pii_only: True if text is mostly PII
-    pii_findings: List of detected PII entities
-    """
-
-    pii_found = False
-    pii_only = False
-    pii_findings = []
-
-    patterns = {
-        'EMAIL': r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
-        'PHONE': r'\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b',
-        'SSN': r'\b\d{3}-\d{2}-\d{4}\b',
-        'CARD': r'\b(?:\d[ -]*?){13,16}\b',
-        'AADHAR': r'\b\d{4}\s?\d{4}\s?\d{4}\b'
-    }
-
-    scrubbed = text
-    total_length = len(text.strip())
-    pii_chars = 0
-
-    for p_type, pattern in patterns.items():
-        matches = re.findall(pattern, scrubbed)
-        if matches:
-            pii_found = True
-            for match in matches:
-                pii_chars += len(match)
-                pii_findings.append({
-                    "type": p_type,
-                    "value": match,
-                    "confidence": 1.0,
-                    "start": -1,
-                    "end": -1
-                })
-
-            scrubbed = re.sub(pattern, f"[{p_type}]", scrubbed)
-
-    if total_length > 0 and (pii_chars / total_length) > 0.7:
-        pii_only = True
-
-    return scrubbed, pii_found, pii_only, pii_findings
 
 
 def _clean_text(text: str) -> str:
@@ -163,8 +116,11 @@ def _calculate_perplexity_score(text: str) -> float:
     return max(0.0, min(1.0, risk_score))
 
 
-def detect_pdf_ai(text_input: str, metadata: Dict) -> Dict:
+def detect_pdf_ai(text_input: str = "", metadata: Dict = None, image_bytes: bytes = None) -> Dict:
     logger.info("AI Detection process started.")
+    
+    if metadata is None:
+        metadata = {}
 
     final_result_structure = {
         "file_metadata": {"name": metadata.get("source", "analyzed_text_input"), "metadata_received": metadata},
@@ -183,10 +139,72 @@ def detect_pdf_ai(text_input: str, metadata: Dict) -> Dict:
         }
 
     try:
-        raw_text = text_input
+        # Handle image OCR extraction
+        if image_bytes:
+            try:
+                import tempfile
+                import os
+                from pii_module.image_extractor import extract_text_from_image
+                
+                # Save bytes to temp file for cv2 to read
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp_file:
+                    tmp_file.write(image_bytes)
+                    tmp_path = tmp_file.name
+                
+                raw_text = extract_text_from_image(tmp_path)
+                os.unlink(tmp_path)  # Clean up temp file
+                
+                if not raw_text or len(raw_text.strip()) < 10:
+                    return {
+                        "risk_score": 0.0,
+                        "verdict": "No Text Detected",
+                        "explanation": "Could not extract readable text from image. Image may be too blurry or contain no text.",
+                        "limitations": "OCR quality depends on image clarity.",
+                        "detectors_executed": ["ocr_extraction"],
+                        "results": [],
+                        "risk_label": "UNKNOWN"
+                    }
+                    
+                final_result_structure["detectors_executed"].append("ocr_extraction")
+                
+            except Exception as e:
+                logger.error(f"OCR extraction failed: {e}")
+                return {
+                    "error": f"OCR Error: {str(e)}",
+                    "file_metadata": final_result_structure["file_metadata"],
+                    "detectors_executed": [],
+                    "results": [],
+                    "risk_label": "ERROR"
+                }
+        else:
+            raw_text = text_input
+            
         status_note = ""
 
-        scrubbed_text, pii_detected, pii_only, pii_findings = _analyze_and_scrub_pii(raw_text)
+        # Use new PII Module
+        pii_findings = detect_pii(raw_text)
+        pii_detected = len(pii_findings) > 0
+        
+        # Scrub text for AI analysis (mask PII)
+        # Sort findings by start index descending to avoid offset issues
+        scrubbed_text = raw_text
+        sorted_findings = sorted(pii_findings, key=lambda x: x['start'], reverse=True)
+        
+        pii_only = False
+        pii_chars = 0
+        total_length = len(raw_text)
+
+        for finding in sorted_findings:
+            s, e = finding['start'], finding['end']
+            p_type = finding['type']
+            # Simple bounds check
+            if s >= 0 and e <= len(scrubbed_text):
+                scrubbed_text = scrubbed_text[:s] + f"[{p_type}]" + scrubbed_text[e:]
+                pii_chars += (e - s)
+
+        if total_length > 0 and (pii_chars / total_length) > 0.6:
+            pii_only = True
+
         cleaned_text = _clean_text(scrubbed_text)
         word_count = len(cleaned_text.split())
 
@@ -239,17 +257,81 @@ def detect_pdf_ai(text_input: str, metadata: Dict) -> Dict:
         })
 
         if pii_detected:
+            # Calculate PII risk score using weighted risk engine
+            CRITICAL_PII = {'AADHAAR', 'VID', 'PAN', 'CREDIT_DEBIT_CARD', 'CVV', 'BANK_ACCOUNT', 'UPI_ID'}
+            SENSITIVE_PII = {'DOB', 'PHONE'}
+            MODERATE_PII = {'EMAIL', 'URL', 'UTILITY_ACCOUNT'}
+            LOW_PII = {'MASKED_PHONE', 'MASKED_EMAIL', 'MASKED_PAN'}
+            
+            # Weighted risk scoring (from risk_engine.py)
+            risk_score_weighted = 0
+            has_critical = False
+            
+            for p in pii_findings:
+                pii_type = p['type']
+                confidence = p.get('confidence', 1.0)
+                
+                if pii_type in CRITICAL_PII:
+                    has_critical = True
+                    risk_score_weighted += confidence * 8  # Critical = 8x weight
+                elif pii_type in SENSITIVE_PII:
+                    risk_score_weighted += confidence * 4  # Sensitive = 4x weight
+                elif pii_type in MODERATE_PII:
+                    risk_score_weighted += confidence * 3  # Moderate = 3x weight
+                elif pii_type in LOW_PII:
+                    risk_score_weighted += confidence * 1  # Low = 1x weight
+            
+            # Determine risk level based on weighted score
+            if has_critical:
+                risk_label = "HIGH"
+                ai_score = max(ai_score, 0.9)
+                verdict = "High-Risk PII Detected"
+                ai_msg = f"Document contains {len(pii_findings)} sensitive PII entities including critical identifiers (Aadhaar/PAN/Cards)."
+            elif risk_score_weighted >= 6:
+                risk_label = "MEDIUM"
+                ai_score = max(ai_score, 0.6)
+                verdict = "Medium-Risk PII Detected"
+                ai_msg = f"Document contains {len(pii_findings)} PII entities with moderate risk."
+            elif risk_score_weighted > 0:
+                risk_label = "LOW" if risk_label == "UNKNOWN" else risk_label
+                ai_score = max(ai_score, 0.3)
+            
+            final_result_structure["risk_score"] = round(ai_score, 3)
+            final_result_structure["verdict"] = verdict
+            final_result_structure["explanation"] = f"{ai_msg} {status_note}".strip()
+            final_result_structure["risk_label"] = risk_label
+            
+            # Generate privacy education tips
+            privacy_tips = []
+            pii_types = {p['type'] for p in pii_findings}
+            
+            if "UPI_ID" in pii_types:
+                privacy_tips.append("UPI IDs are linked to bank accounts. Never share them publicly.")
+            if "AADHAAR" in pii_types:
+                privacy_tips.append("Aadhaar numbers should NEVER be shared online or via messaging apps.")
+            if "PAN" in pii_types:
+                privacy_tips.append("PAN cards contain sensitive tax information. Share only with authorized entities.")
+            if "CREDIT_DEBIT_CARD" in pii_types or "CVV" in pii_types:
+                privacy_tips.append("Card details can lead to financial fraud. Never share CVV or full card numbers.")
+            if "BANK_ACCOUNT" in pii_types:
+                privacy_tips.append("Bank account numbers should be shared only through secure, encrypted channels.")
+            if any(t.startswith("MASKED_") for t in pii_types):
+                privacy_tips.append("Masked personal data detected. This is good privacy practice.")
+            if risk_label == "HIGH":
+                privacy_tips.append("⚠️ HIGH RISK: Please redact sensitive data before sharing this document.")
+            
+            if not privacy_tips:
+                privacy_tips.append("No major privacy risks detected.")
+            
             final_result_structure["results"].append({
                 "type": "PII_DETECTION",
                 "found": pii_detected,
                 "entities": pii_findings,
-                "explanation": "PII found. Document scrubbed."
+                "explanation": f"Found {len(pii_findings)} PII entities. Document scrubbed.",
+                "privacy_tips": privacy_tips,  # Add privacy education
+                "risk_score_weighted": round(risk_score_weighted, 2)
             })
             final_result_structure["detectors_executed"].append("pii_detection")
-
-        logger.info(
-            f"Analysis complete. AI Score: {final_result_structure['risk_score']}, PII Found: {pii_detected}"
-        )
 
         return {
             "risk_score": final_result_structure["risk_score"],

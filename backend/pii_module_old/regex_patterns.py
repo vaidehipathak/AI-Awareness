@@ -11,11 +11,10 @@ REGEX_PATTERNS = {
     "VID": r"\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b",
     "PAN": r"\b[A-Z]{5}[0-9]{4}[A-Z]\b",
 
-    # Financial (exclude 12-digit to avoid Aadhaar overlap)
+    # Financial
     "CREDIT_DEBIT_CARD": r"\b(?:\d{4}[- ]?){3}\d{4}\b",
-    "BANK_ACCOUNT": r"\b(?:\d{11}|\d{13,18})\b",
+    "BANK_ACCOUNT": r"\b\d{11,18}\b",
     "UPI_ID": rf"\b[a-zA-Z0-9.\-_]{{2,}}@({UPI_HANDLES})\b",
-
     "CVV": r"\b\d{3}\b",
 
     # Contact

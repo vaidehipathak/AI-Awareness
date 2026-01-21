@@ -83,7 +83,7 @@ def fetch_news(request):
     """
     # Use the new API Key provided by the user
     # Ideally should be in settings/env, but hardcoding as per direct instructions for now or fallback
-    api_key = getattr(settings, 'NEWS_API_KEY', '5924a2b1-6217-4525-9d20-2861524ffd32')
+    api_key = getattr(settings, 'NEWS_API_KEY', '9da7c3728fa940d3b50541c9cd5ca6c9')
     
     # Strong keywords for AI relevance
     strong_keywords = [
@@ -95,88 +95,65 @@ def fetch_news(request):
     
     if api_key:
         try:
-            # NewsAPI.ai / Event Registry Endpoint
-            url = "http://eventregistry.org/api/v1/article/getArticles"
+            # NewsAPI.org Endpoint
+            url = "https://newsapi.org/v2/everything"
             
             # Request Payload
-            payload = {
-                "action": "getArticles",
-                "keyword": "artificial intelligence", # Primary keyword
-                "lang": ["eng"],
-                "articlesPage": 1,
-                "articlesCount": 50, # Fetch plenty to allow for filtering
-                "articlesSortBy": "date",
-                "articlesSortByAsc": False,
+            params = {
+                "q": '("artificial intelligence" OR "cybersecurity" OR "cybercrime" OR "AI" OR "cyber attack")', # Expanded keywords
+                "language": "en",
+                "sortBy": "publishedAt",
+                "pageSize": 100,
                 "apiKey": api_key,
-                "resultType": "articles",
-                "dataType": ["news", "blog"]
             }
             
-            response = requests.post(url, json=payload, timeout=10)
+            response = requests.get(url, params=params, timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
-                # Check for nested results structure
                 valid_articles = []
                 
-                # NewsAPI.ai structure: data['articles']['results']
-                if 'articles' in data and 'results' in data['articles']:
-                    raw_articles = data['articles']['results']
+                # NewsAPI.org structure: data['articles'] is a list
+                if 'articles' in data:
+                    raw_articles = data['articles']
                     
                     for article in raw_articles:
-                        # 2. Backend Relevance Filtering
-                        # Check title and body (description)
+                        # 3. Data Mapping (NewsAPI.org -> Frontend Contract)
+                        # We trust the API query "artificial intelligence" is relevant enough.
+                        # Just filter out broken/removed content.
+                        
                         title_text = (article.get('title') or '').lower()
-                        # Use FULL body for relevance check, truncate only for display
-                        desc_text = (article.get('body') or '').lower() 
                         
-                        # Count keyword matches
-                        title_matches = any(kw in title_text for kw in strong_keywords)
-                        desc_matches = sum(1 for kw in strong_keywords if kw in desc_text)
-                        
-                        # Accept if Title has 1 strong keyword OR Description has 2+ keywords
-                        if title_matches or desc_matches >= 2:
-                            
-                            # 3. Data Mapping & Sanitization (NewsAPI.ai -> Frontend Contract)
-                            
-                            # Image: 'image' field
-                            image_url = article.get('image')
-                            if not image_url and 'media' in article:
-                                # Sometimes in media list
-                                pass 
-                            
-                            # Source
-                            source_name = 'AI News'
-                            if 'source' in article and 'title' in article['source']:
-                                source_name = article['source']['title']
-                                
-                            # Author
-                            author_name = 'Unknown Author'
-                            if 'authors' in article and isinstance(article['authors'], list) and len(article['authors']) > 0:
-                                author_name = article['authors'][0].get('name', 'Unknown Author')
+                        # Filter out API-level removals
+                        if '[removed]' in title_text or article.get('title') == '[Removed]':
+                            continue
 
-                            sanitized_article = {
-                                'title': article.get('title') or 'Untitled AI Article',
-                                'author': author_name,
-                                'publishedAt': article.get('dateTime') or timezone.now().isoformat(),
-                                'description': (article.get('body') or 'Click to read more.')[:250] + '...', # Truncate body for description
-                                'url': article.get('url'),
-                                'urlToImage': image_url,
-                                'source': {'name': source_name},
-                                'content': (article.get('body') or '')[:200]
-                            }
-                            
-                            # MUST have a URL to be effective
-                            if sanitized_article['url']:
-                                valid_articles.append(sanitized_article)
+                        source_name = 'AI News'
+                        if article.get('source') and article['source'].get('name'):
+                            source_name = article['source']['name']
+
+                        sanitized_article = {
+                            'title': article.get('title') or 'Untitled AI Article',
+                            'author': article.get('author') or 'Unknown Author',
+                            'publishedAt': article.get('publishedAt') or timezone.now().isoformat(),
+                            'description': (article.get('description') or 'Click to read more.')[:250] + '...',
+                            'url': article.get('url'),
+                            'urlToImage': article.get('urlToImage'),
+                            'source': {'name': source_name},
+                            'content': (article.get('content') or '')[:200]
+                        }
+                        
+                        # MUST have a URL and not be generic junk
+                        if sanitized_article['url'] and 'yahoo' not in title_text: # Keeping yahoo filter if user disliked it, or remove? User wants providers.
+                             valid_articles.append(sanitized_article)
                     
                     # If we found valid articles, return them
                     if valid_articles:
                         return Response(valid_articles)
-
+                        
         except Exception as e:
             # 5. Log errors silent
-            print(f"NewsAPI.ai ERROR: {e}")
+            print(f"NewsAPI.org ERROR: {e}")
             # Fall through to database fallback
     
     # Fallback to database articles if API fails or returns nothing

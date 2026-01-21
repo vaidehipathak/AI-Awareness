@@ -4,7 +4,7 @@ from presidio_analyzer import AnalyzerEngine
 ALLOWED_ENTITIES = {
     "EMAIL_ADDRESS": "EMAIL",
     "PHONE_NUMBER": "PHONE",
-    "URL": "URL" 
+    "URL": "URL"
 }
 
 analyzer = AnalyzerEngine()

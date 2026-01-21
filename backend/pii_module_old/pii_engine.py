@@ -1,9 +1,7 @@
-from pii_module.presidio_engine import detect_pii_presidio
-from pii_module.regex_patterns import regex_candidates
-from pii_module.keyword_context import keyword_score
-from pii_module.confidence_engine import compute_confidence
-from pii_module.aadhaar_validator import is_valid_aadhaar
-
+from .presidio_engine import detect_pii_presidio
+from .regex_patterns import regex_candidates
+from .keyword_context import keyword_score
+from .confidence_engine import compute_confidence
 
 PII_PRIORITY = {
     "AADHAAR": 5, "VID": 5, "PAN": 5,
@@ -39,25 +37,13 @@ def detect_pii(text):
         if h["type"] not in REGEX_ONLY:
             continue
 
-        # Validate Aadhaar checksum to prevent false positives
-        if h["type"] == "AADHAAR":
-            if not is_valid_aadhaar(h["value"]):
-                continue  # Skip invalid Aadhaar numbers (e.g., transaction IDs)
-
-        # Skip bank account numbers that are part of UPI IDs
-        if h["type"] == "BANK_ACCOUNT":
-            # Check if this number is followed by @ (part of UPI ID)
-            if h["end"] < len(text) and text[h["end"]] == "@":
-                continue  # This is part of a UPI ID, not a standalone bank account
-
         bonus = keyword_score(text, h["type"], h["start"], h["end"])
         if bonus < 0:
             continue
 
         conf = compute_confidence("regex", bonus)
-        if conf < 0.65:
+        if conf < 0.7:
             continue
-
 
         # Suppress overlaps
         if any(

@@ -49,17 +49,19 @@ def _classify_file_type(filename: str, content_type: str) -> str:
 
 
 def _route_detectors(file_type: str) -> List[str]:
-    if file_type in ("text", "pdf"):
-        return ["pdf_text_ai"]
-    if file_type == "image":
-        return ["image_deepfake"]
+    if file_type in ("text", "pdf", "image"):  # Added image support
+        return ["pdf_text_ai"]  # Routes to PII detection with OCR for images
     return []
 
 
 def _invoke_detector(name: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     try:
         if name == "pdf_text_ai":
-            return detect_pdf_ai(payload.get("text", ""), payload.get("metadata", {}))
+            return detect_pdf_ai(
+                text_input=payload.get("text", ""),
+                metadata=payload.get("metadata", {}),
+                image_bytes=payload.get("image_bytes")  # Pass image bytes for OCR
+            )
 
         if name == "image_deepfake":
             return image_detector.detect(
@@ -124,7 +126,7 @@ def route_and_detect(*, user, uploaded_file, metadata: Dict[str, Any]) -> Dict[s
 
     if ftype == "image":
         uploaded_file.seek(0)
-        payload["bytes"] = uploaded_file.read()
+        payload["image_bytes"] = uploaded_file.read()  # Pass as image_bytes for OCR
         uploaded_file.seek(0)
     else:
         if ftype == "pdf":

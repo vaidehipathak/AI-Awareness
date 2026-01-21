@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   ShieldCheck,
   AlertTriangle,
@@ -6,8 +6,6 @@ import {
   FileText,
   Image as ImageIcon,
   Binary,
-  ChevronDown,
-  ChevronUp,
   Fingerprint
 } from 'lucide-react';
 
@@ -46,11 +44,17 @@ interface AnalysisResultsProps {
 }
 
 const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) => {
-  
-  const [showDetails, setShowDetails] = useState(false);
 
   const finalRiskLabel = result?.risk_label || result.results?.[0]?.label || 'UNKNOWN';
-  const finalResultObject = result.results && result.results.length > 0 ? result.results : [];
+  // Filter out AI_ANALYSIS from results
+  const finalResultObject = result.results && result.results.length > 0
+    ? result.results.filter(r => r.type?.toUpperCase() !== 'AI_ANALYSIS')
+    : [];
+
+  // Check for high-risk PII
+  const piiDetection = result.results?.find(r => r.type?.toUpperCase() === 'PII_DETECTION');
+  const highRiskPII = ['AADHAAR', 'VID', 'PAN', 'CREDIT_DEBIT_CARD', 'CVV', 'BANK_ACCOUNT'];
+  const hasHighRiskPII = piiDetection?.entities?.some((e: any) => highRiskPII.includes(e.type)) || false;
 
   // --- HELPER FUNCTION FOR FILE NAME ---
   const getFileName = (metadata?: { name?: string; original_name?: string }) => {
@@ -118,6 +122,19 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) =>
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
+  const maskPIIValue = (value: string) => {
+    if (!value || value.length <= 4) return value;
+    // Remove spaces and special characters for masking
+    const cleanValue = value.replace(/[\s-]/g, '');
+    const last4 = cleanValue.slice(-4);
+    const masked = '*'.repeat(Math.max(0, cleanValue.length - 4));
+    // Preserve original spacing pattern if it exists
+    if (value.includes(' ')) {
+      return masked.replace(/(....)/g, '$1 ').trim() + ' ' + last4;
+    }
+    return masked + last4;
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* TOP SUMMARY */}
@@ -142,6 +159,27 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) =>
           </p>
         </div>
       </div>
+
+      {/* HIGH-RISK PII WARNING */}
+      {hasHighRiskPII && finalRiskLabel === 'HIGH' && (
+        <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-500 dark:border-red-700 rounded-xl p-6 flex items-start gap-4 animate-pulse">
+          <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400 flex-shrink-0 mt-1" />
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-red-900 dark:text-red-100 mb-2">
+              ⚠️ Critical Privacy Warning
+            </h3>
+            <p className="text-red-800 dark:text-red-200 font-medium mb-3">
+              This document contains highly sensitive personal information (Aadhaar, PAN, Bank Details, etc.).
+            </p>
+            <ul className="text-sm text-red-700 dark:text-red-300 space-y-1 list-disc list-inside">
+              <li><strong>Do NOT share</strong> this document via email, messaging apps, or cloud storage</li>
+              <li><strong>Do NOT upload</strong> to untrusted websites or third-party services</li>
+              <li><strong>Store securely</strong> in encrypted folders or password-protected archives</li>
+              <li><strong>Delete immediately</strong> if no longer needed</li>
+            </ul>
+          </div>
+        </div>
+      )}
 
       {/* DETECTORS */}
       <div className="grid gap-6">
@@ -202,7 +240,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) =>
                     <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md">
                       {detector.entities.slice(0, 10).map((entity: any, eIdx: number) => (
                         <span key={eIdx} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">
-                          {entity.type}: {entity.value.substring(0, 20)}...
+                          {entity.type}: {maskPIIValue(entity.value)}
                         </span>
                       ))}
                       {detector.entities.length > 10 && (
@@ -211,6 +249,25 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) =>
                         </span>
                       )}
                     </div>
+                  </div>
+                )}
+
+                {detector.type?.toUpperCase() === 'PII_DETECTION' && (detector as any).privacy_tips && (detector as any).privacy_tips.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <h4 className="font-semibold text-sm mb-3 text-gray-900 dark:text-white flex items-center gap-2">
+                      <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Privacy Education
+                    </h4>
+                    <ul className="space-y-2">
+                      {(detector as any).privacy_tips.map((tip: string, tIdx: number) => (
+                        <li key={tIdx} className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+                          <span className="text-blue-500 dark:text-blue-400 mt-0.5">•</span>
+                          <span>{tip}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
 
@@ -233,22 +290,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) =>
         )}
       </div>
 
-      {/* TECH DETAILS */}
-      <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
-        <button
-          onClick={() => setShowDetails(!showDetails)}
-          className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
-        >
-          {showDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          {showDetails ? 'Hide Technical Details' : 'View Technical Details'}
-        </button>
 
-        {showDetails && (
-          <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 font-mono text-xs text-gray-600 dark:text-gray-400 overflow-x-auto whitespace-pre-wrap">
-            {JSON.stringify(result, null, 2)}
-          </div>
-        )}
-      </div>
 
       {/* ACTION */}
       <div className="flex justify-center pt-8">
