@@ -53,86 +53,145 @@ const GoogleTranslateWidget = () => {
           .translate-container {
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            padding: 8px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            position: relative; /* Crucial for overlay */
+            gap: 6px;
+            background: #233554; /* same tone as mail icon */
+            border-radius: 6px;
+            border: 1px solid #64FFDA;
+            padding: 6px 12px;
+            height: 32px;
             overflow: hidden;
-            border: 1px solid transparent; /* Prevent layout shift */
-          }
-          
-           .translate-container:hover {
-            background-color: rgba(0, 0, 0, 0.05);
-          }
-           .dark .translate-container:hover {
-             background-color: rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: background 0.2s ease;
+            margin-left: 10px; /* add spacing after mail icon */
           }
 
-          /* The visual content */
-          .translate-content {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            pointer-events: none; /* Let clicks pass through to the google element if it's on top, or just purely visual */
-            color: #64748b; /* slate-500 */
-          }
-          .dark .translate-content {
-            color: #94a3b8; /* slate-400 */
-          }
-          
-          .translate-container:hover .translate-content {
-             color: #0f172a; /* slate-900 */
-          }
-          .dark .translate-container:hover .translate-content {
-             color: #f8fafc; /* slate-50 */
+          .translate-container:hover {
+            background: #112240;
           }
 
-          /* Core Google element - Hidden Overlay */
+          .google-logo {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            margin-right: 4px;
+            color: #64FFDA;
+          }
+
+          /* Core Google element */
           #google_translate_element {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0; /* Invisible but clickable */
-            z-index: 10;
-            cursor: pointer;
-            overflow: hidden;
+            display: inline-block !important;
+            line-height: 1 !important;
+            height: 20px !important;
+            max-height: 20px !important;
+            overflow: hidden !important;
           }
 
-          /* Ensure the google gadget inside fills the space so clicks register */
           .goog-te-gadget {
-            width: 100% !important;
-            height: 100% !important;
+            font-family: 'Inter', sans-serif !important;
+            font-size: 0 !important;
+            line-height: 1 !important;
+            height: auto !important;
           }
-          .goog-te-gadget-simple {
-            width: 100% !important;
-            height: 100% !important;
-          }
-          
-          /* Dropdown Positioning - Try to make it appear reasonably relative to the container */
-           .goog-te-menu-frame {
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
-            border-radius: 0.5rem !important;
-            border: 1px solid rgba(226, 232, 240, 1) !important; /* slate-200 */
-          }
-           .dark .goog-te-menu-frame {
-             border: 1px solid rgba(30, 41, 59, 1) !important; /* slate-800 */
-           }
 
+          .goog-te-gadget-simple {
+            background: none !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            color: #E6F1FF !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0 !important;
+            height: 20px !important;
+            white-space: nowrap !important;
+          }
+
+          .goog-te-gadget-simple:hover {
+            color: #64FFDA !important;
+          }
+
+          /* Hide Google icon */
+          .goog-te-gadget-icon {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+          }
+
+          /* Keep only language text */
+          .goog-te-menu-value {
+            font-family: 'Fira Code', monospace !important;
+            font-size: 13px !important;
+            line-height: 1 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            color: #E6F1FF !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+          }
+
+          /* Remove divider and arrow ▼ */
+          .goog-te-menu-value > span:first-child {
+            display: inline !important;
+            color: inherit !important;
+            font-size: 13px !important;
+            line-height: 1 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            vertical-align: middle !important;
+          }
+
+          .goog-te-menu-value > span:nth-child(2),
+          .goog-te-menu-value > span:last-child,
+          .goog-te-menu-value span[style*="border-left"],
+          .goog-te-menu-value span[style*="inline-block"],
+          .goog-te-menu-value span > img,
+          .goog-te-menu-value img {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            visibility: hidden !important;
+          }
+
+          /* Dropdown menu styling */
+          .goog-te-menu2 {
+            background-color: #0a192f !important;
+            border: 1px solid #64FFDA !important;
+            border-radius: 7px !important;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.3) !important;
+          }
+
+          .goog-te-menu2-item div,
+          .goog-te-menu2-item span {
+            color: #E6F1FF !important;
+            font-family: 'Inter', sans-serif !important;
+            font-size: 13px !important;
+            padding: 6px 12px !important;
+          }
+
+          .goog-te-menu2-item:hover {
+            background-color: #112240 !important;
+          }
+
+          .goog-te-menu2-item-selected div,
+          .goog-te-menu2-item-selected span {
+            color: #64FFDA !important;
+          }
+
+          /* Dropdown positioning */
+          .goog-te-menu-frame {
+            z-index: 9999 !important;
+            position: absolute !important;
+            top: 40px !important;
+            right: 0 !important;
+          }
         `}</style>
       </Helmet>
 
-      <div className="translate-container" title="Change Language">
-        {/* Visual Layer */}
-        <div className="translate-content">
-          <Languages className="w-4 h-4" />
-          <span className="text-sm font-medium">Languages</span>
-        </div>
-
-        {/* Functional Layer (Hidden) */}
+      <div className="translate-container">
+        <Languages className="google-logo" />
         <div id="google_translate_element"></div>
       </div>
     </>

@@ -213,8 +213,8 @@ if _brevo_user and _brevo_password:
     EMAIL_USE_TLS = True
     EMAIL_HOST_USER = _brevo_user
     EMAIL_HOST_PASSWORD = _brevo_password
-    DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@awareness.io')
+    DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@awarex.io')
 else:
     # Fallback to Console
-    DEFAULT_FROM_EMAIL = 'noreply@awareness.io'
+    DEFAULT_FROM_EMAIL = 'noreply@awarex.io'
 

@@ -505,7 +505,7 @@ const Home: React.FC = () => {
       <footer className="bg-slate-50 dark:bg-[#050505] border-t border-slate-200 dark:border-white/5 py-16 px-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
           <div>
-            <h4 className="font-black text-2xl text-slate-900 dark:text-white mb-2">Awareness.io</h4>
+            <h4 className="font-black text-2xl text-slate-900 dark:text-white mb-2">AwareX</h4>
             <p className="text-slate-500 text-sm">Building a safer digital future.</p>
           </div>
 

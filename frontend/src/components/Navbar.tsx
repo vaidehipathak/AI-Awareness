@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
 import GoogleTranslateWidget from './GoogleTranslateWidget';
 
+
 import { useAuth } from '../contexts/AuthContext';
 import AuthGateModal from './AuthGateModal';
 
@@ -117,6 +118,7 @@ const Navbar: React.FC = () => {
               <div className="flex items-center gap-2">
                 <ThemeToggle />
                 <GoogleTranslateWidget />
+
               </div>
               {isAuthenticated && (
                 <>
@@ -150,6 +152,7 @@ const Navbar: React.FC = () => {
 
               <ThemeToggle />
               <GoogleTranslateWidget />
+
             </div>
             <button onClick={toggleMenu} aria-label="Toggle menu">
               {isOpen ? (

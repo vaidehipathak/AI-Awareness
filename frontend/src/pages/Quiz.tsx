@@ -3,11 +3,11 @@ import axios from 'axios';
 import { useTheme } from 'next-themes';
 import { Plus, Lock, Play, CheckCircle2, ArrowLeft, Shield, Brain } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import AdminActionButtons from '../components/admin/AdminActionButtons';
 import ContentEditModal from '../components/admin/ContentEditModal';
 import { quizCatalog, Difficulty, Quiz, Question } from '../data/quizCatalog';
 import GamificationDashboard from '../components/games/GamificationDashboard';
 import { motion, AnimatePresence } from 'framer-motion';
+import confetti from 'canvas-confetti';
 
 const PASS_THRESHOLD = 0.7;
 
@@ -58,6 +58,22 @@ const computeScore = (quiz: Quiz, answers: number[]): QuizResult => {
     const total = quiz.questions.length;
     const passed = correct >= Math.ceil(total * PASS_THRESHOLD);
     return { score: correct, total, passed };
+};
+
+const shuffleQuestion = (question: Question): Question => {
+    // Create a shallow copy of options to shuffle
+    const optionsWithIndices = question.options.map((opt, idx) => ({ opt, originalIdx: idx }));
+    // Shuffle
+    optionsWithIndices.sort(() => Math.random() - 0.5);
+
+    // Determine new correct index
+    const newCorrectIndex = optionsWithIndices.findIndex(item => item.originalIdx === question.correctIndex);
+
+    return {
+        ...question,
+        options: optionsWithIndices.map(item => item.opt),
+        correctIndex: newCorrectIndex
+    };
 };
 
 const QuizCard: React.FC<{
@@ -265,7 +281,16 @@ const QuizPage: React.FC = () => {
     const resetQuizState = () => { setQuestionIndex(0); setAnswers([]); setResult(null); };
     const goToDifficulty = () => { setView('difficulty'); setActiveDifficulty(null); setSelectedQuiz(null); resetQuizState(); };
     const openDifficulty = (difficulty: Difficulty) => { setActiveDifficulty(difficulty); setView('list'); setSelectedQuiz(null); resetQuizState(); };
-    const startQuiz = (quiz: Quiz) => { setSelectedQuiz(quiz); setView('playing'); resetQuizState(); };
+
+    const startQuiz = (quiz: Quiz) => {
+        // Shuffle questions when starting
+        const shuffledQuestions = quiz.questions.map(shuffleQuestion);
+        const shuffledQuiz = { ...quiz, questions: shuffledQuestions };
+
+        setSelectedQuiz(shuffledQuiz);
+        setView('playing');
+        resetQuizState();
+    };
 
     const unlockNextQuiz = (difficulty: Difficulty, currentQuizId: string) => {
         const quizzes = quizCatalog[difficulty];
@@ -287,7 +312,14 @@ const QuizPage: React.FC = () => {
                 results: { ...prev[quiz.difficulty].results, [quiz.id]: { ...quizResult, completed: true } }
             }
         }));
-        if (quizResult.passed) unlockNextQuiz(quiz.difficulty, quiz.id);
+        if (quizResult.passed) {
+            unlockNextQuiz(quiz.difficulty, quiz.id);
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+        }
     };
 
     const onSelectAnswer = (idx: number) => {
