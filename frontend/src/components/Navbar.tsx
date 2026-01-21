@@ -98,8 +98,11 @@ const Navbar: React.FC = () => {
     <>
       <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg shadow-md dark:shadow-gray-800 fixed top-0 left-0 right-0 z-50">
         <nav className="container mx-auto px-4 md:px-8 py-4 flex justify-between items-center">
-          <button onClick={() => navigate('/')} className="text-2xl font-bold text-primary focus:outline-none">
-            AI AwareX
+          <button onClick={() => navigate('/')} className="group relative">
+            <span className="absolute -inset-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 blur-lg opacity-0 group-hover:opacity-30 transition-opacity duration-500" />
+            <span className="relative text-3xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
+              AwareX
+            </span>
           </button>
 
           <div className="hidden md:flex items-center space-x-2 text-gray-700 dark:text-gray-300">
