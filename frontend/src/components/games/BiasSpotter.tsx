@@ -25,6 +25,14 @@ interface BiasSpotterProps {
 const BiasSpotter: React.FC<BiasSpotterProps> = ({ data, onScoreUpdate }) => {
     const [currentScenario, setCurrentScenario] = useState(0);
     const [score, setScore] = useState(0);
+
+    if (!data || !data.scenarios || data.scenarios.length === 0) {
+        return (
+            <div className="text-center p-12 bg-gray-100 dark:bg-gray-800 rounded-xl">
+                <p className="text-gray-500 dark:text-gray-400">No bias scenarios available at the moment.</p>
+            </div>
+        );
+    }
     const [revealedData, setRevealedData] = useState<number[]>([]);
     const [categorizedData, setCategorizedData] = useState<{
         bias: number[];
