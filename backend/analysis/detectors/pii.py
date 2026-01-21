@@ -11,8 +11,8 @@ PLACEHOLDER_RESPONSE = {
 
 def detect(extracted_text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
     try:
-        # Strictly use the Improved PII Engine (backend/pii_engine)
-        from pii_engine.pii_engine import detect as detect_pii
+        # Strictly use the Improved PII Engine (backend/pii_module)
+        from pii_module.pii_engine import detect_pii
 
         # 2. Raw Detection
         findings = detect_pii(extracted_text or "")
@@ -34,44 +34,23 @@ def detect(extracted_text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
         flags = list(counts.keys())
         
         # 5. Risk Scoring Logic
-        # 0 findings -> LOW (Handled above)
-        # 1-2 findings -> MEDIUM
-        # >=3 findings -> HIGH
-        # Confidence = max of findings (since valid findings are high confidence)
+        # Critical entities that should ALWAYS be High Risk
+        CRITICAL_ENTITIES = {"AADHAAR", "PAN", "UPI_ID", "CREDIT_DEBIT_CARD", "US_SSN", "PASSPORT", "VID"}
+        has_critical = any(f["type"] in CRITICAL_ENTITIES for f in findings)
+        
         max_conf = max((m['confidence'] for m in findings), default=0.0)
-        
-        # Note: Risk label is calculated by the Router usually based on confidence.
-        # Router logic:
-        # if max_conf >= 0.8 -> HIGH
-        # if max_conf >= 0.4 -> MEDIUM
-        # else -> LOW
-        
-        # Our engine returns confidence > 0.7 for valid findings.
-        # So 1 finding = 0.7+ -> Medium/High depending on router threshold.
-        # Router threshold is: >= 0.8 HIGH, >= 0.4 MEDIUM.
-        # If we have findings, confidence is likely 0.85-0.95.
-        # So usually HIGH risk if we have ANY finding.
-        # User constraint: "Risk labels: 0->LOW, 1-2->MEDIUM, >=3->HIGH"
-        # Since Router controls the final label based on max score, we can manipulate the score
-        # to influence the router, OR we rely on the router's logic.
-        # The prompt says: "Risk logic: ... 1-2 findings -> MEDIUM".
-        # IF the router logic `_risk_label_from_scores` uses `max(scores)`, 
-        # then we need to adjust the reported confidence score if we want to force MEDIUM.
-        # E.g. if count < 3, cap confidence at 0.79?
-        
         num_findings = len(findings)
         
         # 5. Strict Risk Logic (Production Rule)
-        # Requirement: "Entity Count Sanity"
-        # - < 3 findings -> LOW Risk (Cap confidence)
-        # - >= 3 findings -> HIGH Risk (Allow high confidence)
+        # If we have critical entities, force HIGH confidence (>=0.8) if the detection confidence supports it,
+        # or at least ensure it's not suppressed.
         
-        if num_findings < 3:
-            # Force "LOW" range logic for isolated matches
-            # Router typically uses 0.4 threshold for Medium.
+        if num_findings < 3 and not has_critical:
+            # Force "LOW" range logic for isolated matches ONLY if they are not critical
             final_confidence = 0.3
         else:
             # Allow actual confidence to drive risk (usually > 0.8 for valid PII)
+            # If critical entity found, ensure we are at least in Medium/High range if the engine was confident
             final_confidence = float(max_conf)
 
         return {

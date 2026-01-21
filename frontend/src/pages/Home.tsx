@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react';
 
 const Home: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
@@ -24,7 +26,7 @@ const Home: React.FC = () => {
       {/* Hero Section */}
       <section className="py-24 md:py-32 px-4 text-center max-w-5xl mx-auto">
         <h1 className="text-4xl md:text-6xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight leading-tight">
-          Trust, verified by intelligence.
+          {t('welcome')}
         </h1>
         <p className="text-xl text-gray-600 dark:text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed font-light">
           Securely analyze documents for AI-generated content, deepfakes, and sensitive information with transparent, privacy-first heuristics.
@@ -35,14 +37,14 @@ const Home: React.FC = () => {
               onClick={() => navigate('/report')}
               className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 font-medium py-3 px-8 rounded-full text-lg transition-colors duration-200"
             >
-              Get Started
+              {t('home')}
             </button>
           )}
           <button
             onClick={() => navigate('/awareness-hub')}
             className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium py-3 px-6 text-lg transition-colors duration-200 flex items-center gap-2"
           >
-            Learn More <ArrowRight size={18} />
+            {t('ask_ai')} <ArrowRight size={18} />
           </button>
         </div>
       </section>

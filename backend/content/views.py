@@ -1,6 +1,6 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
-from rest_framework.decorators import action, api_view
+from rest_framework.decorators import action, api_view, permission_classes
 from django.utils import timezone
 from django.conf import settings
 import requests

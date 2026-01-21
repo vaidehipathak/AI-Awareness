@@ -1,4 +1,6 @@
 import React from 'react';
+import { I18nextProvider } from 'react-i18next';
+import i18n from './i18n';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from 'next-themes';
 import { AuthProvider } from './contexts/AuthContext';
@@ -20,12 +22,15 @@ import OtpVerify from './pages/OtpVerify';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Signup from './pages/Signup';
+import LanguageSwitcher from './components/LanguageSwitcher';
 
 const App: React.FC = () => {
   return (
-    <ThemeProvider attribute="class">
-      <AuthProvider>
-        <HashRouter>
+    <I18nextProvider i18n={i18n}>
+      <LanguageSwitcher />
+      <ThemeProvider attribute="class">
+        <AuthProvider>
+          <HashRouter>
           <Routes>
             {/* Conditional Layout Routes - Show sidebar when logged in, navbar only when logged out */}
             <Route element={<ConditionalLayout />}>
@@ -78,6 +83,7 @@ const App: React.FC = () => {
         </HashRouter>
       </AuthProvider>
     </ThemeProvider>
+    </I18nextProvider>
   );
 };
 
