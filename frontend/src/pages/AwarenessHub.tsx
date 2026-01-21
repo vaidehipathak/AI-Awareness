@@ -5,7 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from 'next-themes';
 import {
   Brain, Lock, Fingerprint, Eye, Shield, Gamepad2,
-  Search, AlertTriangle, X, CheckCircle, XCircle, RotateCcw, Lightbulb, Zap, Plus, Settings
+  Search, AlertTriangle, X, CheckCircle, XCircle, RotateCcw, Lightbulb, Zap, Plus, Settings,
+  ArrowRight, BookOpen, ChevronRight, GraduationCap
 } from 'lucide-react';
 
 import AdminActionButtons from '../components/admin/AdminActionButtons';
@@ -18,7 +19,7 @@ type Quiz = {
   options: string[];
   correctAnswerIndex: number;
   explanation: string;
-  id?: number; // Optional for safety
+  id?: number;
 };
 
 type LearningModule = {
@@ -42,33 +43,12 @@ type Resource = {
   learningModules: LearningModule[];
 };
 
-// --- STYLING UTILS ---
-
-const COMIC_BORDER = "border-[4px] border-black dark:border-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]";
-const SPEECH_BUBBLE = "relative bg-white dark:bg-slate-800 p-5 border-[4px] border-black dark:border-white rounded-3xl shadow-[4px_4px_0px_rgba(0,0,0,1)] after:content-[''] after:absolute after:bottom-[-20px] after:left-10 after:w-0 after:h-0 after:border-l-[15px] after:border-l-transparent after:border-r-[15px] after:border-r-transparent after:border-t-[20px] after:border-t-black dark:after:border-t-white";
-
-// --- HELPERS & COMPONENTS ---
-
-const ComicSFX = ({ text }: { text: string }) => (
-  <motion.div
-    initial={{ scale: 0, rotate: -20 }}
-    animate={{ scale: [0, 1.4, 1], rotate: [-20, 10, -5], opacity: [0, 1, 0] }}
-    transition={{ duration: 0.8 }}
-    className="absolute inset-0 flex items-center justify-center pointer-events-none z-50"
-  >
-    <span className="text-7xl md:text-9xl font-black italic text-yellow-400 drop-shadow-[6px_6px_0px_rgba(0,0,0,1)] uppercase tracking-tighter">
-      {text}
-    </span>
-  </motion.div>
-);
+// --- COMPONENTS ---
 
 const QuizComponent = ({ quiz, onCorrectAnswer }: { quiz: Quiz; onCorrectAnswer: () => void }) => {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
-  const [showSFX, setShowSFX] = useState(false);
-
-  // If quiz is undefined (e.g. data mismatch), handle gracefully
-  if (!quiz) return <div className="p-4 text-red-500">Quiz data missing</div>;
+  const [shake, setShake] = useState(false);
 
   const isCorrect = isAnswered && selectedAnswer === quiz.correctAnswerIndex;
 
@@ -78,142 +58,187 @@ const QuizComponent = ({ quiz, onCorrectAnswer }: { quiz: Quiz; onCorrectAnswer:
     setIsAnswered(true);
 
     if (index === quiz.correctAnswerIndex) {
-      setShowSFX(true);
       setTimeout(() => {
-        setShowSFX(false);
         onCorrectAnswer();
-      }, 1800);
+      }, 2000); // Longer delay to enjoy the success animation
+    } else {
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
     }
   };
 
   const resetQuiz = () => {
     setSelectedAnswer(null);
     setIsAnswered(false);
+    setShake(false);
   };
 
   const getButtonClass = (index: number) => {
+    const base = "w-full text-left p-5 rounded-xl font-bold border-2 transition-all duration-200 relative overflow-hidden group ";
+
     if (!isAnswered) {
-      return "bg-white dark:bg-slate-700 hover:translate-x-1 hover:translate-y-1 transition-all";
+      return base + "bg-white dark:bg-slate-800 border-black dark:border-white text-black dark:text-white hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]";
     }
     if (index === quiz.correctAnswerIndex) {
-      return "bg-green-400 text-black translate-x-1 translate-y-1 shadow-none";
+      return base + "bg-green-400 border-black text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] scale-[1.02] z-10";
     }
     if (index === selectedAnswer) {
-      return "bg-red-500 text-white";
+      return base + "bg-red-400 border-black text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]";
     }
-    return "bg-slate-200 dark:bg-slate-800 opacity-50 shadow-none";
+    return base + "bg-gray-100 dark:bg-slate-800 border-gray-300 dark:border-gray-700 opacity-50 grayscale";
   };
 
   return (
-    <div className="relative mt-2">
-      <AnimatePresence>
-        {showSFX && <ComicSFX text="BINGO!" />}
-      </AnimatePresence>
-
+    <div className="mt-8 relative">
       <motion.div
-        className={`p-6 bg-cyan-50 dark:bg-blue-900/10 border-[4px] border-black dark:border-white shadow-[6px_6px_0px_rgba(0,0,0,1)]`}
-        animate={{ opacity: isCorrect ? 0.3 : 1 }}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="p-8 rounded-3xl bg-white dark:bg-slate-900 border-4 border-black dark:border-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] relative overflow-visible"
       >
-        <h4 className="font-black text-xl text-black dark:text-white mb-6 italic uppercase tracking-tighter flex items-center gap-2">
-          <Zap className="text-yellow-500 fill-yellow-500" size={24} /> {quiz.question}
-        </h4>
-        <div className="space-y-3">
+        {/* Comic Badge */}
+        <div className="absolute -top-6 -left-4 bg-yellow-400 border-4 border-black text-black font-black px-4 py-2 rotate-[-6deg] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-20">
+          BRAIN TEASER!
+        </div>
+
+        <div className="flex items-start gap-5 mb-8 mt-2">
+          <h4 className="font-black text-2xl md:text-3xl text-black dark:text-white leading-tight uppercase tracking-tight">
+            {quiz.question}
+          </h4>
+        </div>
+
+        <div className="space-y-4">
           {quiz.options && quiz.options.map((option, index) => (
             <motion.button
               key={index}
               onClick={() => handleAnswerClick(index)}
-              className={`w-full text-left p-4 border-[4px] border-black dark:border-white font-black uppercase italic text-sm md:text-base flex items-center shadow-[4px_4px_0px_rgba(0,0,0,1)] ${getButtonClass(index)}`}
+              className={getButtonClass(index)}
               disabled={isAnswered}
-              animate={isAnswered && selectedAnswer === index && !isCorrect ? { x: [0, -5, 5, -5, 5, 0] } : {}}
+              animate={isAnswered && index === selectedAnswer && index !== quiz.correctAnswerIndex && shake ? { x: [-10, 10, -10, 10, 0] } : {}}
+              transition={{ type: "spring", stiffness: 300, damping: 10 }}
             >
-              <div className="mr-3 flex-shrink-0">
-                {isAnswered && (index === quiz.correctAnswerIndex ? <CheckCircle className="w-6 h-6" /> : (index === selectedAnswer ? <XCircle className="w-6 h-6" /> : <div className="w-6" />))}
-                {!isAnswered && <div className="w-6 h-6 border-[3px] border-black dark:border-slate-400 rounded-full" />}
+              <div className="flex items-center justify-between relative z-10">
+                <span className="text-lg">{option}</span>
+                {isAnswered && (
+                  <div className="ml-3 shrink-0">
+                    {index === quiz.correctAnswerIndex ? (
+                      <motion.div
+                        initial={{ scale: 0, rotate: -45 }}
+                        animate={{ scale: 1.5, rotate: 0 }}
+                        transition={{ type: "spring", bounce: 0.5 }}
+                      >
+                        <div className="bg-white border-2 border-black rounded-full p-1 text-green-600">
+                          <CheckCircle size={24} strokeWidth={4} />
+                        </div>
+                      </motion.div>
+                    ) : index === selectedAnswer ? (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1.2 }}
+                      >
+                        <div className="bg-white border-2 border-black rounded-full p-1 text-red-600">
+                          <XCircle size={24} strokeWidth={4} />
+                        </div>
+                      </motion.div>
+                    ) : null}
+                  </div>
+                )}
               </div>
-              {option}
             </motion.button>
           ))}
         </div>
-      </motion.div>
 
-      <AnimatePresence>
-        {isAnswered && !isCorrect && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className={`mt-6 p-5 bg-yellow-300 dark:bg-slate-800 border-[4px] border-black dark:border-white shadow-[6px_6px_0px_rgba(0,0,0,1)]`}
-          >
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-8 h-8 text-black dark:text-yellow-400 flex-shrink-0" />
-              <div>
-                <span className="font-black uppercase italic text-xs bg-black text-white px-2 py-0.5 mb-2 inline-block">Intel Update</span>
-                <p className="text-sm font-black text-black dark:text-slate-100 leading-tight italic uppercase tracking-tighter">{quiz.explanation}</p>
-              </div>
-            </div>
-            <button
-              onClick={resetQuiz}
-              className={`mt-4 w-full flex items-center justify-center gap-2 text-center p-3 bg-black text-white font-black uppercase italic border-[3px] border-black hover:bg-slate-800 transition-colors`}
+        <AnimatePresence>
+          {isAnswered && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, scale: 0.9 }}
+              animate={{ opacity: 1, height: 'auto', scale: 1 }}
+              className={`mt-6 pt-6 border-t-4 border-black dark:border-white ${isCorrect ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
             >
-              <RotateCcw size={18} strokeWidth={4} />
-              Retry Mission
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              {isCorrect ? (
+                <motion.div
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="flex flex-col items-center text-center p-4 bg-green-100 dark:bg-green-900/30 border-4 border-green-500 rounded-2xl"
+                >
+                  <h3 className="text-4xl font-black uppercase mb-2 animate-bounce">NAILED IT!</h3>
+                  <p className="font-bold text-black dark:text-white">{quiz.explanation}</p>
+                </motion.div>
+              ) : (
+                <div className="flex items-start gap-4 p-4 rounded-xl bg-red-100 dark:bg-red-900/30 border-4 border-red-500">
+                  <AlertTriangle className="w-8 h-8 text-red-600 shrink-0 stroke-[3px]" />
+                  <div className="flex-1">
+                    <span className="text-xl font-black text-red-600 uppercase tracking-wider mb-1 block">OOPS!</span>
+                    <p className="font-bold text-black dark:text-white">{quiz.explanation}</p>
+                    <button
+                      onClick={resetQuiz}
+                      className="mt-4 px-6 py-2 bg-black text-white font-bold uppercase rounded-lg shadow-[4px_4px_0px_0px_rgba(255,0,0,1)] hover:translate-y-1 hover:shadow-none transition-all"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
     </div>
   );
 };
 
 const ResourceCard = ({ resource, onClick, onUpdate }: { resource: Resource; onClick: () => void; onUpdate: () => void }) => {
   const IconComponent = resource.icon || Brain;
+  const gradientClass = `bg-gradient-to-br ${resource.color}`;
+
   return (
     <motion.div
       layoutId={`card-container-${resource.id}`}
-      whileHover={{ y: -8, rotate: -1 }}
-      whileTap={{ scale: 0.97 }}
-      onClick={onClick}
-      className={`bg-white dark:bg-slate-900 cursor-pointer overflow-hidden flex flex-col h-full ${COMIC_BORDER} relative group`}
+      whileHover={{ y: -8, rotate: 1 }}
+      className="group relative h-full flex flex-col"
     >
-      {/* Admin Controls */}
-      <div className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
-        <AdminActionButtons item={resource} contentType="awareness" onUpdate={onUpdate} />
-      </div>
+      <div
+        onClick={onClick}
+        className="relative h-full bg-white dark:bg-slate-900 border-4 border-black dark:border-white rounded-3xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] hover:shadow-[12px_12px_0px_0px_rgba(var(--primary),1)] transition-all duration-300 cursor-pointer flex flex-col overflow-hidden"
+      >
+        {/* Halftone Pattern Overlay */}
+        <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(circle,_var(--tw-gradient-stops))] from-black to-transparent bg-[length:4px_4px] pointer-events-none" />
 
-      <div className={`h-8 bg-gradient-to-r ${resource.color} border-b-[4px] border-black flex items-center px-4 overflow-hidden relative`}>
-        <div className="flex gap-1">
-          <div className="w-2 h-2 rounded-full bg-white/50" />
-          <div className="w-2 h-2 rounded-full bg-white/50" />
-          <div className="w-2 h-2 rounded-full bg-white/50" />
+        {/* Admin Controls */}
+        <div className="absolute top-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+          <AdminActionButtons item={resource} contentType="awareness" onUpdate={onUpdate} />
         </div>
-        {!resource.is_active && (
-          <div className="absolute right-2 px-2 py-0.5 bg-red-500 text-white text-[10px] uppercase font-bold">Hidden</div>
-        )}
-      </div>
-      <div className="p-6 flex-grow flex flex-col relative">
-        <div className="absolute top-2 right-2 opacity-10">
-          <IconComponent size={80} />
-        </div>
-        <div className="flex items-start mb-4">
-          <div className={`w-14 h-14 bg-white dark:bg-slate-800 border-[4px] border-black dark:border-white flex items-center justify-center mr-4 flex-shrink-0 -rotate-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}>
-            <IconComponent className="w-8 h-8 text-black dark:text-white" />
-          </div>
-          <div className="flex-1">
-            <span className="inline-block px-2 py-0.5 bg-yellow-400 text-black text-[10px] font-black uppercase italic tracking-tighter mb-1 border-2 border-black">
+
+        <div className="p-8 flex-grow flex flex-col relative z-10">
+          <div className="flex items-start justify-between mb-6">
+            <div className={`p-4 rounded-xl ${gradientClass} text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-2 border-black`}>
+              <IconComponent className="w-8 h-8" strokeWidth={3} />
+            </div>
+            {!resource.is_active && (
+              <span className="px-3 py-1 bg-red-100 border-2 border-red-500 text-red-600 text-xs font-black uppercase tracking-wider rounded-md -rotate-6">
+                Draft
+              </span>
+            )}
+
+            {/* Category Pill */}
+            <span className="absolute top-8 right-8 text-[10px] font-black tracking-widest uppercase text-black/50 dark:text-white/50 border-b-2 border-black/10 dark:border-white/10 pb-1">
               {resource.category}
             </span>
-            <h3 className="text-2xl font-black text-black dark:text-white leading-none uppercase italic tracking-tighter">
+          </div>
+
+          <div className="mb-4 mt-2">
+            <h3 className="text-3xl font-black text-black dark:text-white leading-[0.9] uppercase tracking-tighter mb-2">
               {resource.title}
             </h3>
+            <div className={`h-2 w-16 ${gradientClass} rounded-full`} />
           </div>
-        </div>
-        <p className="text-slate-800 dark:text-slate-300 text-sm font-black italic leading-tight mb-6 line-clamp-3 uppercase tracking-tighter">
-          {resource.teaser}
-        </p>
-        <div className="mt-auto flex justify-between items-center">
-          <div className="h-1 flex-grow bg-slate-200 dark:bg-slate-800 mr-4" />
-          <span className="flex-shrink-0 px-4 py-1 bg-black text-white dark:bg-white dark:text-black font-black text-xs uppercase italic border-[2px] border-black">
-            Start &rarr;
-          </span>
+
+          <p className="text-gray-700 dark:text-gray-300 font-bold text-sm leading-relaxed mb-8 flex-grow line-clamp-3">
+            {resource.teaser}
+          </p>
+
+          <div className="flex items-center text-sm font-black text-black dark:text-white uppercase tracking-widest mt-auto group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+            Start Mission <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform stroke-[3px]" />
+          </div>
         </div>
       </div>
     </motion.div>
@@ -247,114 +272,126 @@ const ResourceModal = ({ resource, onClose }: { resource: Resource | null; onClo
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-slate-950/95 backdrop-blur-sm z-50 flex items-center justify-center p-2 md:p-6 overflow-y-auto"
+          className="fixed inset-0 bg-gray-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4 md:p-8 overflow-y-auto"
           onClick={onClose}
         >
           <motion.div
             layoutId={`card-container-${resource.id}`}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-4xl bg-[#f8f8f8] dark:bg-slate-900 my-auto relative border-[6px] border-black dark:border-white shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] dark:shadow-[16px_16px_0px_0px_rgba(255,255,255,0.1)]"
+            className="w-full max-w-6xl bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 max-h-full flex flex-col overflow-hidden relative"
           >
-            {/* --- MODAL HEADER --- */}
-            <div className={`relative h-32 md:h-44 border-b-[6px] border-black overflow-hidden flex items-center bg-gradient-to-r ${resource.color}`}>
-              <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, black 1px, transparent 0)', backgroundSize: '16px 16px' }} />
+            {/* Background Gradients */}
+            <div className={`absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-b ${resource.color} opacity-10 blur-[100px] -z-10 pointer-events-none`} />
 
-              <button
-                onClick={onClose}
-                className="absolute top-4 right-4 bg-red-600 border-[4px] border-black p-2 hover:scale-110 transition-transform z-20 text-white shadow-[4px_4px_0px_rgba(0,0,0,1)]"
-              >
-                <X size={24} strokeWidth={4} />
-              </button>
-
-              <div className="flex items-center gap-6 px-6 md:px-12 w-full z-10">
-                <div className="w-20 h-20 md:w-28 md:h-28 bg-white border-[6px] border-black flex items-center justify-center flex-shrink-0 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -rotate-3">
-                  <IconComponent className="w-12 h-12 md:w-16 md:h-16 text-black" />
+            {/* Header */}
+            <div className="relative p-6 md:p-10 border-b border-gray-100 dark:border-white/10 flex items-start justify-between bg-white/50 dark:bg-black/20 backdrop-blur-sm">
+              <div className="flex items-center gap-6">
+                <div className={`p-4 rounded-2xl bg-gradient-to-br ${resource.color} text-white shadow-lg`}>
+                  <IconComponent className="w-8 h-8" />
                 </div>
                 <div>
-                  <h2 className="text-3xl md:text-5xl font-black text-white italic uppercase tracking-tighter drop-shadow-[4px_4px_0px_rgba(0,0,0,1)] leading-none">
+                  <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-3 tracking-tight">
                     {resource.title}
                   </h2>
-                  <div className="flex items-center gap-2 mt-4">
+                  <div className="flex items-center gap-2">
                     {modules.map((_, index) => (
-                      <div key={index} className={`h-4 w-10 border-[3px] border-black transition-all duration-300 ${index < currentModuleIndex ? 'bg-yellow-400' : (index === currentModuleIndex ? 'bg-white scale-110' : 'bg-black/20')}`}></div>
+                      <div
+                        key={index}
+                        className={`h-2 rounded-full transition-all duration-300 ${index <= currentModuleIndex ? 'w-8 bg-indigo-500' : 'w-2 bg-gray-200 dark:bg-white/10'
+                          }`}
+                      />
                     ))}
                   </div>
                 </div>
               </div>
+
+              <button
+                onClick={onClose}
+                className="p-2 rounded-full bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
+              >
+                <X size={24} />
+              </button>
             </div>
 
-            {/* --- CONTENT AREA --- */}
-            <div className="p-4 md:p-10">
+            {/* Content */}
+            <div className="p-8 md:p-12 overflow-y-auto flex-1 bg-gray-50/50 dark:bg-black/20">
               <AnimatePresence mode="wait">
                 {!isCompleted && currentModule ? (
                   <motion.div
                     key={currentModuleIndex}
-                    initial={{ opacity: 0, x: 20 }}
+                    initial={{ opacity: 0, x: 50 }}
                     animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="grid grid-cols-1 lg:grid-cols-2 gap-8"
+                    exit={{ opacity: 0, x: -50 }}
+                    className="grid grid-cols-1 lg:grid-cols-2 gap-12"
                   >
-                    {/* --- LESSON PANEL --- */}
-                    <div className="flex flex-col gap-6">
-                      <div className="bg-yellow-400 border-[4px] border-black px-4 py-1 self-start shadow-[4px_4px_0px_rgba(0,0,0,1)] -rotate-2">
-                        <span className="text-sm font-black uppercase italic text-black tracking-tighter">Current Briefing</span>
-                      </div>
-
-                      <div className={SPEECH_BUBBLE}>
-                        <h3 className="text-xl md:text-2xl font-black text-black dark:text-white mb-3 uppercase italic tracking-tighter underline decoration-cyan-400 decoration-4">
+                    {/* Learn Section */}
+                    <div className="space-y-8">
+                      <div>
+                        <span className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-3 block pl-1">
+                          Mission Phase {currentModuleIndex + 1} of {modules.length}
+                        </span>
+                        <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
                           {currentModule.info.title}
                         </h3>
-                        <p className="text-base md:text-lg font-black text-slate-800 dark:text-slate-200 leading-tight italic uppercase tracking-tighter">
+                        <p className="text-lg font-medium text-gray-600 dark:text-gray-300 leading-relaxed">
                           {currentModule.info.summary}
                         </p>
                       </div>
 
-                      <div className="grid grid-cols-1 gap-4">
+                      <div className="grid gap-4">
                         {currentModule.info.points.map((point, index) => (
-                          <div key={index} className="p-4 bg-white dark:bg-slate-800 border-[4px] border-black dark:border-white shadow-[4px_4px_0px_rgba(0,0,0,1)] group hover:translate-x-1 transition-transform">
-                            <h4 className="font-black text-black dark:text-white uppercase text-xs md:text-sm mb-1 italic flex items-center gap-2">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full" /> {point.title}
+                          <div
+                            key={index}
+                            className="p-6 rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm"
+                          >
+                            <h4 className="font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2 text-lg">
+                              <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                              {point.title}
                             </h4>
-                            <p className="text-xs md:text-sm font-black italic text-slate-600 dark:text-slate-400 uppercase tracking-tighter">{point.detail}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 pl-5 mt-1 leading-relaxed">
+                              {point.detail}
+                            </p>
                           </div>
                         ))}
                       </div>
                     </div>
 
-                    {/* --- QUIZ PANEL --- */}
-                    <div className="flex flex-col">
-                      <div className="bg-blue-600 border-[4px] border-black px-4 py-1 self-start shadow-[4px_4px_0px_rgba(0,0,0,1)] rotate-2 z-10 translate-y-2 translate-x-4 text-white">
-                        <span className="text-sm font-black uppercase italic tracking-tighter">Mission Assessment</span>
+                    {/* Quiz Section */}
+                    <div className="relative">
+                      <div className="absolute top-0 right-10 -mt-6">
+                        <div className="px-4 py-1.5 bg-indigo-500 text-white text-xs font-bold rounded-full shadow-lg shadow-indigo-500/30 tracking-wider uppercase">
+                          Knowledge Check
+                        </div>
                       </div>
                       <QuizComponent quiz={currentModule.quiz} onCorrectAnswer={handleCorrectAnswer} />
-
-                      <div className="mt-8 p-4 bg-slate-200 dark:bg-slate-800 border-[4px] border-dashed border-black dark:border-white text-center">
-                        <p className="text-2xl font-black italic uppercase text-slate-400 dark:text-slate-600 tracking-widest">Knowledge is Power</p>
-                      </div>
                     </div>
                   </motion.div>
                 ) : (
                   <motion.div
                     key="completion"
-                    initial={{ opacity: 0, scale: 0.8 }}
+                    initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="text-center py-12"
+                    className="text-center py-16 max-w-2xl mx-auto"
                   >
-                    <div className="inline-block relative mb-10">
-                      <div className="absolute inset-0 bg-yellow-400 rotate-12 border-[4px] border-black shadow-[8px_8px_0px_rgba(0,0,0,1)]" />
-                      <div className={`relative w-32 h-32 bg-white border-[6px] border-black flex items-center justify-center -rotate-6 shadow-[8px_8px_0px_rgba(0,0,0,1)]`}>
-                        <CheckCircle className="w-20 h-20 text-green-500" strokeWidth={4} />
-                      </div>
+                    <div className="w-24 h-24 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-[0_0_40px_rgba(34,197,94,0.3)]">
+                      <CheckCircle className="w-12 h-12" strokeWidth={3} />
                     </div>
-                    <h3 className="text-5xl md:text-6xl font-black text-black dark:text-white italic uppercase tracking-tighter mb-6 drop-shadow-[4px_4px_0px_rgba(34,197,94,0.3)]">Chapter Mastered!</h3>
-                    <div className="max-w-xl mx-auto p-8 bg-white dark:bg-slate-800 border-[4px] border-black dark:border-white shadow-[10px_10px_0px_rgba(0,0,0,1)] mb-10 -rotate-1">
-                      <p className="text-xl md:text-2xl font-black italic text-black dark:text-slate-200 uppercase tracking-tighter leading-tight">"{resource.finalAction}"</p>
+
+                    <h3 className="text-4xl font-bold text-gray-900 dark:text-white mb-6">
+                      Mission Complete!
+                    </h3>
+
+                    <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-8 mb-10 shadow-lg">
+                      <p className="text-xl font-medium text-indigo-600 dark:text-indigo-400 italic">
+                        "{resource.finalAction}"
+                      </p>
                     </div>
+
                     <button
                       onClick={onClose}
-                      className="px-12 py-5 bg-black text-white dark:bg-white dark:text-black font-black text-2xl uppercase italic border-[4px] border-black hover:bg-slate-800 hover:translate-x-2 hover:translate-y-2 transition-all shadow-[8px_8px_0px_0px_rgba(59,130,246,1)]"
+                      className="px-10 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full font-bold hover:scale-105 transition-all shadow-xl hover:shadow-2xl"
                     >
-                      Next Mission &rarr;
+                      Complete & Close
                     </button>
                   </motion.div>
                 )}
@@ -382,7 +419,7 @@ const AwarenessHub: React.FC = () => {
     Brain, Lock, Fingerprint, Eye, Shield, Gamepad2, Search, AlertTriangle, X, CheckCircle, XCircle, RotateCcw, Lightbulb, Zap
   };
 
-  // Static catalog expands the hub even if backend content is empty. Follows existing Resource schema.
+  // Keep static data
   const STATIC_TOPICS: Resource[] = [
     // AI Safety & Misuse
     {
@@ -438,7 +475,8 @@ const AwarenessHub: React.FC = () => {
             question: "A single key suddenly sends 100× more requests than usual. Best first step?",
             options: ["Disable logging", "Raise temperature", "Apply tighter rate limits and investigate", "Ignore it"],
             correctAnswerIndex: 2,
-            explanation: "Spike + key concentration suggests abuse; throttle and inspect." }
+            explanation: "Spike + key concentration suggests abuse; throttle and inspect."
+          }
         }
       ]
     },
@@ -466,11 +504,11 @@ const AwarenessHub: React.FC = () => {
             question: "Which task most needs human review?",
             options: ["Suggesting a headline", "Auto-sending invoices", "Counting words", "Sorting tags"],
             correctAnswerIndex: 1,
-            explanation: "Sending invoices is high impact; keep a human approval step." }
+            explanation: "Sending invoices is high impact; keep a human approval step."
+          }
         }
       ]
     },
-
     // AI Bias & Fairness
     {
       id: 9010,
@@ -496,7 +534,8 @@ const AwarenessHub: React.FC = () => {
             question: "A dataset has few examples from older users. Risk?",
             options: ["Lower fairness for that group", "Higher latency", "More storage", "No impact"],
             correctAnswerIndex: 0,
-            explanation: "Underrepresentation can harm accuracy for that group." }
+            explanation: "Underrepresentation can harm accuracy for that group."
+          }
         }
       ]
     },
@@ -524,7 +563,8 @@ const AwarenessHub: React.FC = () => {
             question: "Overall accuracy is 95% but one group is 70%. Next step?",
             options: ["Ignore it", "Measure and address the gap", "Lower logging", "Raise temperature"],
             correctAnswerIndex: 1,
-            explanation: "Disparity needs investigation and mitigation." }
+            explanation: "Disparity needs investigation and mitigation."
+          }
         }
       ]
     },
@@ -552,11 +592,11 @@ const AwarenessHub: React.FC = () => {
             question: "Which prompt is safest for a bio generator?",
             options: ["Use masculine traits", "Use gender-neutral, role-focused details", "Assume age", "Add stereotypes for fun"],
             correctAnswerIndex: 1,
-            explanation: "Neutral, role-focused prompts reduce stereotype risk." }
+            explanation: "Neutral, role-focused prompts reduce stereotype risk."
+          }
         }
       ]
     },
-
     // Deepfakes & Media Manipulation
     {
       id: 9020,
@@ -582,7 +622,8 @@ const AwarenessHub: React.FC = () => {
             question: "A viral clip has mismatched lip sync. First action?",
             options: ["Share quickly", "Verify source and context", "Ignore discrepancies", "Add filters"],
             correctAnswerIndex: 1,
-            explanation: "Pause and verify before sharing potentially manipulated media." }
+            explanation: "Pause and verify before sharing potentially manipulated media."
+          }
         }
       ]
     },
@@ -610,7 +651,8 @@ const AwarenessHub: React.FC = () => {
             question: "What should you do before resharing a shocking video?",
             options: ["Assume it is real", "Reverse search and check reputable sources", "Add a caption and post", "Edit the audio"],
             correctAnswerIndex: 1,
-            explanation: "Verification reduces spreading manipulated content." }
+            explanation: "Verification reduces spreading manipulated content."
+          }
         }
       ]
     },
@@ -638,11 +680,11 @@ const AwarenessHub: React.FC = () => {
             question: "A caller sounds like your manager asking for a wire. Safe move?",
             options: ["Send immediately", "Request a callback through an official number", "Share credentials", "Record and post"],
             correctAnswerIndex: 1,
-            explanation: "Use known channels to verify before acting." }
+            explanation: "Use known channels to verify before acting."
+          }
         }
       ]
     },
-
     // Data Privacy & PII Awareness
     {
       id: 9030,
@@ -668,7 +710,8 @@ const AwarenessHub: React.FC = () => {
             question: "What should logs contain when handling PII?",
             options: ["Full raw data", "Masked or tokenized values", "Public dumps", "Nothing ever"],
             correctAnswerIndex: 1,
-            explanation: "Masking reduces exposure while keeping observability." }
+            explanation: "Masking reduces exposure while keeping observability."
+          }
         }
       ]
     },
@@ -696,7 +739,8 @@ const AwarenessHub: React.FC = () => {
             question: "Why avoid collecting unneeded PII?",
             options: ["Storage is free", "It reduces breach impact and compliance risk", "It speeds GPUs", "It improves CSS"],
             correctAnswerIndex: 1,
-            explanation: "Less data lowers risk and regulatory exposure." }
+            explanation: "Less data lowers risk and regulatory exposure."
+          }
         }
       ]
     },
@@ -724,11 +768,11 @@ const AwarenessHub: React.FC = () => {
             question: "Best way to send a file with PII?",
             options: ["Public link", "Encrypted channel with access controls", "Personal email", "Group chat"],
             correctAnswerIndex: 1,
-            explanation: "Use encrypted, access-controlled channels for sensitive data." }
+            explanation: "Use encrypted, access-controlled channels for sensitive data."
+          }
         }
       ]
     },
-
     // AI in Daily Life
     {
       id: 9040,
@@ -754,7 +798,8 @@ const AwarenessHub: React.FC = () => {
             question: "A smart speaker offers to order an item. Safe habit?",
             options: ["Auto-approve", "Require confirmation on device", "Share card details aloud", "Disable logs"],
             correctAnswerIndex: 1,
-            explanation: "Confirm purchases to avoid accidental or malicious orders." }
+            explanation: "Confirm purchases to avoid accidental or malicious orders."
+          }
         }
       ]
     },
@@ -782,7 +827,8 @@ const AwarenessHub: React.FC = () => {
             question: "Your feed shows unwanted topics. First move?",
             options: ["Keep scrolling", "Use feedback tools (hide, dislike)", "Share more data", "Turn off safety"],
             correctAnswerIndex: 1,
-            explanation: "Use built-in feedback to steer recommendations." }
+            explanation: "Use built-in feedback to steer recommendations."
+          }
         }
       ]
     },
@@ -810,11 +856,11 @@ const AwarenessHub: React.FC = () => {
             question: "Before sending an AI-written update you should…",
             options: ["Send as-is", "Verify facts and adjust tone", "Add more jargon", "Skip proofreading"],
             correctAnswerIndex: 1,
-            explanation: "Human review catches inaccuracies and tone issues." }
+            explanation: "Human review catches inaccuracies and tone issues."
+          }
         }
       ]
     },
-
     // AI in Cybersecurity
     {
       id: 9050,
@@ -840,7 +886,8 @@ const AwarenessHub: React.FC = () => {
             question: "What should AI do with SOC alerts?",
             options: ["Auto-close everything", "Summarize and prioritize for analysts", "Ignore low priority", "Delete logs"],
             correctAnswerIndex: 1,
-            explanation: "Use AI for triage; humans approve actions." }
+            explanation: "Use AI for triage; humans approve actions."
+          }
         }
       ]
     },
@@ -868,7 +915,8 @@ const AwarenessHub: React.FC = () => {
             question: "AI flags a campaign as suspicious. Next move?",
             options: ["Auto-delete all mail", "Verify indicators then quarantine", "Share widely", "Ignore"],
             correctAnswerIndex: 1,
-            explanation: "Verify, then quarantine to avoid false positives." }
+            explanation: "Verify, then quarantine to avoid false positives."
+          }
         }
       ]
     },
@@ -896,11 +944,11 @@ const AwarenessHub: React.FC = () => {
             question: "What belongs in an AI-generated incident brief?",
             options: ["Evidence links and scope", "Unverified rumors", "Personal data", "Blank fields"],
             correctAnswerIndex: 0,
-            explanation: "Include evidence and scope; keep accuracy via review." }
+            explanation: "Include evidence and scope; keep accuracy via review."
+          }
         }
       ]
     },
-
     // AI Ethics & Responsibility
     {
       id: 9060,
@@ -926,7 +974,8 @@ const AwarenessHub: React.FC = () => {
             question: "Why disclose AI use?",
             options: ["To add jargon", "Build trust and set correct expectations", "Increase token count", "Hide limits"],
             correctAnswerIndex: 1,
-            explanation: "Transparency improves trust and responsible use." }
+            explanation: "Transparency improves trust and responsible use."
+          }
         }
       ]
     },
@@ -954,7 +1003,8 @@ const AwarenessHub: React.FC = () => {
             question: "Who owns an AI-assisted decision?",
             options: ["No one", "The human team with authority", "The model vendor only", "The end user"],
             correctAnswerIndex: 1,
-            explanation: "Humans with authority remain accountable." }
+            explanation: "Humans with authority remain accountable."
+          }
         }
       ]
     },
@@ -982,11 +1032,11 @@ const AwarenessHub: React.FC = () => {
             question: "What helps prevent misuse?",
             options: ["Hidden policies", "Clear acceptable-use rules and enforcement", "No logging", "Unlimited access"],
             correctAnswerIndex: 1,
-            explanation: "Explicit policies plus enforcement reduce misuse." }
+            explanation: "Explicit policies plus enforcement reduce misuse."
+          }
         }
       ]
     },
-
     // AI Scams & Social Engineering
     {
       id: 9070,
@@ -1012,7 +1062,8 @@ const AwarenessHub: React.FC = () => {
             question: "A video call looks like your CFO requesting gift cards. Safe step?",
             options: ["Buy immediately", "Verify via known phone or ticket system", "Share MFA codes", "Post online"],
             correctAnswerIndex: 1,
-            explanation: "Always verify via trusted channels before acting." }
+            explanation: "Always verify via trusted channels before acting."
+          }
         }
       ]
     },
@@ -1040,7 +1091,8 @@ const AwarenessHub: React.FC = () => {
             question: "An email says 'urgent payment in 10 minutes'. Best move?",
             options: ["Pay now", "Verify through your finance process", "Send credentials", "Reply with info"],
             correctAnswerIndex: 1,
-            explanation: "Follow standard verification, not the scammer’s urgency." }
+            explanation: "Follow standard verification, not the scammer’s urgency."
+          }
         }
       ]
     },
@@ -1068,7 +1120,8 @@ const AwarenessHub: React.FC = () => {
             question: "Where should MFA codes be entered?",
             options: ["In chat to anyone", "Only in the official login you initiated", "On social media", "In a text reply"],
             correctAnswerIndex: 1,
-            explanation: "MFA codes belong only in trusted login flows you start." }
+            explanation: "MFA codes belong only in trusted login flows you start."
+          }
         }
       ]
     }
@@ -1209,49 +1262,85 @@ const AwarenessHub: React.FC = () => {
     }, [searchTerm, selectedCategory]);
 
     return (
-      <div className="min-h-screen bg-[#f0f0f0] dark:bg-slate-950 text-black dark:text-white font-sans selection:bg-yellow-400 selection:text-black" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(0,0,0,0.05) 1px, transparent 0)', backgroundSize: '32px 32px' }}>
-        <div className="container mx-auto px-4 py-12 max-w-7xl">
+      <div className="min-h-screen bg-white dark:bg-slate-950 transition-colors duration-300">
+        {/* Comic/Grid Background */}
+        <div className="absolute inset-0 bg-grid-black dark:bg-grid-white opacity-[0.05] fixed pointer-events-none" />
+
+        <div className="relative pt-32 pb-20 px-4 md:px-8 max-w-7xl mx-auto z-10">
+
           {/* --- HERO SECTION --- */}
-          <motion.div
-            initial={{ opacity: 0, y: -40 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="relative mb-20 pt-10"
-          >
-            <div className="bg-white dark:bg-slate-900 border-[6px] border-black dark:border-white p-10 md:p-16 shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] dark:shadow-[16px_16px_0px_0px_rgba(255,255,255,0.05)] text-center relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                <Brain size={200} />
-              </div>
-              <h1 className="text-6xl md:text-9xl font-black mb-6 italic uppercase tracking-tighter text-black dark:text-white drop-shadow-[8px_8px_0px_rgba(59,130,246,0.8)] leading-none">
-                AI AWARENESS <span className="text-blue-600 block md:inline">HUB</span>
-              </h1>
-              <div className="h-2 w-32 bg-yellow-400 mx-auto mb-8 border-2 border-black" />
-              <p className="text-xl md:text-3xl font-black text-slate-700 dark:text-slate-300 max-w-4xl mx-auto italic uppercase tracking-tighter">
-                "Your interactive field guide to surviving and thriving in the age of intelligence."
-              </p>
+          <div className="text-center max-w-5xl mx-auto mb-16 relative">
+            {/* Pop Art Decorative Elements */}
+            <div className="absolute top-0 right-0 animate-bounce delay-700 hidden lg:block">
+              <div className="w-12 h-12 rounded-full bg-yellow-400 border-4 border-black dark:border-white" />
             </div>
-          </motion.div>
+            <div className="absolute bottom-0 left-0 animate-pulse delay-300 hidden lg:block">
+              <div className="w-8 h-8 rotate-45 bg-primary border-4 border-black dark:border-white" />
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="inline-flex items-center gap-3 px-6 py-3 mb-8 bg-black dark:bg-white text-white dark:text-black rounded-lg border-2 border-transparent shadow-[4px_4px_0px_0px_#9333ea]"
+            >
+              <Brain className="w-6 h-6" strokeWidth={3} />
+              <span className="text-sm font-black tracking-widest uppercase">
+                Intelligence Center
+              </span>
+            </motion.div>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-6xl md:text-8xl font-black text-black dark:text-white mb-8 uppercase tracking-tighter leading-[0.9]"
+            >
+              Master the <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-500 to-secondary relative">
+                Age of AI
+                <svg className="absolute w-full h-4 -bottom-2 left-0 text-primary opacity-50" viewBox="0 0 100 10" preserveAspectRatio="none">
+                  <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="8" fill="none" />
+                </svg>
+              </span>
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-2xl font-bold text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed border-l-4 border-black dark:border-white pl-6"
+            >
+              Your field guide to surviving and thriving in the digital wild. Spot deepfakes, fight bias, and master manipulation.
+            </motion.p>
+          </div>
 
           {/* --- CONTROLS --- */}
-          <motion.div className="sticky top-6 z-30 mb-16 flex flex-col gap-6">
-            <div className={`flex flex-col md:flex-row gap-6 p-6 bg-white dark:bg-slate-800 ${COMIC_BORDER}`}>
-              <div className="relative flex-grow">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 text-black dark:text-slate-400" />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="sticky top-24 z-30 mb-16"
+          >
+            <div className="bg-white dark:bg-slate-900 rounded-xl p-3 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] border-4 border-black dark:border-white flex flex-col md:flex-row gap-4 items-center">
+              <div className="relative flex-grow w-full md:w-auto">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-black dark:text-white" strokeWidth={3} />
                 <input
                   type="text"
-                  placeholder="Scan intelligence logs..."
+                  placeholder="SEARCH TOPICS..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-14 pr-4 py-4 bg-slate-100 dark:bg-slate-900 border-[4px] border-black dark:border-white font-black italic uppercase tracking-tighter outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/20"
+                  className="w-full pl-14 pr-4 py-4 bg-gray-100 dark:bg-slate-800 border-2 border-transparent focus:border-black dark:focus:border-white rounded-lg outline-none transition-all text-black dark:text-white placeholder-gray-500 font-bold uppercase tracking-wide"
                 />
               </div>
-              <div className="flex items-center gap-3 overflow-x-auto pb-2 md:pb-0">
+
+              <div className="flex items-center gap-3 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 no-scrollbar px-2">
                 {categories.map(category => (
                   <button
                     key={category}
                     onClick={() => setSelectedCategory(category)}
-                    className={`px-6 py-3 border-[4px] font-black uppercase italic text-sm transition-all whitespace-nowrap shadow-[4px_4px_0px_rgba(0,0,0,1)] ${selectedCategory === category
-                      ? 'bg-yellow-400 text-black border-black translate-x-1 translate-y-1 shadow-none'
-                      : 'bg-white dark:bg-slate-700 text-black dark:text-white border-black dark:border-white hover:-translate-y-1'
+                    className={`px-6 py-3 rounded-lg text-sm font-black uppercase tracking-wide transition-all whitespace-nowrap border-2 ${selectedCategory === category
+                      ? 'bg-primary border-black dark:border-white text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] -translate-y-1'
+                      : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-black dark:hover:border-white hover:text-black dark:hover:text-white'
                       }`}
                   >
                     {category}
@@ -1262,10 +1351,12 @@ const AwarenessHub: React.FC = () => {
           </motion.div>
 
           {/* --- GRID --- */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
-            <AnimatePresence>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            <AnimatePresence mode="popLayout">
               {loading ? (
-                <div className="col-span-3 text-center py-12">Loading Intelligence Data...</div>
+                [...Array(6)].map((_, i) => (
+                  <div key={i} className="h-80 rounded-xl bg-gray-200 dark:bg-slate-800 animate-pulse border-4 border-gray-300 dark:border-gray-700" />
+                ))
               ) : filteredTopics.map((topic) => (
                 <motion.div
                   key={topic.id}
@@ -1285,31 +1376,14 @@ const AwarenessHub: React.FC = () => {
           </div>
 
           {!loading && filteredTopics.length === 0 && (
-            <div className="text-center py-24 bg-white dark:bg-slate-900 border-[6px] border-dashed border-black dark:border-white shadow-[12px_12px_0px_rgba(0,0,0,1)]">
-              <Search className="w-24 h-24 text-slate-300 dark:text-slate-700 mx-auto mb-6" />
-              <h3 className="text-4xl font-black uppercase italic text-slate-400 dark:text-slate-600 tracking-tighter">Intel Not Found</h3>
+            <div className="text-center py-24 bg-white dark:bg-slate-900 border-4 border-dashed border-gray-300 dark:border-gray-700 rounded-xl">
+              <div className="w-24 h-24 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-gray-300 dark:border-gray-600">
+                <Search className="w-10 h-10 text-gray-400" />
+              </div>
+              <h3 className="text-3xl font-black text-black dark:text-white mb-2 uppercase">No topics found</h3>
+              <p className="text-gray-500 font-bold">Try adjusting your search or category filter.</p>
             </div>
           )}
-
-          {/* --- FOOTER BANNER --- */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            className="mt-32 p-10 bg-cyan-400 dark:bg-slate-900 border-[6px] border-black dark:border-white shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] flex flex-col md:flex-row items-center gap-10 relative overflow-hidden"
-          >
-            <div className="absolute top-0 left-0 w-full h-2 bg-black/10" />
-            <div className="w-24 h-24 bg-white border-[6px] border-black flex items-center justify-center flex-shrink-0 rotate-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-              <AlertTriangle className="w-14 h-14 text-black" strokeWidth={3} />
-            </div>
-            <div className="text-center md:text-left z-10">
-              <h3 className="text-3xl md:text-4xl font-black text-black dark:text-white uppercase italic tracking-tighter mb-3">
-                Final Intel: Vigilance is Required
-              </h3>
-              <p className="text-lg md:text-xl font-black italic text-black dark:text-slate-300 leading-tight uppercase tracking-tighter">
-                AI technology evolves in every frame. The best defense is a sharp mind. Keep learning, stay curious, and always verify the source.
-              </p>
-            </div>
-          </motion.div>
         </div>
 
         <ResourceModal
