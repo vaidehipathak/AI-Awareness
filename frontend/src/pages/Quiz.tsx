@@ -15,6 +15,19 @@ import AdminActionButtons from '../components/admin/AdminActionButtons';
 // Corrected imports: Alias Quiz/Question to match component usage
 import { quizCatalog, Quiz as QuizCategory, Question as QuizQuestion } from '../data/quizCatalog';
 
+
+const shuffleQuestion = (question: QuizQuestion): QuizQuestion => {
+  const correctAnswer = question.options[question.correctIndex];
+
+  const shuffledOptions = [...question.options].sort(() => Math.random() - 0.5);
+
+  return {
+    ...question,
+    options: shuffledOptions,
+    correctIndex: shuffledOptions.indexOf(correctAnswer),
+  };
+};
+
 const QuizPage: React.FC = () => {
   const { user } = useAuth();
   const { theme } = useTheme();
@@ -32,6 +45,14 @@ const QuizPage: React.FC = () => {
 
   // Difficulty Selection
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('easy');
+  type Difficulty = 'easy' | 'medium' | 'hard';
+
+const [unlockedIndex, setUnlockedIndex] = useState<Record<Difficulty, number>>({
+  easy: 0,
+  medium: 0,
+  hard: 0
+});
+
 
   // --- FETCH DATA ---
   const fetchQuizzes = async () => {
@@ -69,10 +90,24 @@ const QuizPage: React.FC = () => {
     fetchQuizzes();
   }, []);
 
+  useEffect(() => {
+  const saved = localStorage.getItem('quizUnlockProgress');
+  if (saved) {
+    setUnlockedIndex(JSON.parse(saved));
+  }
+}, []);
+
+useEffect(() => {
+  localStorage.setItem('quizUnlockProgress', JSON.stringify(unlockedIndex));
+}, [unlockedIndex]);
+
   // --- GAMEPLAY LOGIC ---
 
   const handleStartQuiz = (category: QuizCategory) => {
-    setSelectedCategory(category);
+    setSelectedCategory({
+  ...category,
+  questions: category.questions.map(q => shuffleQuestion(q)),
+});
     setCurrentQuestionIndex(0);
     setScore(0);
     setShowResults(false);
@@ -107,16 +142,33 @@ const QuizPage: React.FC = () => {
       setIsAnswered(false);
       setSelectedAnswer(null);
     } else {
-      setShowResults(true);
-      if (score > (selectedCategory.questions.length * 10 * 0.7)) {
-        confetti({
-          particleCount: 150,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
-      }
-    }
-  };
+  setShowResults(true);
+
+  const totalQs = selectedCategory.questions.length;
+  const percentage = (score / (totalQs * 10)) * 100;
+
+  // ✅ UNLOCK NEXT QUIZ IF SCORE ≥ 80%
+  if (percentage >= 80) {
+    setUnlockedIndex(prev => ({
+      ...prev,
+      [selectedCategory.difficulty]:
+        Math.min(
+  prev[selectedCategory.difficulty] + 1,
+  categories.filter(c => c.difficulty === selectedCategory.difficulty).length - 1
+)
+
+    }));
+  }
+
+  if (percentage >= 70) {
+    confetti({
+      particleCount: 150,
+      spread: 70,
+      origin: { y: 0.6 }
+    });
+  }
+}
+};
 
   const calculateProgress = () => {
     if (!selectedCategory) return 0;
@@ -125,11 +177,21 @@ const QuizPage: React.FC = () => {
 
   /* ---------------- COMPONENT: QUIZ CARD ---------------- */
 
-  const QuizCard = ({ category }: { category: QuizCategory }) => (
+  const QuizCard = ({
+  category,
+  isLocked
+}: {
+  category: QuizCategory;
+  isLocked: boolean;
+}) => (
+
     <motion.div
       whileHover={{ y: -5, scale: 1.02 }}
       className={`group relative overflow-hidden rounded-2xl p-6 h-full border ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-slate-200'} shadow-lg hover:shadow-xl transition-all cursor-pointer flex flex-col`}
-      onClick={() => handleStartQuiz(category)}
+      onClick={() => {
+  if (!isLocked) handleStartQuiz(category);
+}}
+
     >
       {/* Fallback for color/icon if missing in type (added defensive checks) */}
       <div className={`absolute top-0 right-0 p-4 transition-transform group-hover:rotate-12 ${category.difficulty === 'hard' ? 'text-red-500' : category.difficulty === 'medium' ? 'text-yellow-500' : 'text-green-500'} opacity-20`}>
@@ -260,6 +322,8 @@ const QuizPage: React.FC = () => {
     if (!selectedCategory) return null;
     const totalQs = selectedCategory.questions.length;
     const percentage = Math.round((score / (totalQs * 10)) * 100);
+
+
 
     let feedback = "Needs Improvement";
     if (percentage >= 90) feedback = "AI Expert!";
@@ -443,12 +507,31 @@ const QuizPage: React.FC = () => {
         {/* Categories Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           {/* Robust filter logic to prevent crashes if questions array is missing or empty */}
-          {categories.filter(c =>
-            c?.questions?.length > 0 &&
-            (c.questions.some(q => q.difficulty === difficulty) || c.difficulty === difficulty)
-          ).map(category => (
-            <QuizCard key={category.id} category={category} />
-          ))}
+          {categories
+  .filter(c => c.difficulty === difficulty)
+  .sort((a, b) => a.id - b.id) // IMPORTANT
+  .map((category, index) => {
+    const isLocked = index > unlockedIndex[difficulty];
+
+    return (
+      <div key={category.id} className="relative">
+        <QuizCard
+          category={category}
+          isLocked={isLocked}
+        />
+
+        {isLocked && (
+          <div className="absolute inset-0 bg-black/60 rounded-2xl flex flex-col items-center justify-center text-white z-10">
+            <Shield size={40} className="mb-2" />
+            <p className="text-sm font-bold">
+              Score 4/5 to unlock
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  })}
+
 
           {/* Coming Soon Card */}
           <div className={`rounded-2xl border-2 border-dashed flex flex-col items-center justify-center p-8 text-center opacity-50 ${darkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-300 bg-gray-50'}`}>
