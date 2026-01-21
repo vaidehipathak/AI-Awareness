@@ -75,7 +75,7 @@ const Sidebar: React.FC = () => {
             {/* Sidebar Header */}
             <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800 dark:border-slate-700">
                 {isExpanded ? (
-                    <span className="text-white font-bold text-lg">AI AwareX</span>
+                    <span className="text-white font-bold text-lg">AwareX</span>
                 ) : (
                     <span className="text-white font-bold text-sm">A</span>
                 )}
