@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { ShieldCheck, Lock, EyeOff, CheckCircle2 } from 'lucide-react';
 
 const Login: React.FC = () => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -46,10 +48,10 @@ const Login: React.FC = () => {
       <div className="flex w-full lg:w-1/2 bg-gray-50 dark:bg-gray-800/50 p-8 lg:p-12 flex-col justify-between border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-800">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            AI AwareX
+            {t('platform_name')}
           </h1>
           <p className="text-gray-500 dark:text-gray-400">
-            A cybersecurity awareness and AI-powered incident analysis platform.
+            {t('platform_tagline')}
           </p>
         </div>
 
@@ -60,9 +62,9 @@ const Login: React.FC = () => {
                 <EyeOff className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white">Privacy-first</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white">{t('privacy_first')}</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-sm">
-                  We detect sensitive data types without storing the actual content.
+                  {t('privacy_first_desc')}
                 </p>
               </div>
             </div>
@@ -72,9 +74,9 @@ const Login: React.FC = () => {
                 <ShieldCheck className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white">Secure authentication</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white">{t('secure_auth')}</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-sm">
-                  Protected by industry-standard encryption and optional MFA.
+                  {t('secure_auth_desc')}
                 </p>
               </div>
             </div>
@@ -84,9 +86,9 @@ const Login: React.FC = () => {
                 <CheckCircle2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white">No content misuse</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white">{t('no_content_misuse')}</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-sm">
-                  Your data is never used to train public models or shared with third parties.
+                  {t('no_content_misuse_desc')}
                 </p>
               </div>
             </div>
@@ -94,7 +96,7 @@ const Login: React.FC = () => {
         </div>
 
         <div className="hidden lg:block text-sm text-gray-400 dark:text-gray-500">
-          © {new Date().getFullYear()} AI AwareX Platform. All rights reserved.
+          &copy; {new Date().getFullYear()} {t('platform_name')} Platform. {t('all_rights_reserved')}
         </div>
       </div>
 
@@ -103,10 +105,10 @@ const Login: React.FC = () => {
         <div className="mx-auto w-full max-w-sm lg:w-96">
           <div className="text-center lg:text-left">
             <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-              Sign in to your account
+              {t('login_title')}
             </h2>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              Sign in to access reporting, analysis, and awareness tools.
+              {t('login_subtitle')}
             </p>
           </div>
 
@@ -117,7 +119,7 @@ const Login: React.FC = () => {
                   <div className="flex">
                     <div className="ml-3">
                       <h3 className="text-sm font-medium text-red-800 dark:text-red-300">
-                        Authentication Failed
+                        {t('auth_failed')}
                       </h3>
                       <div className="mt-2 text-sm text-red-700 dark:text-red-400">
                         <p>{error}</p>
@@ -130,7 +132,7 @@ const Login: React.FC = () => {
               <div className="space-y-5">
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Email address
+                    {t('email_address')}
                   </label>
                   <div className="mt-1">
                     <input
@@ -149,7 +151,7 @@ const Login: React.FC = () => {
 
                 <div>
                   <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Password
+                    {t('password')}
                   </label>
                   <div className="mt-1">
                     <input
@@ -174,7 +176,7 @@ const Login: React.FC = () => {
                     onClick={() => navigate('/forgot-password')}
                     className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400"
                   >
-                    Forgot your password?
+                    {t('forgot_password')}
                   </button>
                 </div>
               </div>
@@ -191,10 +193,10 @@ const Login: React.FC = () => {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Verifying credentials...
+                      {t('verifying_credentials')}
                     </div>
                   ) : (
-                    'Sign in securely'
+                    t('sign_in_securely')
                   )}
                 </button>
               </div>
@@ -207,25 +209,25 @@ const Login: React.FC = () => {
                 </div>
                 <div className="relative flex justify-center text-sm">
                   <span className="px-2 bg-white dark:bg-gray-900 text-gray-500">
-                    Protected by AI AwareX Analysis Engine
+                    {t('protected_by_engine')}
                   </span>
                 </div>
               </div>
               <div className="mt-4 text-center">
-                <span className="text-sm text-gray-500 dark:text-gray-400">Don't have an account? </span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">{t('dont_have_account')}</span>
                 <button
                   type="button"
                   onClick={() => navigate('/signup')}
                   className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 text-sm"
                 >
-                  Sign up
+                  {t('sign_up')}
                 </button>
               </div>
             </div>
 
             <div className="mt-8 flex items-center justify-center gap-2 text-xs text-gray-400 dark:text-gray-500">
               <Lock className="w-3 h-3" />
-              <span>Your credentials are encrypted. We never share your data.</span>
+              <span>{t('credentials_encrypted')}</span>
             </div>
           </div>
         </div>

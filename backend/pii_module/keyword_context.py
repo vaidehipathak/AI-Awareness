@@ -1,5 +1,5 @@
 SENSITIVE_KEYWORDS = {
-    "AADHAAR": ["aadhaar"],
+    "AADHAAR": ["aadhaar", "uidai", "government", "india", "father", "male", "female"],
     "VID": ["vid", "virtual id"],
     "DOB": ["dob", "date of birth", "birth"],
     "EMAIL": ["email", "mail"],
@@ -29,7 +29,8 @@ def keyword_score(text, pii_type, start, end, window=40):
         return 0.3 if "cvv" in context else -1.0
 
     if pii_type == "UPI_ID":
-        return 0.3 if any(k in context for k in SENSITIVE_KEYWORDS["UPI_ID"]) else -1.0
+        # Regex contains strict handles (oksbi, etc), so it is high confidence by default.
+        return 0.3
 
     for kw in SENSITIVE_KEYWORDS.get(pii_type, []):
         if kw in context:
