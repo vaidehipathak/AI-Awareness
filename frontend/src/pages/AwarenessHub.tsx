@@ -186,29 +186,53 @@ const QuizComponent = ({ quiz, onCorrectAnswer }: { quiz: Quiz; onCorrectAnswer:
   );
 };
 
-const ResourceCard = ({ resource, onClick, onUpdate }: { resource: Resource; onClick: () => void; onUpdate: () => void }) => {
+const ResourceCard = ({ resource, onClick, onUpdate, isLocked, isCompleted }: { resource: Resource; onClick: () => void; onUpdate: () => void; isLocked: boolean; isCompleted: boolean }) => {
   const IconComponent = resource.icon || Brain;
-  const gradientClass = `bg-gradient-to-br ${resource.color}`;
+  const gradientClass = isLocked ? 'bg-gray-400' : `bg-gradient-to-br ${resource.color}`;
+
+  const handleClick = () => {
+    if (!isLocked) {
+      onClick();
+    }
+  };
 
   return (
     <motion.div
-      layoutId={`card-container-${resource.id}`}
-      whileHover={{ y: -8, rotate: 1 }}
-      className="group relative h-full flex flex-col"
+      layoutId={isLocked ? undefined : `card-container-${resource.id}`}
+      whileHover={!isLocked ? { y: -8, rotate: 1 } : {}}
+      className={`group relative h-full flex flex-col ${isLocked ? 'opacity-70 grayscale cursor-not-allowed' : ''}`}
     >
       <div
-        onClick={onClick}
-        className="relative h-full bg-white dark:bg-slate-900 border-4 border-black dark:border-white rounded-3xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] hover:shadow-[12px_12px_0px_0px_rgba(var(--primary),1)] transition-all duration-300 cursor-pointer flex flex-col overflow-hidden"
+        onClick={handleClick}
+        className={`relative h-full bg-white dark:bg-slate-900 border-4 border-black dark:border-white rounded-3xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] ${!isLocked ? 'hover:shadow-[12px_12px_0px_0px_rgba(var(--primary),1)] cursor-pointer' : ''} transition-all duration-300 flex flex-col overflow-hidden`}
       >
         {/* Halftone Pattern Overlay */}
         <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(circle,_var(--tw-gradient-stops))] from-black to-transparent bg-[length:4px_4px] pointer-events-none" />
+
+        {/* Lock Overlay */}
+        {isLocked && (
+          <div className="absolute inset-0 bg-gray-200/50 dark:bg-black/50 backdrop-blur-[2px] z-30 flex items-center justify-center">
+            <div className="p-6 bg-white dark:bg-slate-800 rounded-full border-4 border-black dark:border-white shadow-xl">
+              <Lock className="w-10 h-10 text-gray-500" />
+            </div>
+          </div>
+        )}
+
+        {/* Completed Badge */}
+        {isCompleted && !isLocked && (
+          <div className="absolute top-4 right-16 z-20">
+            <div className="bg-green-500 text-white p-2 rounded-full border-2 border-black shadow-md">
+              <CheckCircle className="w-6 h-6" />
+            </div>
+          </div>
+        )}
 
         {/* Admin Controls */}
         <div className="absolute top-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
           <AdminActionButtons item={resource} contentType="awareness" onUpdate={onUpdate} />
         </div>
 
-        <div className="p-8 flex-grow flex flex-col relative z-10">
+        <div className="p-8 flex-grow flex flex-col relative z-20">
           <div className="flex items-start justify-between mb-6">
             <div className={`p-4 rounded-xl ${gradientClass} text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-2 border-black`}>
               <IconComponent className="w-8 h-8" strokeWidth={3} />
@@ -236,8 +260,8 @@ const ResourceCard = ({ resource, onClick, onUpdate }: { resource: Resource; onC
             {resource.teaser}
           </p>
 
-          <div className="flex items-center text-sm font-black text-black dark:text-white uppercase tracking-widest mt-auto group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-            Start Mission <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform stroke-[3px]" />
+          <div className={`flex items-center text-sm font-black text-black dark:text-white uppercase tracking-widest mt-auto ${!isLocked ? 'group-hover:text-indigo-600 dark:group-hover:text-indigo-400' : 'text-gray-400'} transition-colors`}>
+            {isLocked ? 'Locked' : 'Start Mission'} <ArrowRight className={`w-5 h-5 ml-2 ${!isLocked ? 'group-hover:translate-x-2' : ''} transition-transform stroke-[3px]`} />
           </div>
         </div>
       </div>
@@ -245,7 +269,7 @@ const ResourceCard = ({ resource, onClick, onUpdate }: { resource: Resource; onC
   );
 };
 
-const ResourceModal = ({ resource, onClose }: { resource: Resource | null; onClose: () => void }) => {
+const ResourceModal = ({ resource, onClose, onComplete }: { resource: Resource | null; onClose: () => void; onComplete: (id: number) => void }) => {
   const [currentModuleIndex, setCurrentModuleIndex] = useState(0);
 
   React.useEffect(() => {
@@ -388,7 +412,10 @@ const ResourceModal = ({ resource, onClose }: { resource: Resource | null; onClo
                     </div>
 
                     <button
-                      onClick={onClose}
+                      onClick={() => {
+                        if (resource?.id) onComplete(resource.id);
+                        onClose();
+                      }}
                       className="px-10 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full font-bold hover:scale-105 transition-all shadow-xl hover:shadow-2xl"
                     >
                       Complete & Close
@@ -413,6 +440,22 @@ const AwarenessHub: React.FC = () => {
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+
+  // Persistence for completed topics
+  const [completedTopicIds, setCompletedTopicIds] = useState<number[]>(() => {
+    const saved = localStorage.getItem('completed_awareness_topics');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('completed_awareness_topics', JSON.stringify(completedTopicIds));
+  }, [completedTopicIds]);
+
+  const handleTopicComplete = (id: number) => {
+    if (!completedTopicIds.includes(id)) {
+      setCompletedTopicIds(prev => [...prev, id]);
+    }
+  };
 
   // Icon Mapping
   const ICON_MAP: any = {
@@ -1357,21 +1400,30 @@ const AwarenessHub: React.FC = () => {
                 [...Array(6)].map((_, i) => (
                   <div key={i} className="h-80 rounded-xl bg-gray-200 dark:bg-slate-800 animate-pulse border-4 border-gray-300 dark:border-gray-700" />
                 ))
-              ) : filteredTopics.map((topic) => (
-                <motion.div
-                  key={topic.id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                >
-                  <ResourceCard
-                    resource={topic}
-                    onClick={() => setSelectedResource(topic)}
-                    onUpdate={fetchTopics}
-                  />
-                </motion.div>
-              ))}
+              ) : filteredTopics.map((topic) => {
+                const isCompleted = completedTopicIds.includes(topic.id);
+                // Find global index to determine lock status
+                const globalIndex = topics.findIndex(t => t.id === topic.id);
+                const isLocked = globalIndex > 0 && !completedTopicIds.includes(topics[globalIndex - 1].id);
+
+                return (
+                  <motion.div
+                    key={topic.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                  >
+                    <ResourceCard
+                      resource={topic}
+                      onClick={() => setSelectedResource(topic)}
+                      onUpdate={fetchTopics}
+                      isLocked={isLocked}
+                      isCompleted={isCompleted}
+                    />
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
           </div>
 
@@ -1389,6 +1441,7 @@ const AwarenessHub: React.FC = () => {
         <ResourceModal
           resource={selectedResource}
           onClose={() => setSelectedResource(null)}
+          onComplete={handleTopicComplete}
         />
       </div>
     );

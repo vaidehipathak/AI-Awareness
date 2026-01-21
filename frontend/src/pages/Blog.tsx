@@ -173,7 +173,7 @@ const ArticleCard = ({ article, onUpdate, onClick }: { article: Article, onUpdat
 
       <div className="mt-auto pt-6 border-t border-gray-100 dark:border-white/5 flex justify-between items-center">
         <div className="text-xs text-gray-400 dark:text-gray-500 font-medium truncate max-w-[120px]">
-          {article.author || 'Awareness.io'}
+          {article.author || 'AwareX'}
         </div>
         <button
           className="flex items-center gap-2 font-bold text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors"

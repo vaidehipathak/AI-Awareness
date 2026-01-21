@@ -11,6 +11,7 @@ declare global {
 
 const GoogleTranslateWidget = () => {
   useEffect(() => {
+    // Define the initialization function globally
     window.googleTranslateElementInit = () => {
       if (window.google && window.google.translate) {
         new window.google.translate.TranslateElement(
@@ -27,7 +28,10 @@ const GoogleTranslateWidget = () => {
       }
     }
 
-    if (!document.getElementById('google-translate-script')) {
+    // Check if script is already loaded
+    if (window.google && window.google.translate) {
+      window.googleTranslateElementInit();
+    } else if (!document.getElementById('google-translate-script')) {
       const script = document.createElement('script')
       script.id = 'google-translate-script'
       script.src =
