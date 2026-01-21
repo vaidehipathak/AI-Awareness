@@ -431,6 +431,718 @@ const ResourceModal = ({ resource, onClose, onComplete }: { resource: Resource |
   );
 };
 
+// Icon Mapping
+const ICON_MAP: any = {
+  Brain, Lock, Fingerprint, Eye, Shield, Gamepad2, Search, AlertTriangle, X, CheckCircle, XCircle, RotateCcw, Lightbulb, Zap
+};
+
+const STATIC_TOPICS: Resource[] = [
+  // AI Safety & Misuse
+  {
+    id: 9001,
+    is_active: true,
+    title: "Safety Rails 101",
+    category: "AI Safety & Misuse",
+    teaser: "Understand the guardrails that keep AI outputs safe and appropriate.",
+    icon: Shield,
+    color: "from-blue-500 via-indigo-500 to-purple-500",
+    finalAction: "Ship with safety on by default and monitor continuously.",
+    learningModules: [
+      {
+        info: {
+          title: "Why safety layers matter",
+          summary: "Guardrails, filters, and policies work together to prevent harmful or off-policy outputs.",
+          points: [
+            { title: "Defense in depth", detail: "Combine system prompts, moderation, and output checks." },
+            { title: "Fail closed", detail: "If unsure or blocked, choose the safer path and explain briefly." },
+            { title: "Visibility", detail: "Log safety decisions for review and improvement." }
+          ]
+        },
+        quiz: {
+          question: "What is the safest default when a response triggers a safety rule?",
+          options: ["Return the full answer anyway", "Block or soften the response and log it", "Ignore the rule", "Increase temperature"],
+          correctAnswerIndex: 1,
+          explanation: "Fail closed: block or soften, and log for review to avoid unsafe delivery."
+        }
+      }
+    ]
+  },
+  {
+    id: 9002,
+    is_active: true,
+    title: "Rate Limits & Abuse",
+    category: "AI Safety & Misuse",
+    teaser: "Rate limits and anomaly detection reduce scripted abuse and model scraping.",
+    icon: AlertTriangle,
+    color: "from-amber-500 via-orange-500 to-red-500",
+    finalAction: "Throttle aggressively on suspicious bursts and review patterns weekly.",
+    learningModules: [
+      {
+        info: {
+          title: "Signals of misuse",
+          summary: "High-volume, repetitive, or adversarial prompts often signal scraping or abuse attempts.",
+          points: [
+            { title: "Volume anomalies", detail: "Spikes from a single key or IP are high-risk." },
+            { title: "Repeated probes", detail: "Similar prompts aiming to bypass filters are red flags." },
+            { title: "Mitigations", detail: "Rate limits, captchas, and blocklists slow attackers." }
+          ]
+        },
+        quiz: {
+          question: "A single key suddenly sends 100× more requests than usual. Best first step?",
+          options: ["Disable logging", "Raise temperature", "Apply tighter rate limits and investigate", "Ignore it"],
+          correctAnswerIndex: 2,
+          explanation: "Spike + key concentration suggests abuse; throttle and inspect."
+        }
+      }
+    ]
+  },
+  {
+    id: 9003,
+    is_active: true,
+    title: "Human Review Moments",
+    category: "AI Safety & Misuse",
+    teaser: "Some actions need a human checkpoint before execution.",
+    icon: Lightbulb,
+    color: "from-teal-500 via-cyan-500 to-blue-500",
+    finalAction: "Require approvals for high-impact actions like sends, publishes, or payments.",
+    learningModules: [
+      {
+        info: {
+          title: "When to keep a human in the loop",
+          summary: "High-stakes tasks (sending, publishing, deleting) benefit from human oversight.",
+          points: [
+            { title: "Critical scope", detail: "Outbound emails, posts, or code changes should pause for review." },
+            { title: "Context gaps", detail: "Humans catch nuance that models may miss." },
+            { title: "Clear UX", detail: "Explain why approval is needed to build trust." }
+          ]
+        },
+        quiz: {
+          question: "Which task most needs human review?",
+          options: ["Suggesting a headline", "Auto-sending invoices", "Counting words", "Sorting tags"],
+          correctAnswerIndex: 1,
+          explanation: "Sending invoices is high impact; keep a human approval step."
+        }
+      }
+    ]
+  },
+  // AI Bias & Fairness
+  {
+    id: 9010,
+    is_active: true,
+    title: "Spotting Skewed Data",
+    category: "AI Bias & Fairness",
+    teaser: "Uneven data leads to uneven outcomes—learn to spot it early.",
+    icon: Eye,
+    color: "from-emerald-500 via-teal-500 to-cyan-500",
+    finalAction: "Audit datasets for representation before training.",
+    learningModules: [
+      {
+        info: {
+          title: "Common bias signals",
+          summary: "Underrepresented groups or missing scenarios create skewed predictions.",
+          points: [
+            { title: "Representation", detail: "Check group counts, not just total size." },
+            { title: "Label quality", detail: "Inconsistent labels hide in minority classes." },
+            { title: "Context", detail: "Data from one region may not generalize elsewhere." }
+          ]
+        },
+        quiz: {
+          question: "A dataset has few examples from older users. Risk?",
+          options: ["Lower fairness for that group", "Higher latency", "More storage", "No impact"],
+          correctAnswerIndex: 0,
+          explanation: "Underrepresentation can harm accuracy for that group."
+        }
+      }
+    ]
+  },
+  {
+    id: 9011,
+    is_active: true,
+    title: "Measuring Fairness",
+    category: "AI Bias & Fairness",
+    teaser: "Track performance by group, not only overall accuracy.",
+    icon: Brain,
+    color: "from-indigo-500 via-blue-500 to-cyan-500",
+    finalAction: "Report group-level metrics and act on gaps.",
+    learningModules: [
+      {
+        info: {
+          title: "Metrics that matter",
+          summary: "Accuracy can hide disparities—use precision/recall per group.",
+          points: [
+            { title: "Slice metrics", detail: "Evaluate by age, region, or device where appropriate." },
+            { title: "Thresholds", detail: "Adjust decision thresholds to close gaps." },
+            { title: "Re-check", detail: "Re-evaluate after model or data changes." }
+          ]
+        },
+        quiz: {
+          question: "Overall accuracy is 95% but one group is 70%. Next step?",
+          options: ["Ignore it", "Measure and address the gap", "Lower logging", "Raise temperature"],
+          correctAnswerIndex: 1,
+          explanation: "Disparity needs investigation and mitigation."
+        }
+      }
+    ]
+  },
+  {
+    id: 9012,
+    is_active: true,
+    title: "Inclusive Prompts",
+    category: "AI Bias & Fairness",
+    teaser: "Prompt phrasing can amplify or reduce stereotypes.",
+    icon: Lightbulb,
+    color: "from-purple-500 via-fuchsia-500 to-pink-500",
+    finalAction: "Write prompts that avoid stereotypes and request neutral tone.",
+    learningModules: [
+      {
+        info: {
+          title: "Prompting for fairness",
+          summary: "Explicitly ask for neutral, respectful language and balanced examples.",
+          points: [
+            { title: "Avoid leading cues", detail: "Don’t imply traits based on demographics." },
+            { title: "Add balance", detail: "Request varied perspectives where relevant." },
+            { title: "Review outputs", detail: "Spot-check for bias and adjust prompts." }
+          ]
+        },
+        quiz: {
+          question: "Which prompt is safest for a bio generator?",
+          options: ["Use masculine traits", "Use gender-neutral, role-focused details", "Assume age", "Add stereotypes for fun"],
+          correctAnswerIndex: 1,
+          explanation: "Neutral, role-focused prompts reduce stereotype risk."
+        }
+      }
+    ]
+  },
+  // Deepfakes & Media Manipulation
+  {
+    id: 9020,
+    is_active: true,
+    title: "Spotting Deepfakes",
+    category: "Deepfakes & Media Manipulation",
+    teaser: "Look for artifacts, odd timing, and mismatched audio/visual cues.",
+    icon: Eye,
+    color: "from-rose-500 via-orange-500 to-amber-400",
+    finalAction: "Verify source and context before trusting shocking clips.",
+    learningModules: [
+      {
+        info: {
+          title: "Common tells",
+          summary: "Lighting glitches, odd blinks, and mismatched shadows often reveal synthetic media.",
+          points: [
+            { title: "Edges & lighting", detail: "Look for haloing or inconsistent shadows." },
+            { title: "Audio sync", detail: "Mouth shapes that lag words are suspicious." },
+            { title: "Source check", detail: "Confirm original publisher and date." }
+          ]
+        },
+        quiz: {
+          question: "A viral clip has mismatched lip sync. First action?",
+          options: ["Share quickly", "Verify source and context", "Ignore discrepancies", "Add filters"],
+          correctAnswerIndex: 1,
+          explanation: "Pause and verify before sharing potentially manipulated media."
+        }
+      }
+    ]
+  },
+  {
+    id: 9021,
+    is_active: true,
+    title: "Verify Before Share",
+    category: "Deepfakes & Media Manipulation",
+    teaser: "Reverse image search and trusted outlets reduce misinformation spread.",
+    icon: Search,
+    color: "from-sky-500 via-cyan-500 to-emerald-400",
+    finalAction: "Check provenance with multiple sources before resharing.",
+    learningModules: [
+      {
+        info: {
+          title: "Quick verification steps",
+          summary: "Reverse searches and official statements help confirm authenticity.",
+          points: [
+            { title: "Reverse search", detail: "Find originals or earlier versions of the media." },
+            { title: "Date check", detail: "Old footage reused as new is a common trick." },
+            { title: "Trusted sources", detail: "Cross-check with reputable outlets." }
+          ]
+        },
+        quiz: {
+          question: "What should you do before resharing a shocking video?",
+          options: ["Assume it is real", "Reverse search and check reputable sources", "Add a caption and post", "Edit the audio"],
+          correctAnswerIndex: 1,
+          explanation: "Verification reduces spreading manipulated content."
+        }
+      }
+    ]
+  },
+  {
+    id: 9022,
+    is_active: true,
+    title: "Voice Clone Risks",
+    category: "Deepfakes & Media Manipulation",
+    teaser: "Cloned voices can impersonate leaders or family. Use call-backs and codes.",
+    icon: AlertTriangle,
+    color: "from-yellow-400 via-amber-500 to-red-500",
+    finalAction: "Use secondary verification for voice-only requests.",
+    learningModules: [
+      {
+        info: {
+          title: "Prevent impersonation",
+          summary: "Voice alone is weak authentication. Add shared secrets or callback steps.",
+          points: [
+            { title: "No voice-only approvals", detail: "Require written or in-app confirmation." },
+            { title: "Safe words", detail: "Agree on verification phrases for urgent asks." },
+            { title: "Educate teams", detail: "Warn about cloned voice scams." }
+          ]
+        },
+        quiz: {
+          question: "A caller sounds like your manager asking for a wire. Safe move?",
+          options: ["Send immediately", "Request a callback through an official number", "Share credentials", "Record and post"],
+          correctAnswerIndex: 1,
+          explanation: "Use known channels to verify before acting."
+        }
+      }
+    ]
+  },
+  // Data Privacy & PII Awareness
+  {
+    id: 9030,
+    is_active: true,
+    title: "PII Hygiene",
+    category: "Data Privacy & PII Awareness",
+    teaser: "Know what counts as PII and keep it masked or minimized.",
+    icon: Fingerprint,
+    color: "from-slate-600 via-gray-600 to-slate-800",
+    finalAction: "Default to masking PII in logs and prompts.",
+    learningModules: [
+      {
+        info: {
+          title: "Handle PII carefully",
+          summary: "Names, emails, IDs, and biometrics need protection in transit and at rest.",
+          points: [
+            { title: "Mask early", detail: "Replace PII with tokens before model calls." },
+            { title: "Access control", detail: "Limit who can view raw data." },
+            { title: "Retention", detail: "Delete when no longer needed." }
+          ]
+        },
+        quiz: {
+          question: "What should logs contain when handling PII?",
+          options: ["Full raw data", "Masked or tokenized values", "Public dumps", "Nothing ever"],
+          correctAnswerIndex: 1,
+          explanation: "Masking reduces exposure while keeping observability."
+        }
+      }
+    ]
+  },
+  {
+    id: 9031,
+    is_active: true,
+    title: "Minimization Mindset",
+    category: "Data Privacy & PII Awareness",
+    teaser: "Collect only what you need, for as long as you need it.",
+    icon: Lock,
+    color: "from-green-500 via-emerald-500 to-teal-500",
+    finalAction: "Design flows to avoid unnecessary data collection.",
+    learningModules: [
+      {
+        info: {
+          title: "Less is safer",
+          summary: "Storing extra sensitive data increases breach impact and compliance risk.",
+          points: [
+            { title: "Purpose first", detail: "Tie every field to a clear purpose." },
+            { title: "Short retention", detail: "Set expiration and deletion policies." },
+            { title: "User consent", detail: "Explain why data is needed." }
+          ]
+        },
+        quiz: {
+          question: "Why avoid collecting unneeded PII?",
+          options: ["Storage is free", "It reduces breach impact and compliance risk", "It speeds GPUs", "It improves CSS"],
+          correctAnswerIndex: 1,
+          explanation: "Less data lowers risk and regulatory exposure."
+        }
+      }
+    ]
+  },
+  {
+    id: 9032,
+    is_active: true,
+    title: "Secure Sharing",
+    category: "Data Privacy & PII Awareness",
+    teaser: "Use encrypted channels and least privilege when sharing data.",
+    icon: Shield,
+    color: "from-cyan-500 via-blue-500 to-indigo-500",
+    finalAction: "Share sensitive data only through approved secure channels.",
+    learningModules: [
+      {
+        info: {
+          title: "Transport matters",
+          summary: "HTTPS, VPNs, and access controls keep data safer in transit.",
+          points: [
+            { title: "Channel choice", detail: "Avoid email or chat for raw PII." },
+            { title: "Access scope", detail: "Limit who can download or export." },
+            { title: "Audit", detail: "Log who accessed or shared sensitive files." }
+          ]
+        },
+        quiz: {
+          question: "Best way to send a file with PII?",
+          options: ["Public link", "Encrypted channel with access controls", "Personal email", "Group chat"],
+          correctAnswerIndex: 1,
+          explanation: "Use encrypted, access-controlled channels for sensitive data."
+        }
+      }
+    ]
+  },
+  // AI in Daily Life
+  {
+    id: 9040,
+    is_active: true,
+    title: "Smart Assistants",
+    category: "AI in Daily Life",
+    teaser: "Voice and chat assistants can mishear; review actions before they execute.",
+    icon: Lightbulb,
+    color: "from-yellow-400 via-amber-400 to-orange-500",
+    finalAction: "Confirm sensitive actions like purchases with a second step.",
+    learningModules: [
+      {
+        info: {
+          title: "Use assistants safely",
+          summary: "Convenience is high; so is the chance of misfires—keep confirmations on.",
+          points: [
+            { title: "Check summaries", detail: "Have assistants recap before acting." },
+            { title: "Mute when private", detail: "Reduce ambient recording risk." },
+            { title: "Permissions", detail: "Limit what the assistant can access." }
+          ]
+        },
+        quiz: {
+          question: "A smart speaker offers to order an item. Safe habit?",
+          options: ["Auto-approve", "Require confirmation on device", "Share card details aloud", "Disable logs"],
+          correctAnswerIndex: 1,
+          explanation: "Confirm purchases to avoid accidental or malicious orders."
+        }
+      }
+    ]
+  },
+  {
+    id: 9041,
+    is_active: true,
+    title: "Recommenders Everywhere",
+    category: "AI in Daily Life",
+    teaser: "Feeds and suggestions shape what you see—know how to reset or tune them.",
+    icon: Brain,
+    color: "from-blue-500 via-sky-500 to-teal-500",
+    finalAction: "Adjust preferences and clear history when recommendations feel off.",
+    learningModules: [
+      {
+        info: {
+          title: "Control your feed",
+          summary: "Feedback, blocking, and resets improve recommendation quality.",
+          points: [
+            { title: "Downvote noise", detail: "Use dislike/hide to retrain the feed." },
+            { title: "Reset", detail: "Periodic resets clear stale signals." },
+            { title: "Time limits", detail: "Set app limits to avoid endless scroll." }
+          ]
+        },
+        quiz: {
+          question: "Your feed shows unwanted topics. First move?",
+          options: ["Keep scrolling", "Use feedback tools (hide, dislike)", "Share more data", "Turn off safety"],
+          correctAnswerIndex: 1,
+          explanation: "Use built-in feedback to steer recommendations."
+        }
+      }
+    ]
+  },
+  {
+    id: 9042,
+    is_active: true,
+    title: "AI at Work",
+    category: "AI in Daily Life",
+    teaser: "Drafts and summaries help, but verify facts before sharing.",
+    icon: Shield,
+    color: "from-indigo-500 via-violet-500 to-purple-500",
+    finalAction: "Review AI-generated text for accuracy and tone before sending.",
+    learningModules: [
+      {
+        info: {
+          title: "Co-pilot, not autopilot",
+          summary: "Use AI to draft, then apply human judgment for correctness and tone.",
+          points: [
+            { title: "Fact-check", detail: "Verify claims and numbers." },
+            { title: "Tone check", detail: "Ensure the message fits your audience." },
+            { title: "Sensitive info", detail: "Avoid pasting confidential data into tools." }
+          ]
+        },
+        quiz: {
+          question: "Before sending an AI-written update you should…",
+          options: ["Send as-is", "Verify facts and adjust tone", "Add more jargon", "Skip proofreading"],
+          correctAnswerIndex: 1,
+          explanation: "Human review catches inaccuracies and tone issues."
+        }
+      }
+    ]
+  },
+  // AI in Cybersecurity
+  {
+    id: 9050,
+    is_active: true,
+    title: "Detection Assist",
+    category: "AI in Cybersecurity",
+    teaser: "Models can triage alerts but need human oversight for final calls.",
+    icon: Shield,
+    color: "from-lime-500 via-green-500 to-emerald-500",
+    finalAction: "Use AI to cluster alerts, not to auto-close incidents.",
+    learningModules: [
+      {
+        info: {
+          title: "Augment, don’t replace",
+          summary: "AI helps summarize and rank alerts; humans decide containment.",
+          points: [
+            { title: "Summaries", detail: "Condense noisy alerts into briefs." },
+            { title: "Cluster", detail: "Group similar alerts to reduce toil." },
+            { title: "Human decision", detail: "Keep humans in loop for containment." }
+          ]
+        },
+        quiz: {
+          question: "What should AI do with SOC alerts?",
+          options: ["Auto-close everything", "Summarize and prioritize for analysts", "Ignore low priority", "Delete logs"],
+          correctAnswerIndex: 1,
+          explanation: "Use AI for triage; humans approve actions."
+        }
+      }
+    ]
+  },
+  {
+    id: 9051,
+    is_active: true,
+    title: "Phishing Triage",
+    category: "AI in Cybersecurity",
+    teaser: "LLMs can highlight risky links and tone, but you must verify before blocking.",
+    icon: AlertTriangle,
+    color: "from-orange-500 via-amber-500 to-yellow-400",
+    finalAction: "Use AI suggestions, then confirm before user-wide actions.",
+    learningModules: [
+      {
+        info: {
+          title: "Faster reviews",
+          summary: "AI spots suspicious language, mismatched domains, and urgent requests.",
+          points: [
+            { title: "URL checks", detail: "Flag lookalike domains." },
+            { title: "Tone analysis", detail: "Urgency + secrecy = risky." },
+            { title: "Containment", detail: "Quarantine suspected campaigns, then verify." }
+          ]
+        },
+        quiz: {
+          question: "AI flags a campaign as suspicious. Next move?",
+          options: ["Auto-delete all mail", "Verify indicators then quarantine", "Share widely", "Ignore"],
+          correctAnswerIndex: 1,
+          explanation: "Verify, then quarantine to avoid false positives."
+        }
+      }
+    ]
+  },
+  {
+    id: 9052,
+    is_active: true,
+    title: "Incident Briefs",
+    category: "AI in Cybersecurity",
+    teaser: "Use AI to create incident summaries, not to choose containment paths.",
+    icon: Brain,
+    color: "from-slate-500 via-blue-500 to-indigo-500",
+    finalAction: "Let analysts review AI-written briefs before sharing.",
+    learningModules: [
+      {
+        info: {
+          title: "Better communication",
+          summary: "Consistent briefs help leadership decide; accuracy still needs humans.",
+          points: [
+            { title: "Standard fields", detail: "Impact, scope, timeline, and next steps." },
+            { title: "Source links", detail: "Provide evidence and logs." },
+            { title: "Human review", detail: "Check for hallucinated details." }
+          ]
+        },
+        quiz: {
+          question: "What belongs in an AI-generated incident brief?",
+          options: ["Evidence links and scope", "Unverified rumors", "Personal data", "Blank fields"],
+          correctAnswerIndex: 0,
+          explanation: "Include evidence and scope; keep accuracy via review."
+        }
+      }
+    ]
+  },
+  // AI Ethics & Responsibility
+  {
+    id: 9060,
+    is_active: true,
+    title: "Transparency Basics",
+    category: "AI Ethics & Responsibility",
+    teaser: "Tell users when AI is involved and where its limits are.",
+    icon: Lightbulb,
+    color: "from-cyan-500 via-blue-500 to-indigo-500",
+    finalAction: "Provide clear disclosures and guidance where AI acts.",
+    learningModules: [
+      {
+        info: {
+          title: "Set expectations",
+          summary: "Disclosures build trust and reduce misuse by clarifying capabilities.",
+          points: [
+            { title: "Label AI", detail: "Tell users when content is AI-generated." },
+            { title: "Limits", detail: "State where the system may be wrong." },
+            { title: "Verification", detail: "Encourage users to review important outputs." }
+          ]
+        },
+        quiz: {
+          question: "Why disclose AI use?",
+          options: ["To add jargon", "Build trust and set correct expectations", "Increase token count", "Hide limits"],
+          correctAnswerIndex: 1,
+          explanation: "Transparency improves trust and responsible use."
+        }
+      }
+    ]
+  },
+  {
+    id: 9061,
+    is_active: true,
+    title: "Accountability Lines",
+    category: "AI Ethics & Responsibility",
+    teaser: "Humans stay accountable for outcomes, even when AI assists.",
+    icon: Shield,
+    color: "from-amber-500 via-yellow-500 to-lime-400",
+    finalAction: "Assign owners for AI-assisted decisions.",
+    learningModules: [
+      {
+        info: {
+          title: "Who is responsible?",
+          summary: "Clear ownership avoids blame shifting and ensures fixes happen.",
+          points: [
+            { title: "Define owners", detail: "Assign accountability for each workflow." },
+            { title: "Escalation", detail: "Know who decides when AI is unsure." },
+            { title: "Review loops", detail: "Periodic reviews catch issues early." }
+          ]
+        },
+        quiz: {
+          question: "Who owns an AI-assisted decision?",
+          options: ["No one", "The human team with authority", "The model vendor only", "The end user"],
+          correctAnswerIndex: 1,
+          explanation: "Humans with authority remain accountable."
+        }
+      }
+    ]
+  },
+  {
+    id: 9062,
+    is_active: true,
+    title: "Setting Boundaries",
+    category: "AI Ethics & Responsibility",
+    teaser: "Define acceptable uses and declines for your AI features.",
+    icon: AlertTriangle,
+    color: "from-red-500 via-rose-500 to-pink-500",
+    finalAction: "Publish allowed/blocked uses and enforce them.",
+    learningModules: [
+      {
+        info: {
+          title: "Use policy",
+          summary: "Clear acceptable-use policies guide users and simplify enforcement.",
+          points: [
+            { title: "List disallowed", detail: "E.g., harassment, malware, sensitive medical." },
+            { title: "Communicate", detail: "Show policy inside the product." },
+            { title: "Enforce", detail: "Align filters and moderation to the policy." }
+          ]
+        },
+        quiz: {
+          question: "What helps prevent misuse?",
+          options: ["Hidden policies", "Clear acceptable-use rules and enforcement", "No logging", "Unlimited access"],
+          correctAnswerIndex: 1,
+          explanation: "Explicit policies plus enforcement reduce misuse."
+        }
+      }
+    ]
+  },
+  // AI Scams & Social Engineering
+  {
+    id: 9070,
+    is_active: true,
+    title: "Impersonation Red Flags",
+    category: "AI Scams & Social Engineering",
+    teaser: "AI can mimic voices and faces—verify identities through trusted channels.",
+    icon: Eye,
+    color: "from-orange-500 via-red-500 to-rose-500",
+    finalAction: "Use callbacks and MFA for sensitive approvals.",
+    learningModules: [
+      {
+        info: {
+          title: "Trust but verify",
+          summary: "Unusual requests, even from familiar voices, need second-channel verification.",
+          points: [
+            { title: "Unexpected asks", detail: "If it feels off, pause and confirm." },
+            { title: "Known channels", detail: "Call back using saved contacts, not provided numbers." },
+            { title: "No secrets", detail: "Never share MFA codes over chat or voice." }
+          ]
+        },
+        quiz: {
+          question: "A video call looks like your CFO requesting gift cards. Safe move?",
+          options: ["Buy immediately", "Verify via known phone or ticket system", "Share MFA codes", "Post online"],
+          correctAnswerIndex: 1,
+          explanation: "Always verify via trusted channels before acting."
+        }
+      }
+    ]
+  },
+  {
+    id: 9071,
+    is_active: true,
+    title: "Urgency Tactics",
+    category: "AI Scams & Social Engineering",
+    teaser: "Scams add urgency and secrecy to push quick actions.",
+    icon: AlertTriangle,
+    color: "from-amber-500 via-orange-500 to-red-500",
+    finalAction: "Slow down, verify, and loop in a second approver.",
+    learningModules: [
+      {
+        info: {
+          title: "Pause on pressure",
+          summary: "Time pressure is a warning sign—use checklists and second approvals.",
+          points: [
+            { title: "Timeout", detail: "Take a moment; scammers thrive on speed." },
+            { title: "Two-person rule", detail: "Require dual approval for payments." },
+            { title: "Document", detail: "Keep a record of unusual requests." }
+          ]
+        },
+        quiz: {
+          question: "An email says 'urgent payment in 10 minutes'. Best move?",
+          options: ["Pay now", "Verify through your finance process", "Send credentials", "Reply with info"],
+          correctAnswerIndex: 1,
+          explanation: "Follow standard verification, not the scammer’s urgency."
+        }
+      }
+    ]
+  },
+  {
+    id: 9072,
+    is_active: true,
+    title: "Payment & Credential Safety",
+    category: "AI Scams & Social Engineering",
+    teaser: "Never share MFA codes or passwords; use official portals only.",
+    icon: Lock,
+    color: "from-blue-500 via-indigo-500 to-slate-600",
+    finalAction: "Use MFA and official channels for any sensitive input.",
+    learningModules: [
+      {
+        info: {
+          title: "Keep secrets safe",
+          summary: "Passwords, codes, and payment details belong only in verified systems.",
+          points: [
+            { title: "No sharing", detail: "Codes and passwords are never requested by support." },
+            { title: "Official forms", detail: "Use known URLs, not links from strangers." },
+            { title: "Report quickly", detail: "If you shared, reset and alert security." }
+          ]
+        },
+        quiz: {
+          question: "Where should MFA codes be entered?",
+          options: ["In chat to anyone", "Only in the official login you initiated", "On social media", "In a text reply"],
+          correctAnswerIndex: 1,
+          explanation: "MFA codes belong only in trusted login flows you start."
+        }
+      }
+    ]
+  }
+];
+
 const AwarenessHub: React.FC = () => {
   const { user } = useAuth();
   const { theme } = useTheme();
@@ -441,14 +1153,28 @@ const AwarenessHub: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
-  // Persistence for completed topics
+  // Persistence for completed topics with logging and error handling
   const [completedTopicIds, setCompletedTopicIds] = useState<number[]>(() => {
-    const saved = localStorage.getItem('completed_awareness_topics');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('completed_awareness_topics');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load completed topics from localStorage:', error);
+    }
+    return [];
   });
 
   useEffect(() => {
-    localStorage.setItem('completed_awareness_topics', JSON.stringify(completedTopicIds));
+    try {
+      localStorage.setItem('completed_awareness_topics', JSON.stringify(completedTopicIds));
+    } catch (error) {
+      console.error('Failed to save completed topics to localStorage:', error);
+    }
   }, [completedTopicIds]);
 
   const handleTopicComplete = (id: number) => {
@@ -456,719 +1182,6 @@ const AwarenessHub: React.FC = () => {
       setCompletedTopicIds(prev => [...prev, id]);
     }
   };
-
-  // Icon Mapping
-  const ICON_MAP: any = {
-    Brain, Lock, Fingerprint, Eye, Shield, Gamepad2, Search, AlertTriangle, X, CheckCircle, XCircle, RotateCcw, Lightbulb, Zap
-  };
-
-  // Keep static data
-  const STATIC_TOPICS: Resource[] = [
-    // AI Safety & Misuse
-    {
-      id: 9001,
-      is_active: true,
-      title: "Safety Rails 101",
-      category: "AI Safety & Misuse",
-      teaser: "Understand the guardrails that keep AI outputs safe and appropriate.",
-      icon: Shield,
-      color: "from-blue-500 via-indigo-500 to-purple-500",
-      finalAction: "Ship with safety on by default and monitor continuously.",
-      learningModules: [
-        {
-          info: {
-            title: "Why safety layers matter",
-            summary: "Guardrails, filters, and policies work together to prevent harmful or off-policy outputs.",
-            points: [
-              { title: "Defense in depth", detail: "Combine system prompts, moderation, and output checks." },
-              { title: "Fail closed", detail: "If unsure or blocked, choose the safer path and explain briefly." },
-              { title: "Visibility", detail: "Log safety decisions for review and improvement." }
-            ]
-          },
-          quiz: {
-            question: "What is the safest default when a response triggers a safety rule?",
-            options: ["Return the full answer anyway", "Block or soften the response and log it", "Ignore the rule", "Increase temperature"],
-            correctAnswerIndex: 1,
-            explanation: "Fail closed: block or soften, and log for review to avoid unsafe delivery."
-          }
-        }
-      ]
-    },
-    {
-      id: 9002,
-      is_active: true,
-      title: "Rate Limits & Abuse",
-      category: "AI Safety & Misuse",
-      teaser: "Rate limits and anomaly detection reduce scripted abuse and model scraping.",
-      icon: AlertTriangle,
-      color: "from-amber-500 via-orange-500 to-red-500",
-      finalAction: "Throttle aggressively on suspicious bursts and review patterns weekly.",
-      learningModules: [
-        {
-          info: {
-            title: "Signals of misuse",
-            summary: "High-volume, repetitive, or adversarial prompts often signal scraping or abuse attempts.",
-            points: [
-              { title: "Volume anomalies", detail: "Spikes from a single key or IP are high-risk." },
-              { title: "Repeated probes", detail: "Similar prompts aiming to bypass filters are red flags." },
-              { title: "Mitigations", detail: "Rate limits, captchas, and blocklists slow attackers." }
-            ]
-          },
-          quiz: {
-            question: "A single key suddenly sends 100× more requests than usual. Best first step?",
-            options: ["Disable logging", "Raise temperature", "Apply tighter rate limits and investigate", "Ignore it"],
-            correctAnswerIndex: 2,
-            explanation: "Spike + key concentration suggests abuse; throttle and inspect."
-          }
-        }
-      ]
-    },
-    {
-      id: 9003,
-      is_active: true,
-      title: "Human Review Moments",
-      category: "AI Safety & Misuse",
-      teaser: "Some actions need a human checkpoint before execution.",
-      icon: Lightbulb,
-      color: "from-teal-500 via-cyan-500 to-blue-500",
-      finalAction: "Require approvals for high-impact actions like sends, publishes, or payments.",
-      learningModules: [
-        {
-          info: {
-            title: "When to keep a human in the loop",
-            summary: "High-stakes tasks (sending, publishing, deleting) benefit from human oversight.",
-            points: [
-              { title: "Critical scope", detail: "Outbound emails, posts, or code changes should pause for review." },
-              { title: "Context gaps", detail: "Humans catch nuance that models may miss." },
-              { title: "Clear UX", detail: "Explain why approval is needed to build trust." }
-            ]
-          },
-          quiz: {
-            question: "Which task most needs human review?",
-            options: ["Suggesting a headline", "Auto-sending invoices", "Counting words", "Sorting tags"],
-            correctAnswerIndex: 1,
-            explanation: "Sending invoices is high impact; keep a human approval step."
-          }
-        }
-      ]
-    },
-    // AI Bias & Fairness
-    {
-      id: 9010,
-      is_active: true,
-      title: "Spotting Skewed Data",
-      category: "AI Bias & Fairness",
-      teaser: "Uneven data leads to uneven outcomes—learn to spot it early.",
-      icon: Eye,
-      color: "from-emerald-500 via-teal-500 to-cyan-500",
-      finalAction: "Audit datasets for representation before training.",
-      learningModules: [
-        {
-          info: {
-            title: "Common bias signals",
-            summary: "Underrepresented groups or missing scenarios create skewed predictions.",
-            points: [
-              { title: "Representation", detail: "Check group counts, not just total size." },
-              { title: "Label quality", detail: "Inconsistent labels hide in minority classes." },
-              { title: "Context", detail: "Data from one region may not generalize elsewhere." }
-            ]
-          },
-          quiz: {
-            question: "A dataset has few examples from older users. Risk?",
-            options: ["Lower fairness for that group", "Higher latency", "More storage", "No impact"],
-            correctAnswerIndex: 0,
-            explanation: "Underrepresentation can harm accuracy for that group."
-          }
-        }
-      ]
-    },
-    {
-      id: 9011,
-      is_active: true,
-      title: "Measuring Fairness",
-      category: "AI Bias & Fairness",
-      teaser: "Track performance by group, not only overall accuracy.",
-      icon: Brain,
-      color: "from-indigo-500 via-blue-500 to-cyan-500",
-      finalAction: "Report group-level metrics and act on gaps.",
-      learningModules: [
-        {
-          info: {
-            title: "Metrics that matter",
-            summary: "Accuracy can hide disparities—use precision/recall per group.",
-            points: [
-              { title: "Slice metrics", detail: "Evaluate by age, region, or device where appropriate." },
-              { title: "Thresholds", detail: "Adjust decision thresholds to close gaps." },
-              { title: "Re-check", detail: "Re-evaluate after model or data changes." }
-            ]
-          },
-          quiz: {
-            question: "Overall accuracy is 95% but one group is 70%. Next step?",
-            options: ["Ignore it", "Measure and address the gap", "Lower logging", "Raise temperature"],
-            correctAnswerIndex: 1,
-            explanation: "Disparity needs investigation and mitigation."
-          }
-        }
-      ]
-    },
-    {
-      id: 9012,
-      is_active: true,
-      title: "Inclusive Prompts",
-      category: "AI Bias & Fairness",
-      teaser: "Prompt phrasing can amplify or reduce stereotypes.",
-      icon: Lightbulb,
-      color: "from-purple-500 via-fuchsia-500 to-pink-500",
-      finalAction: "Write prompts that avoid stereotypes and request neutral tone.",
-      learningModules: [
-        {
-          info: {
-            title: "Prompting for fairness",
-            summary: "Explicitly ask for neutral, respectful language and balanced examples.",
-            points: [
-              { title: "Avoid leading cues", detail: "Don’t imply traits based on demographics." },
-              { title: "Add balance", detail: "Request varied perspectives where relevant." },
-              { title: "Review outputs", detail: "Spot-check for bias and adjust prompts." }
-            ]
-          },
-          quiz: {
-            question: "Which prompt is safest for a bio generator?",
-            options: ["Use masculine traits", "Use gender-neutral, role-focused details", "Assume age", "Add stereotypes for fun"],
-            correctAnswerIndex: 1,
-            explanation: "Neutral, role-focused prompts reduce stereotype risk."
-          }
-        }
-      ]
-    },
-    // Deepfakes & Media Manipulation
-    {
-      id: 9020,
-      is_active: true,
-      title: "Spotting Deepfakes",
-      category: "Deepfakes & Media Manipulation",
-      teaser: "Look for artifacts, odd timing, and mismatched audio/visual cues.",
-      icon: Eye,
-      color: "from-rose-500 via-orange-500 to-amber-400",
-      finalAction: "Verify source and context before trusting shocking clips.",
-      learningModules: [
-        {
-          info: {
-            title: "Common tells",
-            summary: "Lighting glitches, odd blinks, and mismatched shadows often reveal synthetic media.",
-            points: [
-              { title: "Edges & lighting", detail: "Look for haloing or inconsistent shadows." },
-              { title: "Audio sync", detail: "Mouth shapes that lag words are suspicious." },
-              { title: "Source check", detail: "Confirm original publisher and date." }
-            ]
-          },
-          quiz: {
-            question: "A viral clip has mismatched lip sync. First action?",
-            options: ["Share quickly", "Verify source and context", "Ignore discrepancies", "Add filters"],
-            correctAnswerIndex: 1,
-            explanation: "Pause and verify before sharing potentially manipulated media."
-          }
-        }
-      ]
-    },
-    {
-      id: 9021,
-      is_active: true,
-      title: "Verify Before Share",
-      category: "Deepfakes & Media Manipulation",
-      teaser: "Reverse image search and trusted outlets reduce misinformation spread.",
-      icon: Search,
-      color: "from-sky-500 via-cyan-500 to-emerald-400",
-      finalAction: "Check provenance with multiple sources before resharing.",
-      learningModules: [
-        {
-          info: {
-            title: "Quick verification steps",
-            summary: "Reverse searches and official statements help confirm authenticity.",
-            points: [
-              { title: "Reverse search", detail: "Find originals or earlier versions of the media." },
-              { title: "Date check", detail: "Old footage reused as new is a common trick." },
-              { title: "Trusted sources", detail: "Cross-check with reputable outlets." }
-            ]
-          },
-          quiz: {
-            question: "What should you do before resharing a shocking video?",
-            options: ["Assume it is real", "Reverse search and check reputable sources", "Add a caption and post", "Edit the audio"],
-            correctAnswerIndex: 1,
-            explanation: "Verification reduces spreading manipulated content."
-          }
-        }
-      ]
-    },
-    {
-      id: 9022,
-      is_active: true,
-      title: "Voice Clone Risks",
-      category: "Deepfakes & Media Manipulation",
-      teaser: "Cloned voices can impersonate leaders or family. Use call-backs and codes.",
-      icon: AlertTriangle,
-      color: "from-yellow-400 via-amber-500 to-red-500",
-      finalAction: "Use secondary verification for voice-only requests.",
-      learningModules: [
-        {
-          info: {
-            title: "Prevent impersonation",
-            summary: "Voice alone is weak authentication. Add shared secrets or callback steps.",
-            points: [
-              { title: "No voice-only approvals", detail: "Require written or in-app confirmation." },
-              { title: "Safe words", detail: "Agree on verification phrases for urgent asks." },
-              { title: "Educate teams", detail: "Warn about cloned voice scams." }
-            ]
-          },
-          quiz: {
-            question: "A caller sounds like your manager asking for a wire. Safe move?",
-            options: ["Send immediately", "Request a callback through an official number", "Share credentials", "Record and post"],
-            correctAnswerIndex: 1,
-            explanation: "Use known channels to verify before acting."
-          }
-        }
-      ]
-    },
-    // Data Privacy & PII Awareness
-    {
-      id: 9030,
-      is_active: true,
-      title: "PII Hygiene",
-      category: "Data Privacy & PII Awareness",
-      teaser: "Know what counts as PII and keep it masked or minimized.",
-      icon: Fingerprint,
-      color: "from-slate-600 via-gray-600 to-slate-800",
-      finalAction: "Default to masking PII in logs and prompts.",
-      learningModules: [
-        {
-          info: {
-            title: "Handle PII carefully",
-            summary: "Names, emails, IDs, and biometrics need protection in transit and at rest.",
-            points: [
-              { title: "Mask early", detail: "Replace PII with tokens before model calls." },
-              { title: "Access control", detail: "Limit who can view raw data." },
-              { title: "Retention", detail: "Delete when no longer needed." }
-            ]
-          },
-          quiz: {
-            question: "What should logs contain when handling PII?",
-            options: ["Full raw data", "Masked or tokenized values", "Public dumps", "Nothing ever"],
-            correctAnswerIndex: 1,
-            explanation: "Masking reduces exposure while keeping observability."
-          }
-        }
-      ]
-    },
-    {
-      id: 9031,
-      is_active: true,
-      title: "Minimization Mindset",
-      category: "Data Privacy & PII Awareness",
-      teaser: "Collect only what you need, for as long as you need it.",
-      icon: Lock,
-      color: "from-green-500 via-emerald-500 to-teal-500",
-      finalAction: "Design flows to avoid unnecessary data collection.",
-      learningModules: [
-        {
-          info: {
-            title: "Less is safer",
-            summary: "Storing extra sensitive data increases breach impact and compliance risk.",
-            points: [
-              { title: "Purpose first", detail: "Tie every field to a clear purpose." },
-              { title: "Short retention", detail: "Set expiration and deletion policies." },
-              { title: "User consent", detail: "Explain why data is needed." }
-            ]
-          },
-          quiz: {
-            question: "Why avoid collecting unneeded PII?",
-            options: ["Storage is free", "It reduces breach impact and compliance risk", "It speeds GPUs", "It improves CSS"],
-            correctAnswerIndex: 1,
-            explanation: "Less data lowers risk and regulatory exposure."
-          }
-        }
-      ]
-    },
-    {
-      id: 9032,
-      is_active: true,
-      title: "Secure Sharing",
-      category: "Data Privacy & PII Awareness",
-      teaser: "Use encrypted channels and least privilege when sharing data.",
-      icon: Shield,
-      color: "from-cyan-500 via-blue-500 to-indigo-500",
-      finalAction: "Share sensitive data only through approved secure channels.",
-      learningModules: [
-        {
-          info: {
-            title: "Transport matters",
-            summary: "HTTPS, VPNs, and access controls keep data safer in transit.",
-            points: [
-              { title: "Channel choice", detail: "Avoid email or chat for raw PII." },
-              { title: "Access scope", detail: "Limit who can download or export." },
-              { title: "Audit", detail: "Log who accessed or shared sensitive files." }
-            ]
-          },
-          quiz: {
-            question: "Best way to send a file with PII?",
-            options: ["Public link", "Encrypted channel with access controls", "Personal email", "Group chat"],
-            correctAnswerIndex: 1,
-            explanation: "Use encrypted, access-controlled channels for sensitive data."
-          }
-        }
-      ]
-    },
-    // AI in Daily Life
-    {
-      id: 9040,
-      is_active: true,
-      title: "Smart Assistants",
-      category: "AI in Daily Life",
-      teaser: "Voice and chat assistants can mishear; review actions before they execute.",
-      icon: Lightbulb,
-      color: "from-yellow-400 via-amber-400 to-orange-500",
-      finalAction: "Confirm sensitive actions like purchases with a second step.",
-      learningModules: [
-        {
-          info: {
-            title: "Use assistants safely",
-            summary: "Convenience is high; so is the chance of misfires—keep confirmations on.",
-            points: [
-              { title: "Check summaries", detail: "Have assistants recap before acting." },
-              { title: "Mute when private", detail: "Reduce ambient recording risk." },
-              { title: "Permissions", detail: "Limit what the assistant can access." }
-            ]
-          },
-          quiz: {
-            question: "A smart speaker offers to order an item. Safe habit?",
-            options: ["Auto-approve", "Require confirmation on device", "Share card details aloud", "Disable logs"],
-            correctAnswerIndex: 1,
-            explanation: "Confirm purchases to avoid accidental or malicious orders."
-          }
-        }
-      ]
-    },
-    {
-      id: 9041,
-      is_active: true,
-      title: "Recommenders Everywhere",
-      category: "AI in Daily Life",
-      teaser: "Feeds and suggestions shape what you see—know how to reset or tune them.",
-      icon: Brain,
-      color: "from-blue-500 via-sky-500 to-teal-500",
-      finalAction: "Adjust preferences and clear history when recommendations feel off.",
-      learningModules: [
-        {
-          info: {
-            title: "Control your feed",
-            summary: "Feedback, blocking, and resets improve recommendation quality.",
-            points: [
-              { title: "Downvote noise", detail: "Use dislike/hide to retrain the feed." },
-              { title: "Reset", detail: "Periodic resets clear stale signals." },
-              { title: "Time limits", detail: "Set app limits to avoid endless scroll." }
-            ]
-          },
-          quiz: {
-            question: "Your feed shows unwanted topics. First move?",
-            options: ["Keep scrolling", "Use feedback tools (hide, dislike)", "Share more data", "Turn off safety"],
-            correctAnswerIndex: 1,
-            explanation: "Use built-in feedback to steer recommendations."
-          }
-        }
-      ]
-    },
-    {
-      id: 9042,
-      is_active: true,
-      title: "AI at Work",
-      category: "AI in Daily Life",
-      teaser: "Drafts and summaries help, but verify facts before sharing.",
-      icon: Shield,
-      color: "from-indigo-500 via-violet-500 to-purple-500",
-      finalAction: "Review AI-generated text for accuracy and tone before sending.",
-      learningModules: [
-        {
-          info: {
-            title: "Co-pilot, not autopilot",
-            summary: "Use AI to draft, then apply human judgment for correctness and tone.",
-            points: [
-              { title: "Fact-check", detail: "Verify claims and numbers." },
-              { title: "Tone check", detail: "Ensure the message fits your audience." },
-              { title: "Sensitive info", detail: "Avoid pasting confidential data into tools." }
-            ]
-          },
-          quiz: {
-            question: "Before sending an AI-written update you should…",
-            options: ["Send as-is", "Verify facts and adjust tone", "Add more jargon", "Skip proofreading"],
-            correctAnswerIndex: 1,
-            explanation: "Human review catches inaccuracies and tone issues."
-          }
-        }
-      ]
-    },
-    // AI in Cybersecurity
-    {
-      id: 9050,
-      is_active: true,
-      title: "Detection Assist",
-      category: "AI in Cybersecurity",
-      teaser: "Models can triage alerts but need human oversight for final calls.",
-      icon: Shield,
-      color: "from-lime-500 via-green-500 to-emerald-500",
-      finalAction: "Use AI to cluster alerts, not to auto-close incidents.",
-      learningModules: [
-        {
-          info: {
-            title: "Augment, don’t replace",
-            summary: "AI helps summarize and rank alerts; humans decide containment.",
-            points: [
-              { title: "Summaries", detail: "Condense noisy alerts into briefs." },
-              { title: "Cluster", detail: "Group similar alerts to reduce toil." },
-              { title: "Human decision", detail: "Keep humans in loop for containment." }
-            ]
-          },
-          quiz: {
-            question: "What should AI do with SOC alerts?",
-            options: ["Auto-close everything", "Summarize and prioritize for analysts", "Ignore low priority", "Delete logs"],
-            correctAnswerIndex: 1,
-            explanation: "Use AI for triage; humans approve actions."
-          }
-        }
-      ]
-    },
-    {
-      id: 9051,
-      is_active: true,
-      title: "Phishing Triage",
-      category: "AI in Cybersecurity",
-      teaser: "LLMs can highlight risky links and tone, but you must verify before blocking.",
-      icon: AlertTriangle,
-      color: "from-orange-500 via-amber-500 to-yellow-400",
-      finalAction: "Use AI suggestions, then confirm before user-wide actions.",
-      learningModules: [
-        {
-          info: {
-            title: "Faster reviews",
-            summary: "AI spots suspicious language, mismatched domains, and urgent requests.",
-            points: [
-              { title: "URL checks", detail: "Flag lookalike domains." },
-              { title: "Tone analysis", detail: "Urgency + secrecy = risky." },
-              { title: "Containment", detail: "Quarantine suspected campaigns, then verify." }
-            ]
-          },
-          quiz: {
-            question: "AI flags a campaign as suspicious. Next move?",
-            options: ["Auto-delete all mail", "Verify indicators then quarantine", "Share widely", "Ignore"],
-            correctAnswerIndex: 1,
-            explanation: "Verify, then quarantine to avoid false positives."
-          }
-        }
-      ]
-    },
-    {
-      id: 9052,
-      is_active: true,
-      title: "Incident Briefs",
-      category: "AI in Cybersecurity",
-      teaser: "Use AI to create incident summaries, not to choose containment paths.",
-      icon: Brain,
-      color: "from-slate-500 via-blue-500 to-indigo-500",
-      finalAction: "Let analysts review AI-written briefs before sharing.",
-      learningModules: [
-        {
-          info: {
-            title: "Better communication",
-            summary: "Consistent briefs help leadership decide; accuracy still needs humans.",
-            points: [
-              { title: "Standard fields", detail: "Impact, scope, timeline, and next steps." },
-              { title: "Source links", detail: "Provide evidence and logs." },
-              { title: "Human review", detail: "Check for hallucinated details." }
-            ]
-          },
-          quiz: {
-            question: "What belongs in an AI-generated incident brief?",
-            options: ["Evidence links and scope", "Unverified rumors", "Personal data", "Blank fields"],
-            correctAnswerIndex: 0,
-            explanation: "Include evidence and scope; keep accuracy via review."
-          }
-        }
-      ]
-    },
-    // AI Ethics & Responsibility
-    {
-      id: 9060,
-      is_active: true,
-      title: "Transparency Basics",
-      category: "AI Ethics & Responsibility",
-      teaser: "Tell users when AI is involved and where its limits are.",
-      icon: Lightbulb,
-      color: "from-cyan-500 via-blue-500 to-indigo-500",
-      finalAction: "Provide clear disclosures and guidance where AI acts.",
-      learningModules: [
-        {
-          info: {
-            title: "Set expectations",
-            summary: "Disclosures build trust and reduce misuse by clarifying capabilities.",
-            points: [
-              { title: "Label AI", detail: "Tell users when content is AI-generated." },
-              { title: "Limits", detail: "State where the system may be wrong." },
-              { title: "Verification", detail: "Encourage users to review important outputs." }
-            ]
-          },
-          quiz: {
-            question: "Why disclose AI use?",
-            options: ["To add jargon", "Build trust and set correct expectations", "Increase token count", "Hide limits"],
-            correctAnswerIndex: 1,
-            explanation: "Transparency improves trust and responsible use."
-          }
-        }
-      ]
-    },
-    {
-      id: 9061,
-      is_active: true,
-      title: "Accountability Lines",
-      category: "AI Ethics & Responsibility",
-      teaser: "Humans stay accountable for outcomes, even when AI assists.",
-      icon: Shield,
-      color: "from-amber-500 via-yellow-500 to-lime-400",
-      finalAction: "Assign owners for AI-assisted decisions.",
-      learningModules: [
-        {
-          info: {
-            title: "Who is responsible?",
-            summary: "Clear ownership avoids blame shifting and ensures fixes happen.",
-            points: [
-              { title: "Define owners", detail: "Assign accountability for each workflow." },
-              { title: "Escalation", detail: "Know who decides when AI is unsure." },
-              { title: "Review loops", detail: "Periodic reviews catch issues early." }
-            ]
-          },
-          quiz: {
-            question: "Who owns an AI-assisted decision?",
-            options: ["No one", "The human team with authority", "The model vendor only", "The end user"],
-            correctAnswerIndex: 1,
-            explanation: "Humans with authority remain accountable."
-          }
-        }
-      ]
-    },
-    {
-      id: 9062,
-      is_active: true,
-      title: "Setting Boundaries",
-      category: "AI Ethics & Responsibility",
-      teaser: "Define acceptable uses and declines for your AI features.",
-      icon: AlertTriangle,
-      color: "from-red-500 via-rose-500 to-pink-500",
-      finalAction: "Publish allowed/blocked uses and enforce them.",
-      learningModules: [
-        {
-          info: {
-            title: "Use policy",
-            summary: "Clear acceptable-use policies guide users and simplify enforcement.",
-            points: [
-              { title: "List disallowed", detail: "E.g., harassment, malware, sensitive medical." },
-              { title: "Communicate", detail: "Show policy inside the product." },
-              { title: "Enforce", detail: "Align filters and moderation to the policy." }
-            ]
-          },
-          quiz: {
-            question: "What helps prevent misuse?",
-            options: ["Hidden policies", "Clear acceptable-use rules and enforcement", "No logging", "Unlimited access"],
-            correctAnswerIndex: 1,
-            explanation: "Explicit policies plus enforcement reduce misuse."
-          }
-        }
-      ]
-    },
-    // AI Scams & Social Engineering
-    {
-      id: 9070,
-      is_active: true,
-      title: "Impersonation Red Flags",
-      category: "AI Scams & Social Engineering",
-      teaser: "AI can mimic voices and faces—verify identities through trusted channels.",
-      icon: Eye,
-      color: "from-orange-500 via-red-500 to-rose-500",
-      finalAction: "Use callbacks and MFA for sensitive approvals.",
-      learningModules: [
-        {
-          info: {
-            title: "Trust but verify",
-            summary: "Unusual requests, even from familiar voices, need second-channel verification.",
-            points: [
-              { title: "Unexpected asks", detail: "If it feels off, pause and confirm." },
-              { title: "Known channels", detail: "Call back using saved contacts, not provided numbers." },
-              { title: "No secrets", detail: "Never share MFA codes over chat or voice." }
-            ]
-          },
-          quiz: {
-            question: "A video call looks like your CFO requesting gift cards. Safe step?",
-            options: ["Buy immediately", "Verify via known phone or ticket system", "Share MFA codes", "Post online"],
-            correctAnswerIndex: 1,
-            explanation: "Always verify via trusted channels before acting."
-          }
-        }
-      ]
-    },
-    {
-      id: 9071,
-      is_active: true,
-      title: "Urgency Tactics",
-      category: "AI Scams & Social Engineering",
-      teaser: "Scams add urgency and secrecy to push quick actions.",
-      icon: AlertTriangle,
-      color: "from-amber-500 via-orange-500 to-red-500",
-      finalAction: "Slow down, verify, and loop in a second approver.",
-      learningModules: [
-        {
-          info: {
-            title: "Pause on pressure",
-            summary: "Time pressure is a warning sign—use checklists and second approvals.",
-            points: [
-              { title: "Timeout", detail: "Take a moment; scammers thrive on speed." },
-              { title: "Two-person rule", detail: "Require dual approval for payments." },
-              { title: "Document", detail: "Keep a record of unusual requests." }
-            ]
-          },
-          quiz: {
-            question: "An email says 'urgent payment in 10 minutes'. Best move?",
-            options: ["Pay now", "Verify through your finance process", "Send credentials", "Reply with info"],
-            correctAnswerIndex: 1,
-            explanation: "Follow standard verification, not the scammer’s urgency."
-          }
-        }
-      ]
-    },
-    {
-      id: 9072,
-      is_active: true,
-      title: "Payment & Credential Safety",
-      category: "AI Scams & Social Engineering",
-      teaser: "Never share MFA codes or passwords; use official portals only.",
-      icon: Lock,
-      color: "from-blue-500 via-indigo-500 to-slate-600",
-      finalAction: "Use MFA and official channels for any sensitive input.",
-      learningModules: [
-        {
-          info: {
-            title: "Keep secrets safe",
-            summary: "Passwords, codes, and payment details belong only in verified systems.",
-            points: [
-              { title: "No sharing", detail: "Codes and passwords are never requested by support." },
-              { title: "Official forms", detail: "Use known URLs, not links from strangers." },
-              { title: "Report quickly", detail: "If you shared, reset and alert security." }
-            ]
-          },
-          quiz: {
-            question: "Where should MFA codes be entered?",
-            options: ["In chat to anyone", "Only in the official login you initiated", "On social media", "In a text reply"],
-            correctAnswerIndex: 1,
-            explanation: "MFA codes belong only in trusted login flows you start."
-          }
-        }
-      ]
-    }
-  ];
 
   const fetchTopics = async () => {
     try {
