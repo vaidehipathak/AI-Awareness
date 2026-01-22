@@ -1,6 +1,6 @@
 import cv2
 import pytesseract
-from pii_module.ocr_cleaner import clean_ocr_text
+from ocr_cleaner import clean_ocr_text
 
 # Tesseract path
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"

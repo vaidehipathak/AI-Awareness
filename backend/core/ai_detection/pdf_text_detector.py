@@ -4,12 +4,14 @@ import logging
 import json
 import torch
 import numpy as np
-from typing import Dict, Tuple, List, Any
-from pypdf import PdfReader
+from typing import Tuple, Dict, List, Any
 from transformers import AutoTokenizer, AutoModelForCausalLM
-from pii_module.pii_engine import detect_pii
+from pypdf import PdfReader
+
+
 
 logger = logging.getLogger(__name__)
+
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -24,6 +26,7 @@ def _load_model_safely():
         return True
 
     try:
+        from transformers import AutoTokenizer, AutoModelForCausalLM
         tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
         model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
         model.eval()
@@ -144,7 +147,7 @@ def detect_pdf_ai(text_input: str = "", metadata: Dict = None, image_bytes: byte
             try:
                 import tempfile
                 import os
-                from pii_module.image_extractor import extract_text_from_image
+                from pii_detection.image_extractor import extract_text_from_image
                 
                 # Save bytes to temp file for cv2 to read
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp_file:
@@ -178,14 +181,54 @@ def detect_pdf_ai(text_input: str = "", metadata: Dict = None, image_bytes: byte
                 }
         else:
             raw_text = text_input
+        
+        # Log extracted text for debugging
+        logger.info(f"Extracted text length: {len(raw_text or '')} characters")
+        if raw_text:
+            # Log first 500 chars for preview, but check ENTIRE text for patterns
+            logger.info(f"First 500 chars of extracted text: {raw_text[:500]}")
+            # Check for potential Aadhaar patterns in the FULL text (not just first 1000 chars)
+            import re
+            aadhaar_patterns = re.findall(r'\d{4}[-\s]?\d{4}[-\s]?\d{4}|\d{12}', raw_text)
+            if aadhaar_patterns:
+                logger.info(f"Found {len(aadhaar_patterns)} potential Aadhaar patterns in FULL text: {aadhaar_patterns[:10]}")
+            else:
+                logger.warning("No Aadhaar patterns found in extracted text")
+        else:
+            logger.warning("WARNING: No text extracted from document!")
             
         status_note = ""
 
-        # Use new PII Module
-        pii_findings = detect_pii(raw_text)
+        # Use new PII Module - ALWAYS run PII detection via centralized router
+        try:
+            from pii_detection.router import model_router
+            logger.info(f"Running PII detection via module router on text length: {len(raw_text or '')}")
+            
+            # Analyze using the full pipeline
+            pii_result = model_router(raw_text or "")
+            
+            pii_findings = pii_result.get("detected_pii", [])
+            risk_label = pii_result.get("risk_level", "LOW") # Returns HIGH/MEDIUM/LOW/NONE
+            if risk_label == "NONE": risk_label = "LOW"
+            
+            # Use module's risk score directly
+            risk_score_weighted = pii_result.get("risk_score", 0.0)
+            
+            # Privacy tips from module
+            privacy_tips = pii_result.get("privacy_tips", [])
+            
+            logger.info(f"PII Module Result: Risk={risk_label}, Score={risk_score_weighted}, Entities={len(pii_findings)}")
+            
+        except Exception as pii_error:
+            logger.error(f"PII detection error: {pii_error}", exc_info=True)
+            pii_findings = []
+            risk_label = "LOW"
+            risk_score_weighted = 0.0
+            privacy_tips = []
+        
         pii_detected = len(pii_findings) > 0
         
-        # Scrub text for AI analysis (mask PII)
+        # Scrub text for AI analysis (mask PII) using findings
         # Sort findings by start index descending to avoid offset issues
         scrubbed_text = raw_text
         sorted_findings = sorted(pii_findings, key=lambda x: x['start'], reverse=True)
@@ -211,19 +254,20 @@ def detect_pdf_ai(text_input: str = "", metadata: Dict = None, image_bytes: byte
         ai_score = 0.0
         verdict = "Safe"
         ai_msg = ""
-        risk_label = "LOW"
+        # Default AI risk label
+        ai_risk_label = "LOW"
 
         if pii_only:
             ai_score = 1.0
             verdict = "Sensitive PII Detected (Prevents AI Analysis)"
             ai_msg = "Document contains mostly PII. AI analysis skipped."
-            risk_label = "HIGH"
+            ai_risk_label = "HIGH"
             final_result_structure["detectors_executed"].append("pii_detection")
 
         elif word_count < 60:
             verdict = "Too Short for Reliable Analysis"
             ai_msg = f"Insufficient text ({word_count} words) for AI detection."
-            risk_label = "UNKNOWN"
+            ai_risk_label = "UNKNOWN"
             final_result_structure["detectors_executed"].append("short_text_check")
 
         else:
@@ -232,107 +276,67 @@ def detect_pdf_ai(text_input: str = "", metadata: Dict = None, image_bytes: byte
             if ai_score >= 0.80:
                 verdict = "Likely AI-generated"
                 ai_msg = "Text is highly predictable."
-                risk_label = "HIGH"
+                ai_risk_label = "HIGH"
             elif ai_score >= 0.50:
                 verdict = "Suspicious"
                 ai_msg = "Text predictability slightly high."
-                risk_label = "MEDIUM"
+                ai_risk_label = "MEDIUM"
             else:
                 verdict = "Safe"
                 ai_msg = "Text shows sufficient linguistic variance."
-                risk_label = "LOW"
+                ai_risk_label = "LOW"
 
             final_result_structure["detectors_executed"].append("ai_generated_content")
+
+        # Combine AI and PII Risks
+        # If PII risk is higher, it takes precedence for the document label
+        final_risk_label = "LOW"
+        risk_priority = {"HIGH": 3, "MEDIUM": 2, "LOW": 1, "UNKNOWN": 0}
+        
+        if risk_priority.get(risk_label, 0) >= risk_priority.get(ai_risk_label, 0):
+             final_risk_label = risk_label
+        else:
+             final_risk_label = ai_risk_label
+             
+        # Mapping verdict based on PII risk if high
+        if risk_label == "HIGH":
+            verdict = "High-Risk PII Detected"
+            ai_msg = f"Document contains critical PII ({len(pii_findings)} entities)."
+        elif risk_label == "MEDIUM" and verdict == "Safe":
+             verdict = "Medium-Risk PII Detected"
+             ai_msg = "Document contains sensitive personal data."
 
         final_result_structure["risk_score"] = round(ai_score, 3)
         final_result_structure["verdict"] = verdict
         final_result_structure["explanation"] = f"{ai_msg} {status_note}".strip()
-        final_result_structure["risk_label"] = risk_label
+        final_result_structure["risk_label"] = final_risk_label
 
         final_result_structure["results"].append({
             "type": "AI_ANALYSIS",
             "score": final_result_structure["risk_score"],
-            "label": final_result_structure["risk_label"],
+            "label": ai_risk_label,
             "explanation": final_result_structure["explanation"]
         })
 
-        if pii_detected:
-            # Calculate PII risk score using weighted risk engine
-            CRITICAL_PII = {'AADHAAR', 'VID', 'PAN', 'CREDIT_DEBIT_CARD', 'CVV', 'BANK_ACCOUNT', 'UPI_ID'}
-            SENSITIVE_PII = {'DOB', 'PHONE'}
-            MODERATE_PII = {'EMAIL', 'URL', 'UTILITY_ACCOUNT'}
-            LOW_PII = {'MASKED_PHONE', 'MASKED_EMAIL', 'MASKED_PAN'}
-            
-            # Weighted risk scoring (from risk_engine.py)
-            risk_score_weighted = 0
-            has_critical = False
-            
-            for p in pii_findings:
-                pii_type = p['type']
-                confidence = p.get('confidence', 1.0)
-                
-                if pii_type in CRITICAL_PII:
-                    has_critical = True
-                    risk_score_weighted += confidence * 8  # Critical = 8x weight
-                elif pii_type in SENSITIVE_PII:
-                    risk_score_weighted += confidence * 4  # Sensitive = 4x weight
-                elif pii_type in MODERATE_PII:
-                    risk_score_weighted += confidence * 3  # Moderate = 3x weight
-                elif pii_type in LOW_PII:
-                    risk_score_weighted += confidence * 1  # Low = 1x weight
-            
-            # Determine risk level based on weighted score
-            if has_critical:
-                risk_label = "HIGH"
-                ai_score = max(ai_score, 0.9)
-                verdict = "High-Risk PII Detected"
-                ai_msg = f"Document contains {len(pii_findings)} sensitive PII entities including critical identifiers (Aadhaar/PAN/Cards)."
-            elif risk_score_weighted >= 6:
-                risk_label = "MEDIUM"
-                ai_score = max(ai_score, 0.6)
-                verdict = "Medium-Risk PII Detected"
-                ai_msg = f"Document contains {len(pii_findings)} PII entities with moderate risk."
-            elif risk_score_weighted > 0:
-                risk_label = "LOW" if risk_label == "UNKNOWN" else risk_label
-                ai_score = max(ai_score, 0.3)
-            
-            final_result_structure["risk_score"] = round(ai_score, 3)
-            final_result_structure["verdict"] = verdict
-            final_result_structure["explanation"] = f"{ai_msg} {status_note}".strip()
-            final_result_structure["risk_label"] = risk_label
-            
-            # Generate privacy education tips
-            privacy_tips = []
-            pii_types = {p['type'] for p in pii_findings}
-            
-            if "UPI_ID" in pii_types:
-                privacy_tips.append("UPI IDs are linked to bank accounts. Never share them publicly.")
-            if "AADHAAR" in pii_types:
-                privacy_tips.append("Aadhaar numbers should NEVER be shared online or via messaging apps.")
-            if "PAN" in pii_types:
-                privacy_tips.append("PAN cards contain sensitive tax information. Share only with authorized entities.")
-            if "CREDIT_DEBIT_CARD" in pii_types or "CVV" in pii_types:
-                privacy_tips.append("Card details can lead to financial fraud. Never share CVV or full card numbers.")
-            if "BANK_ACCOUNT" in pii_types:
-                privacy_tips.append("Bank account numbers should be shared only through secure, encrypted channels.")
-            if any(t.startswith("MASKED_") for t in pii_types):
-                privacy_tips.append("Masked personal data detected. This is good privacy practice.")
-            if risk_label == "HIGH":
-                privacy_tips.append("⚠️ HIGH RISK: Please redact sensitive data before sharing this document.")
-            
-            if not privacy_tips:
-                privacy_tips.append("No major privacy risks detected.")
-            
-            final_result_structure["results"].append({
-                "type": "PII_DETECTION",
-                "found": pii_detected,
-                "entities": pii_findings,
-                "explanation": f"Found {len(pii_findings)} PII entities. Document scrubbed.",
-                "privacy_tips": privacy_tips,  # Add privacy education
-                "risk_score_weighted": round(risk_score_weighted, 2)
-            })
-            final_result_structure["detectors_executed"].append("pii_detection")
+        # ALWAYS add PII detection result (even if empty)
+        # Use values strictly from the module router
+        has_critical = risk_label == "HIGH"
+        
+        final_result_structure["results"].append({
+            "type": "PII_DETECTION",
+            "found": pii_detected,
+            "entities": pii_findings,
+            "explanation": f"Found {len(pii_findings)} PII entities." if pii_detected else "No PII entities detected.",
+            "privacy_tips": privacy_tips,
+            "risk_score_weighted": round(risk_score_weighted, 2),
+            "confidence_score": 0.9 if has_critical else (0.6 if risk_score_weighted >= 6 else 0.0),
+            "risk_label": risk_label
+        })
+        final_result_structure["detectors_executed"].append("pii_detection")
 
+        # Log PII detection results for debugging
+        logger.info(f"PII Detection Results: Found {len(pii_findings)} entities, Risk: {risk_label}")
+        
         return {
             "risk_score": final_result_structure["risk_score"],
             "verdict": final_result_structure["verdict"],
@@ -340,7 +344,8 @@ def detect_pdf_ai(text_input: str = "", metadata: Dict = None, image_bytes: byte
             "limitations": "File might be corrupted or unreadable.",
             "detectors_executed": final_result_structure["detectors_executed"],
             "results": final_result_structure["results"],
-            "risk_label": final_result_structure["risk_label"]
+            "risk_label": final_result_structure["risk_label"],
+            "file_metadata": final_result_structure["file_metadata"]
         }
 
     except Exception as e:

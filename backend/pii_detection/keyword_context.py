@@ -1,5 +1,5 @@
 SENSITIVE_KEYWORDS = {
-    "AADHAAR": ["aadhaar"],
+    "AADHAAR": ["aadhaar", "aadhar", "adhar", "uid", "unique id"],
     "VID": ["vid", "virtual id"],
     "DOB": ["dob", "date of birth", "birth", "born", "birthday", "age"],
     "EMAIL": ["email", "mail"],

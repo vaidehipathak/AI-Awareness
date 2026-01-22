@@ -1,8 +1,8 @@
-from pii_module.presidio_engine import detect_pii_presidio
-from pii_module.regex_patterns import regex_candidates
-from pii_module.keyword_context import keyword_score
-from pii_module.confidence_engine import compute_confidence
-from pii_module.aadhaar_validator import is_valid_aadhaar
+from .presidio_engine import detect_pii_presidio
+from .regex_patterns import regex_candidates
+from .keyword_context import keyword_score
+from .confidence_engine import compute_confidence
+from .aadhaar_validator import is_valid_aadhaar
 
 
 PII_PRIORITY = {
@@ -41,8 +41,20 @@ def detect_pii(text):
 
         # Validate Aadhaar checksum to prevent false positives
         if h["type"] == "AADHAAR":
-            if not is_valid_aadhaar(h["value"]):
-                continue  # Skip invalid Aadhaar numbers (e.g., transaction IDs)
+            # 1. Check strict mathematical validity
+            is_valid_checksum = is_valid_aadhaar(h["value"])
+            
+            # 2. Check context (e.g. "Father", "DOB", "Male/Female" nearby)
+            # We calculate this specifically for validation
+            ctx_bonus = keyword_score(text, "AADHAAR", h["start"], h["end"])
+            
+            # 3. Decision Logic:
+            # - Valid Checksum -> Keep
+            # - Invalid Checksum BUT High Context (>= 0.3) -> Keep (Assume OCR error or dummy card)
+            # - Invalid Checksum AND Low Context -> Discard (Likely random numbers)
+            
+            if not is_valid_checksum and ctx_bonus < 0.3:
+                continue  # Skip only if BOTH checksum is invalid AND context is missing
 
         # Skip bank account numbers that are part of UPI IDs
         if h["type"] == "BANK_ACCOUNT":
@@ -55,8 +67,8 @@ def detect_pii(text):
             continue
 
         conf = compute_confidence("regex", bonus)
-        if conf < 0.65:
-            continue
+        if conf < 0.65 and not (h["type"] == "AADHAAR" and ctx_bonus >= 0.3):
+             continue  # Allow Aadhaar through if context is high, even if confidence is borderline
 
 
         # Suppress overlaps

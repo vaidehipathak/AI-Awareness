@@ -1,6 +1,6 @@
 import os
-from pii_module.pdf_extractor import extract_text_from_pdf
-from pii_module.image_extractor import extract_text_from_image
+from pdf_extractor import extract_text_from_pdf
+from image_extractor import extract_text_from_image
 
 IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg"]
 

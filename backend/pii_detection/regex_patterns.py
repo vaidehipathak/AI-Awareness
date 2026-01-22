@@ -7,7 +7,7 @@ UPI_HANDLES = (
 
 REGEX_PATTERNS = {
     # Identity
-    "AADHAAR": r"\b\d{4}\s?\d{4}\s?\d{4}\b",
+    "AADHAAR": r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}\b",
     "VID": r"\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b",
     "PAN": r"\b[A-Z]{5}[0-9]{4}[A-Z]\b",
 

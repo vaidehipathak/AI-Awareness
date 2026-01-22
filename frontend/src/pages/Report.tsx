@@ -11,7 +11,7 @@ const ReportPage: React.FC = () => {
     const { theme } = useTheme();
     const darkMode = theme === 'dark';
 
-    const [activeTab, setActiveTab] = useState<'pii' | 'image' | 'video' | 'pdf'>('pii');
+    const [activeTab, setActiveTab] = useState<'smart_scan' | 'image' | 'video'>('smart_scan');
     const [file, setFile] = useState<File | null>(null);
     const [text, setText] = useState('');
     const [loading, setLoading] = useState(false);
@@ -34,11 +34,20 @@ const ReportPage: React.FC = () => {
         setDragActive(false);
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
             setFile(e.dataTransfer.files[0]);
+            setText(''); // Clear text if file is dropped
         }
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) setFile(e.target.files[0]);
+        if (e.target.files) {
+            setFile(e.target.files[0]);
+            setText(''); // Clear text if file is selected
+        }
+    };
+
+    const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setText(e.target.value);
+        if (e.target.value) setFile(null); // Clear file if text is typed
     };
 
     const analyze = async () => {
@@ -50,13 +59,17 @@ const ReportPage: React.FC = () => {
             // All file uploads go to /api/analyze/ - backend router handles file type detection
             const endpoint = 'http://localhost:8000/api/analyze/';
 
-            if (activeTab === 'pii') {
-                // Backend requires a file, so we convert text to a .txt file
-                if (!text.trim()) { alert('Please enter text to analyze'); setLoading(false); return; }
-
-                const blob = new Blob([text], { type: 'text/plain' });
-                formData.append('file', blob, 'pii_scan_input.txt');
-
+            if (activeTab === 'smart_scan') {
+                if (file) {
+                    formData.append('file', file);
+                } else if (text.trim()) {
+                    const blob = new Blob([text], { type: 'text/plain' });
+                    formData.append('file', blob, 'smart_scan_input.txt');
+                } else {
+                    alert('Please enter text OR select a file');
+                    setLoading(false);
+                    return;
+                }
             } else {
                 if (!file) { alert('Please select a file'); setLoading(false); return; }
                 formData.append('file', file);
@@ -179,10 +192,9 @@ const ReportPage: React.FC = () => {
                         transition={{ delay: 0.3 }}
                         className="flex flex-col md:flex-row gap-4 mb-12 p-2 bg-slate-200/50 dark:bg-white/5 backdrop-blur-md rounded-2xl"
                     >
-                        <TabButton id="pii" icon={Search} label="Text & PII Scan" />
+                        <TabButton id="smart_scan" icon={Shield} label="Smart Scan (Text & Doc)" />
                         <TabButton id="image" icon={ImageIcon} label="Deepfake Image" />
                         <TabButton id="video" icon={Video} label="Video Forensics" />
-                        <TabButton id="pdf" icon={FileText} label="Document Analysis" />
                     </motion.div>
 
                     <div className="grid lg:grid-cols-2 gap-12 items-start">
@@ -195,33 +207,88 @@ const ReportPage: React.FC = () => {
                         >
                             <div className="flex items-center gap-4 mb-8">
                                 <div className="w-12 h-12 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center shadow-lg">
-                                    {activeTab === 'pii' && <Search size={24} />}
+                                    {activeTab === 'smart_scan' && <Shield size={24} />}
                                     {activeTab === 'image' && <ImageIcon size={24} />}
                                     {activeTab === 'video' && <Video size={24} />}
-                                    {activeTab === 'pdf' && <FileText size={24} />}
                                 </div>
                                 <div>
                                     <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                                        {activeTab === 'pii' && 'Text Analysis'}
+                                        {activeTab === 'smart_scan' && 'Smart Analysis'}
                                         {activeTab === 'image' && 'Image Forensics'}
                                         {activeTab === 'video' && 'Video Forensics'}
-                                        {activeTab === 'pdf' && 'Document Scan'}
                                     </h2>
                                     <p className="text-slate-500 dark:text-slate-400 text-sm">Input data to begin scan</p>
                                 </div>
                             </div>
 
-                            {activeTab === 'pii' ? (
-                                <div className="space-y-6">
-                                    <div className="relative">
+                            {activeTab === 'smart_scan' ? (
+                                <div className="space-y-8">
+                                    {/* Text Input Block */}
+                                    <div className={`relative transition-all duration-300 ${file ? 'opacity-40 grayscale pointer-events-none' : 'opacity-100'}`}>
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Option 1: Paste Text</span>
+                                        </div>
                                         <textarea
                                             value={text}
-                                            onChange={(e) => setText(e.target.value)}
+                                            onChange={handleTextChange}
                                             placeholder="Paste text here to scan for sensitive information..."
-                                            className="w-full h-64 p-6 bg-slate-50 dark:bg-black/30 border-2 border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-0 resize-none transition-all text-lg font-medium"
+                                            className="w-full h-32 p-4 bg-slate-50 dark:bg-black/30 border-2 border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-0 resize-none transition-all text-base"
                                         />
-                                        <div className="absolute bottom-4 right-4 text-xs font-bold uppercase tracking-widest text-slate-400">
-                                            {text.length} Characters
+                                    </div>
+
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-px bg-slate-200 dark:bg-white/10 flex-1"></div>
+                                        <span className="text-slate-400 font-bold text-sm">OR</span>
+                                        <div className="h-px bg-slate-200 dark:bg-white/10 flex-1"></div>
+                                    </div>
+
+                                    {/* File Input Block */}
+                                    <div className={`transition-all duration-300 ${text ? 'opacity-40 grayscale pointer-events-none' : 'opacity-100'}`}>
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Option 2: Upload File</span>
+                                        </div>
+                                        <div
+                                            onDragEnter={handleDrag}
+                                            onDragLeave={handleDrag}
+                                            onDragOver={handleDrag}
+                                            onDrop={handleDrop}
+                                            className={`relative h-40 border-3 border-dashed rounded-3xl flex flex-col items-center justify-center text-center transition-all duration-300
+                                                ${dragActive
+                                                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/10'
+                                                    : file
+                                                        ? 'border-green-500 bg-green-50 dark:bg-green-900/10'
+                                                        : 'border-slate-300 dark:border-white/10 hover:border-indigo-400 bg-slate-50/50 dark:bg-white/5'
+                                                }`}
+                                        >
+                                            <input
+                                                type="file"
+                                                id="file-upload"
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                                onChange={handleFileChange}
+                                                accept=".pdf,.txt,.doc,.docx"
+                                            />
+
+                                            {file ? (
+                                                <div className="relative z-0">
+                                                    <div className="w-10 h-10 bg-green-500 text-white rounded-xl flex items-center justify-center mx-auto mb-2 shadow-lg shadow-green-500/30">
+                                                        <CheckCircle size={20} />
+                                                    </div>
+                                                    <p className="font-bold text-slate-900 dark:text-white">{file.name}</p>
+                                                    <p className="text-slate-500 dark:text-slate-400 text-xs">Ready for analysis</p>
+                                                </div>
+                                            ) : (
+                                                <div className="relative z-0 px-6">
+                                                    <div className="w-10 h-10 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                                        <Upload size={20} />
+                                                    </div>
+                                                    <p className="font-bold text-slate-900 dark:text-white text-sm mb-1">
+                                                        Click to Upload or Drag File
+                                                    </p>
+                                                    <p className="text-slate-500 dark:text-slate-400 text-xs">
+                                                        PDF, TXT, DOCX supported
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -268,7 +335,7 @@ const ReportPage: React.FC = () => {
                                                 Drag & Drop or Click to Upload
                                             </p>
                                             <p className="text-slate-500 dark:text-slate-400 text-sm max-w-xs mx-auto leading-relaxed">
-                                                Supports {activeTab === 'image' ? 'JPG, PNG, WEBP' : activeTab === 'video' ? 'MP4, MOV, AVI' : 'PDF documents'}
+                                                Supports {activeTab === 'image' ? 'JPG, PNG, WEBP' : 'MP4, MOV, AVI'}
                                             </p>
                                         </div>
                                     )}
@@ -278,9 +345,9 @@ const ReportPage: React.FC = () => {
                             <div className="mt-8">
                                 <button
                                     onClick={analyze}
-                                    disabled={loading || (activeTab === 'pii' ? !text : !file)}
+                                    disabled={loading || (activeTab === 'smart_scan' ? (!text && !file) : !file)}
                                     className={`w-full py-5 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 shadow-xl transition-all
-                                        ${loading || (activeTab === 'pii' ? !text : !file)
+                                        ${loading || (activeTab === 'smart_scan' ? (!text && !file) : !file)
                                             ? 'bg-slate-200 dark:bg-white/5 text-slate-400 cursor-not-allowed'
                                             : 'bg-indigo-600 hover:bg-indigo-700 text-white hover:scale-[1.02] hover:shadow-indigo-500/30'
                                         }`}
