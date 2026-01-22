@@ -79,84 +79,179 @@ class AwarenessTopicViewSet(ContentAuditViewSet):
 @permission_classes([permissions.AllowAny])
 def fetch_news(request):
     """
-    NewsAPI.ai (Event Registry) proxy endpoint with strict AI relevance filtering.
+    NewsAPI proxy endpoint with rate limiting (2 requests/day), caching, and filtering.
+    Fetches AI, cybersecurity, and cybercrime news from the last 15 days.
     """
-    # Use the new API Key provided by the user
-    # Ideally should be in settings/env, but hardcoding as per direct instructions for now or fallback
-    api_key = getattr(settings, 'NEWS_API_KEY', '9da7c3728fa940d3b50541c9cd5ca6c9')
+    from datetime import datetime, timedelta
+    from django.utils import timezone as tz
+    from .models import NewsAPIRequestLog, CachedNewsArticle
     
-    # Strong keywords for AI relevance
-    strong_keywords = [
-        "artificial intelligence", "machine learning", "deep learning", 
-        "generative ai", "large language model", "neural network",
-        "computer vision", "natural language processing", "ai research",
-        "ai ethics", "openai", "deepmind", "anthropic"
-    ]
+    # Check cache first (12-hour expiration)
+    cache_expiry = tz.now() - timedelta(hours=12)
+    cached_articles = CachedNewsArticle.objects.filter(cached_at__gte=cache_expiry)
     
-    if api_key:
-        try:
-            # NewsAPI.org Endpoint
-            url = "https://newsapi.org/v2/everything"
+    if cached_articles.exists():
+        # Return cached articles
+        articles_data = []
+        for article in cached_articles:
+            articles_data.append({
+                'title': article.title,
+                'author': article.author or 'Unknown Author',
+                'publishedAt': article.published_at.isoformat(),
+                'description': article.description or 'Click to read more.',
+                'url': article.url,
+                'urlToImage': article.url_to_image,
+                'source': {'name': article.source_name},
+                'content': article.content or ''
+            })
+        
+        if articles_data:
+            return Response(articles_data)
+    
+    # Check rate limit (max 2 requests per day)
+    today_start = tz.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_requests = NewsAPIRequestLog.objects.filter(requested_at__gte=today_start).count()
+    
+    if today_requests >= 2:
+        # Rate limit exceeded, return stale cache or database fallback
+        stale_cached = CachedNewsArticle.objects.all()[:50]
+        if stale_cached.exists():
+            articles_data = []
+            for article in stale_cached:
+                articles_data.append({
+                    'title': article.title,
+                    'author': article.author or 'Unknown Author',
+                    'publishedAt': article.published_at.isoformat(),
+                    'description': article.description or 'Click to read more.',
+                    'url': article.url,
+                    'urlToImage': article.url_to_image,
+                    'source': {'name': article.source_name},
+                    'content': article.content or ''
+                })
+            return Response(articles_data)
+        else:
+            # Fallback to database
+            return _get_database_fallback()
+    
+    # Fetch from NewsAPI
+    api_key = getattr(settings, 'NEWS_API_KEY', '')
+    
+    if not api_key:
+        return _get_database_fallback()
+    
+    try:
+        url = "https://newsapi.org/v2/everything"
+        
+        # Calculate date range (last 15 days)
+        from_date = (tz.now() - timedelta(days=15)).strftime('%Y-%m-%d')
+        
+        # Request parameters with focused keywords
+        params = {
+            "q": '("artificial intelligence" OR "AI" OR "machine learning" OR "cybersecurity" OR "cyber security" OR "cybercrime" OR "cyber crime" OR "cyber attack" OR "data breach")',
+            "language": "en",
+            "sortBy": "publishedAt",
+            "from": from_date,
+            "pageSize": 100,
+            "apiKey": api_key,
+        }
+        
+        response = requests.get(url, params=params, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            valid_articles = []
             
-            # Request Payload
-            params = {
-                "q": '("artificial intelligence" OR "cybersecurity" OR "cybercrime" OR "AI" OR "cyber attack")', # Expanded keywords
-                "language": "en",
-                "sortBy": "publishedAt",
-                "pageSize": 100,
-                "apiKey": api_key,
-            }
-            
-            response = requests.get(url, params=params, timeout=10)
-            
-            if response.status_code == 200:
-                data = response.json()
-                valid_articles = []
+            if 'articles' in data:
+                raw_articles = data['articles']
                 
-                # NewsAPI.org structure: data['articles'] is a list
-                if 'articles' in data:
-                    raw_articles = data['articles']
+                # Clear old cache
+                CachedNewsArticle.objects.all().delete()
+                
+                for article in raw_articles:
+                    title_text = (article.get('title') or '').lower()
                     
-                    for article in raw_articles:
-                        # 3. Data Mapping (NewsAPI.org -> Frontend Contract)
-                        # We trust the API query "artificial intelligence" is relevant enough.
-                        # Just filter out broken/removed content.
+                    # Filter out removed content
+                    if '[removed]' in title_text or article.get('title') == '[Removed]':
+                        continue
+                    
+                    source_name = 'AI News'
+                    if article.get('source') and article['source'].get('name'):
+                        source_name = article['source']['name']
+                    
+                    article_url = article.get('url')
+                    if not article_url:
+                        continue
+                    
+                    # Parse published date
+                    published_at = article.get('publishedAt')
+                    if published_at:
+                        try:
+                            published_dt = datetime.fromisoformat(published_at.replace('Z', '+00:00'))
+                        except:
+                            published_dt = tz.now()
+                    else:
+                        published_dt = tz.now()
+                    
+                    # Save to cache
+                    try:
+                        cached_article, created = CachedNewsArticle.objects.get_or_create(
+                            url=article_url,
+                            defaults={
+                                'title': article.get('title') or 'Untitled Article',
+                                'author': article.get('author'),
+                                'published_at': published_dt,
+                                'description': (article.get('description') or 'Click to read more.')[:500],
+                                'url_to_image': article.get('urlToImage'),
+                                'source_name': source_name,
+                                'content': (article.get('content') or '')[:500]
+                            }
+                        )
                         
-                        title_text = (article.get('title') or '').lower()
-                        
-                        # Filter out API-level removals
-                        if '[removed]' in title_text or article.get('title') == '[Removed]':
-                            continue
-
-                        source_name = 'AI News'
-                        if article.get('source') and article['source'].get('name'):
-                            source_name = article['source']['name']
-
                         sanitized_article = {
-                            'title': article.get('title') or 'Untitled AI Article',
-                            'author': article.get('author') or 'Unknown Author',
-                            'publishedAt': article.get('publishedAt') or timezone.now().isoformat(),
-                            'description': (article.get('description') or 'Click to read more.')[:250] + '...',
-                            'url': article.get('url'),
-                            'urlToImage': article.get('urlToImage'),
-                            'source': {'name': source_name},
-                            'content': (article.get('content') or '')[:200]
+                            'title': cached_article.title,
+                            'author': cached_article.author or 'Unknown Author',
+                            'publishedAt': cached_article.published_at.isoformat(),
+                            'description': cached_article.description,
+                            'url': cached_article.url,
+                            'urlToImage': cached_article.url_to_image,
+                            'source': {'name': cached_article.source_name},
+                            'content': cached_article.content
                         }
                         
-                        # MUST have a URL and not be generic junk
-                        if sanitized_article['url'] and 'yahoo' not in title_text: # Keeping yahoo filter if user disliked it, or remove? User wants providers.
-                             valid_articles.append(sanitized_article)
-                    
-                    # If we found valid articles, return them
-                    if valid_articles:
-                        return Response(valid_articles)
-                        
-        except Exception as e:
-            # 5. Log errors silent
-            print(f"NewsAPI.org ERROR: {e}")
-            # Fall through to database fallback
+                        valid_articles.append(sanitized_article)
+                    except Exception as e:
+                        print(f"Error caching article: {e}")
+                        continue
+                
+                # Log the API request
+                NewsAPIRequestLog.objects.create(
+                    success=True,
+                    articles_fetched=len(valid_articles)
+                )
+                
+                if valid_articles:
+                    return Response(valid_articles)
+        else:
+            # Log failed request
+            NewsAPIRequestLog.objects.create(
+                success=False,
+                articles_fetched=0
+            )
+            
+    except Exception as e:
+        print(f"NewsAPI.org ERROR: {e}")
+        # Log failed request
+        NewsAPIRequestLog.objects.create(
+            success=False,
+            articles_fetched=0
+        )
     
-    # Fallback to database articles if API fails or returns nothing
+    # Fallback to database or stale cache
+    return _get_database_fallback()
+
+
+def _get_database_fallback():
+    """Helper function to return database articles as fallback."""
     articles = Article.objects.filter(is_active=True, is_deleted=False).order_by('-published_at')
     serializer = ArticleSerializer(articles, many=True)
     
@@ -175,3 +270,4 @@ def fetch_news(request):
         })
     
     return Response(transformed)
+

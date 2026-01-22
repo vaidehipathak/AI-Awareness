@@ -37,53 +37,57 @@ const BlogPage: React.FC = () => {
 
   const fetchPosts = async () => {
     try {
-      const res = await axios.get('http://localhost:8000/api/content/blog/');
-      // Transform backend data to frontend model if needed, or use directly
-      // Assuming backend returns matching fields or we map them here:
-      const mappedPosts = res.data.map((p: any) => ({
-        id: p.id,
-        title: p.title,
-        excerpt: p.summary || p.content.substring(0, 100) + '...',
-        content: p.content,
-        author: p.author_name || 'AwareX Team',
-        date: new Date(p.created_at).toLocaleDateString(),
-        category: p.category || 'General',
-        readTime: `${Math.ceil(p.content.length / 1000)} min read`,
-        imageUrl: p.image_url || 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=2600&auto=format&fit=crop', // Fallback premium image
-        tags: p.tags || []
+      // Fetch from the NewsAPI endpoint
+      const res = await axios.get('http://localhost:8000/api/content/news/');
+
+      // Map NewsAPI response to BlogPost format
+      const mappedPosts = res.data.map((article: any) => ({
+        id: article.url, // Use URL as unique ID since NewsAPI doesn't provide IDs
+        title: article.title,
+        excerpt: article.description || 'Click to read more.',
+        content: article.content || article.description || 'Read the full article at the source.',
+        author: article.author || 'Unknown Author',
+        date: new Date(article.publishedAt).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        }),
+        category: article.source?.name || 'AI News',
+        readTime: '5 min read', // Default read time
+        imageUrl: article.urlToImage || 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=1000',
+        tags: ['AI', 'News', 'Technology']
       }));
+
       setPosts(mappedPosts);
     } catch (err) {
-      console.error("Failed to fetch blog posts", err);
-      // Fallback dummy data if backend fails/empty for demo
-      if (posts.length === 0) {
-        setPosts([
-          {
-            id: '1',
-            title: 'The Rise of Generative AI: Risks and Rewards',
-            excerpt: 'Exploring how large language models are reshaping the digital landscape and the safety challenges they present.',
-            content: 'Generative AI has taken the world by storm...',
-            author: 'Dr. Sarah Chen',
-            date: 'Oct 12, 2023',
-            category: 'AI Safety',
-            readTime: '5 min read',
-            imageUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=1000',
-            tags: ['LLMs', 'Future', 'Tech']
-          },
-          {
-            id: '2',
-            title: 'Spotting Deepfakes: A Visual Guide',
-            excerpt: 'Learn the subtle visual artifacts that giveaway synthetic media in videos and images.',
-            content: 'Deepfakes are becoming increasingly realistic...',
-            author: 'Marcus J. ',
-            date: 'Nov 05, 2023',
-            category: 'Deepfakes',
-            readTime: '8 min read',
-            imageUrl: 'https://images.unsplash.com/photo-1633419461186-7d40a2e50594?auto=format&fit=crop&q=80&w=1000',
-            tags: ['Security', 'Media', 'Guide']
-          }
-        ]);
-      }
+      console.error("Failed to fetch news articles", err);
+      // Fallback dummy data if backend fails
+      setPosts([
+        {
+          id: '1',
+          title: 'The Rise of Generative AI: Risks and Rewards',
+          excerpt: 'Exploring how large language models are reshaping the digital landscape and the safety challenges they present.',
+          content: 'Generative AI has taken the world by storm...',
+          author: 'Dr. Sarah Chen',
+          date: 'Oct 12, 2023',
+          category: 'AI Safety',
+          readTime: '5 min read',
+          imageUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=1000',
+          tags: ['LLMs', 'Future', 'Tech']
+        },
+        {
+          id: '2',
+          title: 'Spotting Deepfakes: A Visual Guide',
+          excerpt: 'Learn the subtle visual artifacts that giveaway synthetic media in videos and images.',
+          content: 'Deepfakes are becoming increasingly realistic...',
+          author: 'Marcus J. ',
+          date: 'Nov 05, 2023',
+          category: 'Deepfakes',
+          readTime: '8 min read',
+          imageUrl: 'https://images.unsplash.com/photo-1633419461186-7d40a2e50594?auto=format&fit=crop&q=80&w=1000',
+          tags: ['Security', 'Media', 'Guide']
+        }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -108,7 +112,7 @@ const BlogPage: React.FC = () => {
     >
       <div className="absolute inset-0">
         <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent opacity-90" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/90 to-slate-900/40" />
       </div>
       <div className="absolute bottom-0 left-0 p-10 md:p-16 max-w-4xl">
         <div className="flex items-center gap-4 text-white/80 mb-6 text-sm font-bold uppercase tracking-widest">
@@ -136,10 +140,6 @@ const BlogPage: React.FC = () => {
       className="bg-white dark:bg-white/5 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-[2rem] overflow-hidden shadow-lg hover:shadow-2xl transition-all cursor-pointer flex flex-col h-full group relative"
       onClick={() => setSelectedPost(post)}
     >
-      {/* Admin Controls Overlay */}
-      <div className="absolute top-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-        <AdminActionButtons item={post} contentType="articles" onUpdate={fetchPosts} />
-      </div>
 
       <div className="h-48 overflow-hidden relative">
         <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
@@ -196,7 +196,7 @@ const BlogPage: React.FC = () => {
           </button>
           <div className="relative h-[400px]">
             <img src={selectedPost.imageUrl} alt={selectedPost.title} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent opacity-90" />
+            <div className="absolute inset-0 bg-slate-900/95" />
             <div className="absolute bottom-0 left-0 p-10 md:p-12 w-full">
               <div className="flex items-center gap-3 mb-6">
                 <span className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-bold uppercase tracking-widest">{selectedPost.category}</span>
@@ -228,6 +228,18 @@ const BlogPage: React.FC = () => {
               {selectedPost.content.split('\n').map((para, i) => (
                 <p key={i}>{para}</p>
               ))}
+            </div>
+
+            {/* Link to original article */}
+            <div className="mt-8">
+              <a
+                href={selectedPost.id}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg hover:shadow-indigo-500/30"
+              >
+                Read Full Article at Source <ArrowRight size={18} />
+              </a>
             </div>
 
             <div className="mt-12 pt-12 border-t border-slate-200 dark:border-white/10">
@@ -298,41 +310,9 @@ const BlogPage: React.FC = () => {
 
         <AdminToolbar />
 
-        {/* Filters */}
-        <div className="flex flex-wrap items-center justify-center gap-4 mb-4">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${selectedCategory === cat
-                ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg'
-                : 'bg-white dark:bg-white/5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10'
-                }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-
-        <div className="max-w-md mx-auto mb-20 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-          <input
-            type="text"
-            placeholder="Search articles..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium text-slate-900 dark:text-white placeholder-slate-400"
-          />
-        </div>
-
-        {/* Featured Post (First one) */}
-        {filteredPosts.length > 0 && !searchQuery && selectedCategory === 'All' && (
-          <FeaturedPost post={filteredPosts[0]} />
-        )}
-
-        {/* Grid */}
+        {/* Grid - Show all articles */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredPosts.slice(!searchQuery && selectedCategory === 'All' ? 1 : 0).map(post => (
+          {filteredPosts.map(post => (
             <PostCard key={post.id} post={post} />
           ))}
         </div>

@@ -94,3 +94,41 @@ class AwarenessTopic(ContentBase):
     # Stores the learning modules
     # Structure: [{info: {title, summary, points}, quiz: {question, options, correctIndex, explanation}}]
     modules = models.JSONField(default=list, help_text=_("List of learning modules."))
+
+
+class NewsAPIRequestLog(models.Model):
+    """
+    Tracks NewsAPI requests for rate limiting (max 2 per day).
+    """
+    requested_at = models.DateTimeField(auto_now_add=True)
+    success = models.BooleanField(default=True)
+    articles_fetched = models.IntegerField(default=0)
+    
+    class Meta:
+        ordering = ['-requested_at']
+    
+    def __str__(self):
+        return f"NewsAPI Request at {self.requested_at}"
+
+
+class CachedNewsArticle(models.Model):
+    """
+    Stores cached news articles from NewsAPI to reduce API calls.
+    """
+    title = models.CharField(max_length=500)
+    author = models.CharField(max_length=255, blank=True, null=True)
+    published_at = models.DateTimeField()
+    description = models.TextField(blank=True, null=True)
+    url = models.URLField(unique=True)
+    url_to_image = models.URLField(blank=True, null=True)
+    source_name = models.CharField(max_length=255)
+    content = models.TextField(blank=True, null=True)
+    
+    cached_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-published_at']
+    
+    def __str__(self):
+        return self.title
+
