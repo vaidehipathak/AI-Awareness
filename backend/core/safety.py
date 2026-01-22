@@ -143,18 +143,20 @@ def generate_safe_reply(user_text: str) -> str:
                 ]
                 return lmstudio_chat(messages, temperature=0.7, max_tokens=512)
             except requests.exceptions.ConnectionError:
-                logger.error("LM Studio connection lost during assistant call")
+                logger.error("Groq API connection lost during assistant call")
                 return (
-                    "I encountered a connection issue with the AI model. "
-                    "Please ensure LM Studio is running on http://localhost:1234 "
-                    "with the Gemma 3 4B model loaded."
+                    "I encountered a connection issue with the AI service (Groq). "
+                    "Please check your internet connection."
                 )
             except requests.exceptions.Timeout:
-                logger.error("LM Studio timeout during assistant call")
+                logger.error("Groq API timeout during assistant call")
                 return (
                     "The AI model is taking too long to respond. "
-                    "Please try again in a moment. The model may be processing a heavy load."
+                    "The service might be busy."
                 )
+            except ValueError as e:
+                logger.error(f"Groq API Configuration Error: {e}")
+                return "System Error: Invalid AI Configuration. Please check server logs."
             except Exception as e:
                 logger.error(f"Assistant call failed: {e}")
                 return (
