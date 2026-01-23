@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'accounts',
     'analysis',
     'content',
+    'scanner',  # Vulnerability scanner integration
 ]
 
 MIDDLEWARE = [

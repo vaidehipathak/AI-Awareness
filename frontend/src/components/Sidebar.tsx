@@ -13,6 +13,7 @@ import {
     LogOut,
     ChevronLeft,
     ChevronRight,
+    Shield,
 } from 'lucide-react';
 
 interface NavItem {
@@ -38,6 +39,7 @@ const Sidebar: React.FC = () => {
         { to: '/quiz', label: 'Manage Quiz', icon: Brain },
         { to: '/blog', label: 'Manage Blog', icon: Newspaper },
         { to: '/awareness-hub', label: 'Manage AwarenessHub', icon: Lightbulb },
+        { to: '/security-scanner', label: 'Security Scanner', icon: Shield },
         { to: '/report', label: 'Reports', icon: FileText },
     ];
 
@@ -48,6 +50,7 @@ const Sidebar: React.FC = () => {
         { to: '/games', label: 'Games', icon: Gamepad2 },
         { to: '/quiz', label: 'Quiz', icon: Brain },
         { to: '/blog', label: 'Blog', icon: Newspaper },
+        { to: '/security-scanner', label: 'Security Scanner', icon: Shield },
         { to: '/report', label: 'Report', icon: FileText },
     ];
 

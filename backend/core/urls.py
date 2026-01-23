@@ -40,4 +40,5 @@ urlpatterns = [
     
     path('auth/', include('accounts.urls')),
     path('api/content/', include('content.urls')),
+    path('api/scanner/', include('scanner.urls')),  # Vulnerability scanner endpoints
 ]
