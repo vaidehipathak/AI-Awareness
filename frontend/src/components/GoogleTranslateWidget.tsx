@@ -60,34 +60,8 @@ const GoogleTranslateWidget = () => {
             top: 0 !important;
           }
 
-          /* Container style */
-          .translate-container {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: #233554; /* same tone as mail icon */
-            border-radius: 6px;
-            border: 1px solid #64FFDA;
-            padding: 6px 12px;
-            height: 32px;
-            /* overflow: hidden; Removed to ensure dropdown isn't clipped */
-            cursor: pointer;
-            transition: background 0.2s ease;
-            margin-left: 10px; /* add spacing after mail icon */
-          }
-
-          .translate-container:hover {
-            background: #112240;
-          }
-
-          .google-logo {
-            width: 18px;
-            height: 18px;
-            flex-shrink: 0;
-            margin-right: 4px;
-            color: #64FFDA;
-          }
-
+          /* Container style - moved to Tailwind classes */
+          
           /* Core Google element - Overlay Mode */
           #google_translate_element {
             position: absolute !important;
@@ -127,9 +101,9 @@ const GoogleTranslateWidget = () => {
         `}</style>
       </Helmet>
 
-      <div className="translate-container relative group">
-        <Languages className="google-logo z-10" />
-        <span className="text-sm font-medium text-gray-200 group-hover:text-[#64FFDA] transition-colors relative z-10">Language</span>
+      <div className="relative group inline-flex items-center gap-1.5 ml-2.5 px-3 py-1.5 h-8 rounded-md border border-gray-300 dark:border-[#64FFDA] bg-transparent hover:bg-gray-100 dark:hover:bg-[#112240] transition-colors duration-200 cursor-pointer">
+        <Languages className="w-4 h-4 shrink-0 mr-1 text-gray-600 dark:text-[#64FFDA]" />
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-indigo-600 dark:group-hover:text-[#64FFDA] transition-colors relative z-10">Language</span>
         <div id="google_translate_element"></div>
       </div>
     </>

@@ -23,12 +23,12 @@ import OtpVerify from './pages/OtpVerify';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Signup from './pages/Signup';
-import LanguageSwitcher from './components/LanguageSwitcher';
+
 
 const App: React.FC = () => {
   return (
     <I18nextProvider i18n={i18n}>
-      <LanguageSwitcher />
+
       <ThemeProvider attribute="class">
         <AuthProvider>
           <HashRouter>
@@ -38,7 +38,7 @@ const App: React.FC = () => {
                 <Route path="/" element={<Home />} />
                 <Route path="/awareness-hub" element={<AwarenessHub />} />
                 <Route path="/blog" element={<Blog />} />
-                <Route path="/security-scanner" element={<SecurityScanner />} />
+                <Route path="/blog" element={<Blog />} />
               </Route>
 
               {/* Public Routes */}
@@ -64,6 +64,7 @@ const App: React.FC = () => {
                 <Route path="/quiz" element={<Quiz />} />
                 <Route path="/games" element={<Games />} />
                 <Route path="/report" element={<Report />} />
+                <Route path="/security-scanner" element={<SecurityScanner />} />
               </Route>
 
               {/* Admin Routes */}

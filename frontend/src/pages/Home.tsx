@@ -29,23 +29,36 @@ import {
   Play
 } from 'lucide-react';
 
+import AuthGateModal from '../components/AuthGateModal';
+
 const Home: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [demoTab, setDemoTab] = useState<'IMAGE' | 'PII' | 'PDF'>('IMAGE');
   const [scanning, setScanning] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [triggeredFeature, setTriggeredFeature] = useState<string>('');
 
   // Parallax & Scroll Effects
   const { scrollYProgress } = useScroll();
   const heroY = useTransform(scrollYProgress, [0, 0.2], [0, -50]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
 
+  const handleProtectedAction = (action: () => void, featureName: string) => {
+    if (isAuthenticated) {
+      action();
+    } else {
+      setTriggeredFeature(featureName);
+      setShowAuthModal(true);
+    }
+  };
+
   const runDemoScan = () => {
     setScanning(true);
     setTimeout(() => {
       setScanning(false);
-      navigate('/report');
+      handleProtectedAction(() => navigate('/report'), 'Advanced Scanning');
     }, 1500);
   };
 
@@ -146,7 +159,7 @@ const Home: React.FC = () => {
             </button>
 
             <button
-              onClick={() => navigate('/games')}
+              onClick={() => handleProtectedAction(() => navigate('/games'), 'Games')}
               className="px-8 py-4 bg-white/50 dark:bg-white/5 text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-full font-bold backdrop-blur-md hover:bg-white dark:hover:bg-white/10 transition-all flex items-center gap-3"
             >
               <Play size={18} fill="currentColor" /> Play Awareness Games
@@ -213,7 +226,13 @@ const Home: React.FC = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                onClick={() => navigate(item.title === 'Misinfo Ed.' ? '/awareness-hub' : '/report')}
+                onClick={() => {
+                  if (item.title === 'Misinfo Ed.') {
+                    navigate('/awareness-hub');
+                  } else {
+                    handleProtectedAction(() => navigate('/report'), item.title);
+                  }
+                }}
                 className={`group relative p-6 h-64 rounded-3xl bg-white dark:bg-gray-900/40 border border-slate-100 dark:border-white/5 backdrop-blur-md transition-all duration-300 shadow-xl cursor-pointer overflow-hidden flex flex-col justify-between ${item.border} ${item.shadow}`}
               >
                 {/* Hover Gradient Background */}
@@ -448,7 +467,10 @@ const Home: React.FC = () => {
                 <h3 className="text-2xl font-bold mb-2">{role.title}</h3>
                 <p className="text-slate-400 mb-8 h-12">{role.desc}</p>
                 <button
-                  onClick={() => navigate(role.title === "Admins" ? '/login' : '/awareness-hub')}
+                  onClick={() => handleProtectedAction(
+                    () => navigate(role.title === "Admins" ? '/login' : '/awareness-hub'),
+                    role.title
+                  )}
                   className="w-full py-4 rounded-xl bg-indigo-600 font-bold hover:bg-indigo-500 transition-colors"
                 >
                   {role.action}
@@ -517,9 +539,15 @@ const Home: React.FC = () => {
         </div>
       </footer>
 
+      <AuthGateModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        featureName={triggeredFeature}
+      />
     </div>
   );
 };
+
 
 // Icon helper
 const FileCheckIcon = () => (

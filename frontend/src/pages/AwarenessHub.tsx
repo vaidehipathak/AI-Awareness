@@ -1417,7 +1417,8 @@ const AwarenessHub: React.FC = () => {
                 const isCompleted = completedTopicIds.includes(topic.id);
                 // Find global index to determine lock status
                 const globalIndex = topics.findIndex(t => t.id === topic.id);
-                const isLocked = globalIndex > 0 && !completedTopicIds.includes(topics[globalIndex - 1].id);
+                // const isLocked = globalIndex > 0 && !completedTopicIds.includes(topics[globalIndex - 1].id);
+                const isLocked = false; // Unlocked by default as requested
 
                 return (
                   <motion.div
