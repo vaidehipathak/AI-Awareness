@@ -29,36 +29,23 @@ import {
   Play
 } from 'lucide-react';
 
-import AuthGateModal from '../components/AuthGateModal';
-
 const Home: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [demoTab, setDemoTab] = useState<'IMAGE' | 'PII' | 'PDF'>('IMAGE');
   const [scanning, setScanning] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [triggeredFeature, setTriggeredFeature] = useState<string>('');
 
   // Parallax & Scroll Effects
   const { scrollYProgress } = useScroll();
   const heroY = useTransform(scrollYProgress, [0, 0.2], [0, -50]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
 
-  const handleProtectedAction = (action: () => void, featureName: string) => {
-    if (isAuthenticated) {
-      action();
-    } else {
-      setTriggeredFeature(featureName);
-      setShowAuthModal(true);
-    }
-  };
-
   const runDemoScan = () => {
     setScanning(true);
     setTimeout(() => {
       setScanning(false);
-      handleProtectedAction(() => navigate('/report'), 'Advanced Scanning');
+      navigate('/report');
     }, 1500);
   };
 
@@ -66,26 +53,50 @@ const Home: React.FC = () => {
     {
       name: "Elements of AI",
       url: "https://www.elementsofai.com/",
+      domain: "elementsofai.com",
+      customLogo: "/elements-of-ai.png",
+      desc: "Free online course by Reaktor & University of Helsinki.",
+      color: "from-zinc-900 to-zinc-700" // Minimalist Black/White theme
     },
     {
-      name: "Ethics of AI (University of Helsinki)",
+      name: "Ethics of AI",
       url: "https://ethics-of-ai.mooc.fi/",
+      domain: "mooc.fi",
+      customLogo: "/ethics-of-ai.png",
+      desc: "In-depth look at ethical questions in AI.",
+      color: "from-blue-900 to-slate-800" // Academic Blue
     },
     {
-      name: "IBM SkillsBuild – Artificial Intelligence",
+      name: "IBM SkillsBuild",
       url: "https://skillsbuild.org/students/course-catalog/artificial-intelligence",
+      domain: "skillsbuild.org",
+      customLogo: "/ibm.png",
+      desc: "Foundational AI skills for students.",
+      color: "from-[#05216d] to-[#0f62fe]" // IBM Blue
     },
     {
-      name: "Great Learning – Free AI Courses",
+      name: "Great Learning",
       url: "https://www.mygreatlearning.com/ai/free-courses",
+      domain: "mygreatlearning.com",
+      customLogo: "/great-learning.png",
+      desc: "Top-rated free AI post-graduate courses.",
+      color: "from-[#085dad] to-[#2d87e2]" // Brand Blue
     },
     {
-      name: "Alison – AI Governance & Ethics",
+      name: "Alison",
       url: "https://alison.com/course/ai-governance-and-ethics",
+      domain: "alison.com",
+      customLogo: "/alison.png",
+      desc: "Governance, ethics, and compliance training.",
+      color: "from-[#009b7d] to-[#83b93a]" // Alison Green
     },
     {
-      name: "AI For All (AI-For-All.in)",
+      name: "AI For All",
       url: "https://ai-for-all.in/#/home",
+      domain: "india.gov.in",
+      customLogo: "/digital-india.png", // User provided logo
+      desc: "India's National Program for AI awareness.",
+      color: "from-orange-600 to-green-600 bg-gradient-to-r"
     },
   ];
 
@@ -126,10 +137,10 @@ const Home: React.FC = () => {
             className="text-6xl md:text-8xl font-black text-slate-900 dark:text-white mb-8 tracking-tighter leading-[0.9]"
           >
             Understand AI <br />
-            <span className="relative">
+            <span className="relative inline-block">
               <span className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 blur-2xl opacity-30" />
-              <span className="relative text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
-                Before It Hacks You.
+              <span className="relative text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 py-2 pr-6">
+                Before AI Understands You.
               </span>
             </span>
           </motion.h1>
@@ -159,7 +170,7 @@ const Home: React.FC = () => {
             </button>
 
             <button
-              onClick={() => handleProtectedAction(() => navigate('/games'), 'Games')}
+              onClick={() => navigate('/games')}
               className="px-8 py-4 bg-white/50 dark:bg-white/5 text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-full font-bold backdrop-blur-md hover:bg-white dark:hover:bg-white/10 transition-all flex items-center gap-3"
             >
               <Play size={18} fill="currentColor" /> Play Awareness Games
@@ -226,13 +237,7 @@ const Home: React.FC = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                onClick={() => {
-                  if (item.title === 'Misinfo Ed.') {
-                    navigate('/awareness-hub');
-                  } else {
-                    handleProtectedAction(() => navigate('/report'), item.title);
-                  }
-                }}
+                onClick={() => navigate(item.title === 'Misinfo Ed.' ? '/awareness-hub' : '/report')}
                 className={`group relative p-6 h-64 rounded-3xl bg-white dark:bg-gray-900/40 border border-slate-100 dark:border-white/5 backdrop-blur-md transition-all duration-300 shadow-xl cursor-pointer overflow-hidden flex flex-col justify-between ${item.border} ${item.shadow}`}
               >
                 {/* Hover Gradient Background */}
@@ -467,10 +472,7 @@ const Home: React.FC = () => {
                 <h3 className="text-2xl font-bold mb-2">{role.title}</h3>
                 <p className="text-slate-400 mb-8 h-12">{role.desc}</p>
                 <button
-                  onClick={() => handleProtectedAction(
-                    () => navigate(role.title === "Admins" ? '/login' : '/awareness-hub'),
-                    role.title
-                  )}
+                  onClick={() => navigate(role.title === "Admins" ? '/login' : '/awareness-hub')}
                   className="w-full py-4 rounded-xl bg-indigo-600 font-bold hover:bg-indigo-500 transition-colors"
                 >
                   {role.action}
@@ -482,43 +484,57 @@ const Home: React.FC = () => {
       </section>
 
       {/* --- 7. GOVT & TRUST --- */}
-      <section className="py-24 text-center">
-        <p className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-12">
-          Trusted Learning Platforms for AI Awareness
-        </p>
+      <section className="py-24 px-4 bg-white dark:bg-black/20 relative z-10">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <span className="text-sm font-bold text-indigo-500 uppercase tracking-widest">Global Resources</span>
+            <h2 className="text-3xl md:text-5xl font-black mt-4 text-slate-900 dark:text-white">Trusted Learning Platforms</h2>
+          </div>
 
-        <div
-          className="
-      grid grid-cols-1
-      sm:grid-cols-2
-      md:grid-cols-3
-      gap-10
-      max-w-5xl
-      mx-auto
-    "
-        >
-          {trustedPlatforms.map((platform, i) => (
-            <a
-              key={i}
-              href={platform.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="
-          group
-          flex items-center justify-center gap-2
-          text-lg font-extrabold
-          text-slate-700 dark:text-slate-200
-          hover:text-indigo-500 dark:hover:text-indigo-400
-          transition-colors duration-300
-        "
-            >
-              <span>{platform.name}</span>
-              <ExternalLink
-                size={18}
-                className="opacity-70 group-hover:opacity-100 transition-opacity"
-              />
-            </a>
-          ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {trustedPlatforms.map((platform, i) => (
+              <a
+                key={i}
+                href={platform.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative h-56 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-black/5 dark:border-white/5"
+              >
+                {/* Background Gradient */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${platform.color} transition-opacity duration-300`} />
+
+                {/* Watermark Logo (Background) */}
+                {/* Watermark Logo (Background) */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-30 group-hover:opacity-50 transition-all duration-500 pointer-events-none grayscale group-hover:grayscale-0 mix-blend-overlay z-0">
+                  <img
+                    src={(platform as any).customLogo || `https://logo.clearbit.com/${platform.domain}`}
+                    alt=""
+                    className="w-40 h-40 object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                </div>
+
+                {/* Content */}
+                <div className="absolute inset-0 p-8 flex flex-col justify-between text-white z-10">
+                  <div className="relative">
+                    <h3 className="text-2xl font-bold mb-2 leading-tight drop-shadow-md">{platform.name}</h3>
+                    <p className="text-white/90 font-medium text-sm line-clamp-2 drop-shadow-sm">{platform.desc}</p>
+                  </div>
+
+                  <div className="flex justify-between items-center mt-6">
+                    <span className="text-xs font-bold uppercase tracking-wider bg-white/20 px-4 py-2 rounded-full backdrop-blur-md group-hover:bg-white group-hover:text-slate-900 transition-colors">
+                      Visit Site
+                    </span>
+                    <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md group-hover:scale-110 transition-transform">
+                      <ExternalLink size={20} className="text-white" />
+                    </div>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -539,15 +555,9 @@ const Home: React.FC = () => {
         </div>
       </footer>
 
-      <AuthGateModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        featureName={triggeredFeature}
-      />
     </div>
   );
 };
-
 
 // Icon helper
 const FileCheckIcon = () => (
