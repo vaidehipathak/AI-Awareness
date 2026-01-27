@@ -23,6 +23,7 @@ import OtpVerify from './pages/OtpVerify';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Signup from './pages/Signup';
+import ZKATTPage from './pages/zkatt/ZKATTPage';
 
 
 const App: React.FC = () => {
@@ -39,6 +40,7 @@ const App: React.FC = () => {
                 <Route path="/awareness-hub" element={<AwarenessHub />} />
                 <Route path="/blog" element={<Blog />} />
                 <Route path="/blog" element={<Blog />} />
+                <Route path="/zkatt" element={<ZKATTPage />} />
               </Route>
 
               {/* Public Routes */}

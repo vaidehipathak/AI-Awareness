@@ -1,0 +1,22 @@
+[
+    {
+        "input": "I need a fake hospital bill for a broken leg surgery.",
+        "output": "{\n  \"document_domain\": \"medical\",\n  \"pii_density\": \"high\",\n  \"content_modalities\": [\"text\", \"table\"],\n  \"risk_indicators\": [\"financial_fraud\", \"insurance_claim\"],\n  \"generation_constraints\": [\"must be synthetic\", \"realistic pricing\"]\n}"
+    },
+    {
+        "input": "Generate a bank statement from Chase showing a salary deposit.",
+        "output": "{\n  \"document_domain\": \"financial\",\n  \"pii_density\": \"high\",\n  \"content_modalities\": [\"text\", \"table\"],\n  \"risk_indicators\": [\"identity_theft\", \"loan_application\"],\n  \"generation_constraints\": [\"must be synthetic\", \"Chase branding\"]\n}"
+    },
+    {
+        "input": "A generic university transcript with good grades.",
+        "output": "{\n  \"document_domain\": \"educational\",\n  \"pii_density\": \"medium\",\n  \"content_modalities\": [\"text\", \"table\"],\n  \"risk_indicators\": [\"credential_fraud\"],\n  \"generation_constraints\": [\"must be synthetic\", \"university layout\"]\n}"
+    },
+    {
+        "input": "Create a fake driver's license for California.",
+        "output": "{\n  \"document_domain\": \"identity\",\n  \"pii_density\": \"high\",\n  \"content_modalities\": [\"text\", \"image\", \"signature\"],\n  \"risk_indicators\": [\"identity_theft\", \"age_verification_bypass\"],\n  \"generation_constraints\": [\"must be synthetic\", \"California template\"]\n}"
+    },
+    {
+        "input": "I want a utility bill to use as proof of address.",
+        "output": "{\n  \"document_domain\": \"utility\",\n  \"pii_density\": \"medium\",\n  \"content_modalities\": [\"text\", \"table\"],\n  \"risk_indicators\": [\"kyc_bypass\"],\n  \"generation_constraints\": [\"must be synthetic\", \"recent date\"]\n}"
+    }
+]

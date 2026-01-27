@@ -1,0 +1,17 @@
+{
+  "model_name": "mistral",
+  "base_model": "mistral:7b-instruct-v0.1-q4_K_M",
+  "finetuning_method": "LoRA",
+  "lora_rank": 16,
+  "lora_alpha": 32,
+  "lora_dropout": 0.05,
+  "training_epochs": 3,
+  "training_samples": 10,
+  "training_date": "2026-01-27T20:30:48.474406",
+  "training_dataset": "security_vulnerability_analysis",
+  "target_modules": [
+    "q_proj",
+    "v_proj",
+    "k_proj"
+  ]
+}

@@ -125,7 +125,7 @@ const Navbar: React.FC = () => {
             <div className="ml-4 flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <ThemeToggle />
-                <GoogleTranslateWidget />
+                <GoogleTranslateWidget elementId="google_translate_element_desktop" />
               </div>
               {isAuthenticated && (
                 <>
@@ -158,7 +158,7 @@ const Navbar: React.FC = () => {
             <div className="flex items-center gap-2">
 
               <ThemeToggle />
-              <GoogleTranslateWidget />
+              <GoogleTranslateWidget elementId="google_translate_element_mobile" />
 
             </div>
             <button onClick={toggleMenu} aria-label="Toggle menu">

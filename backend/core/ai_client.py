@@ -1,6 +1,6 @@
 """
-Groq API client helper for OpenAI-compatible API calls.
-Switching from local LM Studio to Groq for better performance and reasoning.
+Ollama API client helper.
+Replaces Groq with local 'fine-tuned' Mistral model via Ollama.
 """
 import os
 import requests
@@ -13,65 +13,51 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 # Configuration constants
-GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-# Using Llama 3.3 70B for high intelligence and strict adherence to safety rules
-MODEL_NAME = "llama-3.3-70b-versatile" 
-
-def get_groq_api_key():
-    return os.getenv("GROQ_API_KEY")
+OLLAMA_API_URL = "http://localhost:11434/api/chat"
+# Using our custom "fine-tuned" model created via Modelfile
+MODEL_NAME = "ai-awareness-core"
 
 def lmstudio_chat(
     messages: List[Dict[str, str]], 
-    temperature: float = 0.7, 
+    temperature: float = 0.3, 
     max_tokens: int = 800
 ) -> str:
     """
-    Call Groq's chat completions endpoint.
-    Function kept as 'lmstudio_chat' for backward compatibility with safety.py,
-    but internally calls Groq.
+    Call local Ollama chat completions endpoint.
     """
-    api_key = get_groq_api_key()
-    if not api_key:
-        logger.error("GROQ_API_KEY not found in .env")
-        raise ValueError("Missing Groq API Key. Please add GROQ_API_KEY to backend/.env")
-
     payload = {
         "model": MODEL_NAME,
         "messages": messages,
         "temperature": temperature,
-        "max_tokens": max_tokens,
-        "stream": False
-    }
-    
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
+        "stream": False,
+        "options": {
+            "num_predict": max_tokens
+        }
     }
     
     try:
-        logger.debug(f"Calling Groq API with {len(messages)} messages")
-        response = requests.post(GROQ_API_URL, json=payload, headers=headers, timeout=10) 
+        logger.debug(f"Calling Ollama API ({MODEL_NAME}) with {len(messages)} messages")
+        response = requests.post(OLLAMA_API_URL, json=payload, timeout=60) 
         response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        if e.response.status_code == 401:
-            logger.error("Invalid Groq API Key")
-            raise ValueError("Invalid Groq API Key. Please check your credentials.")
-        logger.error(f"Groq API Error: {e}")
-        raise
     except requests.exceptions.ConnectionError:
-        raise requests.exceptions.ConnectionError(
-            "Cannot connect to Groq API. Please check your internet connection."
+        error_msg = (
+            "Cannot connect to Ollama at localhost:11434. "
+            "Please ensure Ollama is running and the model is created "
+            "(run 'ollama create ai-awareness-core -f backend/Modelfile')."
         )
-    except requests.exceptions.Timeout:
-        raise requests.exceptions.Timeout(
-            "Groq API request timed out."
-        )
+        logger.error(error_msg)
+        raise requests.exceptions.ConnectionError(error_msg)
     except Exception as e:
-        logger.error(f"Unexpected error: {e}")
+        logger.error(f"Ollama API Error: {e}")
         raise
     
     try:
         data = response.json()
-        return data["choices"][0]["message"]["content"].strip()
-    except (KeyError, IndexError) as e:
-        raise ValueError(f"Unexpected response format from Groq: {e}")
+        # Ollama response format for /api/chat
+        if "message" in data:
+            return data["message"]["content"].strip()
+        # Fallback or error check
+        raise ValueError(f"Unexpected response format: {data}")
+    except (KeyError, IndexError, ValueError) as e:
+        logger.error(f"Parsing error: {e}")
+        raise ValueError(f"Failed to parse Ollama response: {e}")

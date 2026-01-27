@@ -1,0 +1,31 @@
+{
+  "version": "1.0",
+  "model_name": "ai-awareness-core-finetuned",
+  "base_model": "mistral",
+  "finetuning_applied": true,
+  "lora_adapter_path": "backend/lora_adapter",
+  "training_metadata": {
+    "model_name": "mistral",
+    "base_model": "mistral:7b-instruct-v0.1-q4_K_M",
+    "finetuning_method": "LoRA",
+    "lora_rank": 16,
+    "lora_alpha": 32,
+    "lora_dropout": 0.05,
+    "training_epochs": 3,
+    "training_samples": 10,
+    "training_date": "2026-01-27T20:30:48.474406",
+    "training_dataset": "security_vulnerability_analysis",
+    "target_modules": [
+      "q_proj",
+      "v_proj",
+      "k_proj"
+    ]
+  },
+  "capabilities": [
+    "Security vulnerability detection",
+    "PII identification and masking",
+    "Prompt injection detection",
+    "Code analysis for security flaws",
+    "Malware pattern recognition"
+  ]
+}

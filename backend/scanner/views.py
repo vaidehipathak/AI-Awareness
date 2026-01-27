@@ -88,15 +88,18 @@ def get_scan_status(request, scan_id):
 def get_scan_history(request):
     """Get user's scan history"""
     # If authenticated, show user's scans; otherwise show recent public scans
+    # Only show scans for authenticated users
     if request.user.is_authenticated:
         scans = SecurityScan.objects.filter(user=request.user)[:20]
     else:
-        scans = SecurityScan.objects.filter(user=None)[:20]
+        # Do NOT show shared scans. Return empty list if not logged in.
+        scans = SecurityScan.objects.none()
     
     scan_list = [{
         'scan_id': str(scan.scan_id),
         'target_url': scan.target_url,
         'status': scan.status,
+        'results': scan.results,
         'vulnerability_count': scan.vulnerability_count,
         'risk_score': scan.risk_score,
         'created_at': scan.created_at,

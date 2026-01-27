@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Shield, AlertTriangle, CheckCircle, Loader, Clock, Target, Search, History, ExternalLink, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import ScannerResults from '../components/ScannerResults';
 
 interface ScanResult {
     scan_id: string;
@@ -17,7 +18,7 @@ interface ScanResult {
 }
 
 const SecurityScanner: React.FC = () => {
-    const { user } = useAuth();
+    const { user, token } = useAuth();
     const [url, setUrl] = useState('');
     const [scanning, setScanning] = useState(false);
     const [currentScan, setCurrentScan] = useState<ScanResult | null>(null);
@@ -25,9 +26,8 @@ const SecurityScanner: React.FC = () => {
     const [error, setError] = useState('');
     const [selectedHistoryScan, setSelectedHistoryScan] = useState<ScanResult | null>(null);
 
-    // Get auth token from localStorage
+    // Get auth token from context
     const getAuthHeaders = () => {
-        const token = localStorage.getItem('token');
         return token ? { Authorization: `Bearer ${token}` } : {};
     };
 
@@ -242,88 +242,7 @@ const SecurityScanner: React.FC = () => {
                                 )}
 
                                 {currentScan.status === 'completed' && currentScan.results && (
-                                    <div className="space-y-6">
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <div className={`p-6 rounded-2xl border ${getRiskBgColor(currentScan.risk_score)}`}>
-                                                <div className="text-sm font-bold text-slate-600 dark:text-slate-400 mb-2">RISK SCORE</div>
-                                                <div className={`text-4xl font-black ${getRiskColor(currentScan.risk_score)}`}>
-                                                    {currentScan.risk_score}/100
-                                                </div>
-                                            </div>
-                                            <div className="p-6 rounded-2xl bg-white dark:bg-white/5 border border-white/10">
-                                                <div className="text-sm font-bold text-slate-600 dark:text-slate-400 mb-2">VULNERABILITIES</div>
-                                                <div className="text-4xl font-black text-slate-900 dark:text-white">
-                                                    {currentScan.vulnerability_count}
-                                                </div>
-                                            </div>
-                                            <div className="p-6 rounded-2xl bg-white dark:bg-white/5 border border-white/10">
-                                                <div className="text-sm font-bold text-slate-600 dark:text-slate-400 mb-2">TESTS RUN</div>
-                                                <div className="text-4xl font-black text-slate-900 dark:text-white">
-                                                    {currentScan.results.tests ? currentScan.results.tests.length : 0}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="max-h-96 overflow-y-auto space-y-3">
-                                            {currentScan.results.tests && currentScan.results.tests.map((test: any, index: number) => (
-                                                <div
-                                                    key={index}
-                                                    className={`p-5 rounded-xl border transition-all ${test?.vulnerable
-                                                            ? 'bg-red-500/5 border-red-500/20 hover:bg-red-500/10'
-                                                            : 'bg-green-500/5 border-green-500/20 hover:bg-green-500/10'
-                                                        }`}
-                                                >
-                                                    <div className="flex items-start justify-between mb-2">
-                                                        <div className="flex items-center gap-3 flex-1">
-                                                            {test?.vulnerable ? (
-                                                                <XCircle className="w-6 h-6 text-red-500 flex-shrink-0" />
-                                                            ) : (
-                                                                <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0" />
-                                                            )}
-                                                            <div className="flex-1">
-                                                                <div className="flex items-center gap-2 mb-1">
-                                                                    <span className="font-bold text-slate-900 dark:text-white">
-                                                                        {test.test}
-                                                                    </span>
-                                                                    {test.severity && test.severity !== 'info' && (
-                                                                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${test.severity === 'critical' ? 'bg-red-600 text-white' :
-                                                                                test.severity === 'high' ? 'bg-orange-500 text-white' :
-                                                                                    test.severity === 'medium' ? 'bg-yellow-500 text-white' :
-                                                                                        'bg-blue-500 text-white'
-                                                                            }`}>
-                                                                            {test.severity.toUpperCase()}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                                <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                                                                    {test.details}
-                                                                </p>
-                                                                {test.recommendation && (
-                                                                    <div className="mt-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                                                                        <div className="flex items-start gap-2">
-                                                                            <AlertTriangle className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
-                                                                            <div>
-                                                                                <div className="text-xs font-bold text-blue-600 dark:text-blue-400 mb-1">
-                                                                                    💡 HOW TO FIX
-                                                                                </div>
-                                                                                <p className="text-xs text-slate-700 dark:text-slate-300">
-                                                                                    {test.recommendation}
-                                                                                </p>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        <span className={`text-sm font-bold whitespace-nowrap ml-3 ${test?.vulnerable ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
-                                                            }`}>
-                                                            {test?.vulnerable ? 'VULNERABLE' : 'SECURE'}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
+                                    <ScannerResults scan={currentScan} />
                                 )}
 
                                 {currentScan.status === 'failed' && (
@@ -389,6 +308,45 @@ const SecurityScanner: React.FC = () => {
                     </motion.div>
                 )}
             </div>
+
+            {/* History Detail Modal */}
+            <AnimatePresence>
+                {selectedHistoryScan && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setSelectedHistoryScan(null)}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="relative bg-white dark:bg-[#1a1a1a] rounded-[2rem] shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col pt-0"
+                        >
+                            <div className="p-6 border-b border-slate-200 dark:border-white/10 flex items-center justify-between bg-white/50 dark:bg-black/20">
+                                <div>
+                                    <div className="text-sm text-slate-500 dark:text-slate-400 font-bold mb-1">SCAN RESULTS</div>
+                                    <h2 className="text-xl font-black text-slate-900 dark:text-white truncate max-w-2xl">
+                                        {selectedHistoryScan.target_url}
+                                    </h2>
+                                </div>
+                                <button
+                                    onClick={() => setSelectedHistoryScan(null)}
+                                    className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors"
+                                >
+                                    <XCircle className="w-8 h-8 text-slate-500 hover:text-red-500 transition-colors" />
+                                </button>
+                            </div>
+                            <div className="p-8 overflow-y-auto custom-scrollbar">
+                                <ScannerResults scan={selectedHistoryScan} />
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

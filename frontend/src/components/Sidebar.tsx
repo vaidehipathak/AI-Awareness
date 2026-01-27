@@ -45,6 +45,7 @@ const Sidebar: React.FC = () => {
         { to: '/awareness-hub', label: 'Manage AwarenessHub', icon: Lightbulb },
         { to: '/security-scanner', label: 'Security Scanner', icon: Shield },
         { to: '/report', label: 'Reports', icon: FileText },
+        { to: '/zkatt', label: 'Forensic Simulator', icon: Shield },
     ];
 
     // USER NAVIGATION: Action-focused with limited access
@@ -56,6 +57,7 @@ const Sidebar: React.FC = () => {
         { to: '/blog', label: 'Blog', icon: Newspaper },
         { to: '/security-scanner', label: 'Security Scanner', icon: Shield },
         { to: '/report', label: 'Report', icon: FileText },
+        { to: '/zkatt', label: 'Forensic Simulator', icon: Shield },
     ];
 
     // PUBLIC NAVIGATION
@@ -67,6 +69,7 @@ const Sidebar: React.FC = () => {
         { to: '/games', label: 'Games', icon: Gamepad2, protected: true },
         { to: '/quiz', label: 'Quiz', icon: Brain, protected: true },
         { to: '/report', label: 'Report', icon: FileText, protected: true },
+        { to: '/zkatt', label: 'Forensic Simulator', icon: Shield, protected: true },
     ];
 
     let navItems = publicNavItems;
