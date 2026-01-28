@@ -76,11 +76,21 @@ function checkBackendDeps() {
 
 function isOllamaRunning() {
     try {
-        // Windows-specific check for port 11434
-        // 'findstr' returns exit code 1 if not found, which triggers catch block
-        const output = execSync('netstat -ano | findstr :11434', { stdio: 'pipe' }).toString();
-        return output.includes('LISTENING');
+        log("Checking if Ollama port 11434 is active...", colors.cyan);
+        // Robust PowerShell check: returns "True" if connected, "False" if not
+        const cmd = 'powershell -NoProfile -Command "Test-NetConnection -ComputerName localhost -Port 11434 -InformationLevel Quiet"';
+        const output = execSync(cmd, { stdio: 'pipe' }).toString().trim();
+        const isRunning = output === 'True';
+
+        if (isRunning) {
+            log("Port check result: ACTIVE (True)", colors.green);
+        } else {
+            log("Port check result: INACTIVE (False)", colors.yellow);
+        }
+
+        return isRunning;
     } catch (e) {
+        log("Port check failed/error: " + e.message, colors.red);
         return false;
     }
 }
