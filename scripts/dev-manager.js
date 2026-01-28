@@ -74,12 +74,34 @@ function checkBackendDeps() {
     }
 }
 
+function isOllamaRunning() {
+    try {
+        // Windows-specific check for port 11434
+        // 'findstr' returns exit code 1 if not found, which triggers catch block
+        const output = execSync('netstat -ano | findstr :11434', { stdio: 'pipe' }).toString();
+        return output.includes('LISTENING');
+    } catch (e) {
+        return false;
+    }
+}
+
 function startDev() {
-    log("Starting Development Stack...", colors.bright);
+    log("Preparing Development Stack...", colors.bright);
 
-    // Using npx concurrently ensures we use the locally installed version
-    const cmd = `npx concurrently "npm run dev:frontend" "npm run dev:backend" "npm run dev:ollama"`;
+    const ollamaActive = isOllamaRunning();
+    let cmd;
 
+    if (ollamaActive) {
+        log("Ollama is already running (Port 11434 active). Skipping launch.", colors.green);
+        // Only run Frontend and Backend
+        cmd = `npx concurrently --names "FRONTEND,BACKEND" --prefix-colors "blue,green" "npm run dev:frontend" "npm run dev:backend"`;
+    } else {
+        log("Ollama not active. Launching full stack...", colors.yellow);
+        // Run all three
+        cmd = `npx concurrently --names "FRONTEND,BACKEND,OLLAMA" --prefix-colors "blue,green,yellow" "npm run dev:frontend" "npm run dev:backend" "npm run dev:ollama"`;
+    }
+
+    log("Executing: " + cmd, colors.cyan);
     runCommand(cmd);
 }
 
