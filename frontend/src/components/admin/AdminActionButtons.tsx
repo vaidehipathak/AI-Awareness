@@ -67,10 +67,10 @@ const AdminActionButtons: React.FC<AdminActionButtonsProps> = ({ item, contentTy
 
     return (
         <>
-            <div className="flex items-center gap-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-1" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-1 bg-white/90 dark:bg-black/60 backdrop-blur rounded-lg shadow-sm border border-slate-200 dark:border-white/10 p-1" onClick={e => e.stopPropagation()}>
                 <button
                     onClick={handleToggle}
-                    className={`p-1.5 rounded-md transition-colors ${item.is_active ? 'text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                    className={`p-1.5 rounded-md transition-colors ${item.is_active ? 'text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10'}`}
                     title={item.is_active ? "Visible (Click to Hide)" : "Hidden (Click to Show)"}
                 >
                     {item.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}

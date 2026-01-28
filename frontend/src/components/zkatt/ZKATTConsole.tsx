@@ -37,7 +37,7 @@ const ZKATTConsole: React.FC<ZKATTConsoleProps> = ({ logs }) => {
                 if (prev < stages.length - 1) return prev + 1;
                 return prev; // Stay on last step until complete
             });
-        }, 12000);
+        }, 90000);
 
         return () => clearInterval(timer);
     }, [isComplete]);
@@ -101,17 +101,17 @@ const ZKATTConsole: React.FC<ZKATTConsoleProps> = ({ logs }) => {
                                     {/* Connector Line */}
                                     {idx !== stages.length - 1 && (
                                         <div className={`absolute top-8 w-0.5 h-6 ${status === 'completed' ? 'bg-emerald-900/50' :
-                                                status === 'error' ? 'bg-red-900/50' :
-                                                    'bg-slate-800'
+                                            status === 'error' ? 'bg-red-900/50' :
+                                                'bg-slate-800'
                                             }`} />
                                     )}
                                 </div>
 
                                 <div className="flex-1">
                                     <p className={`font-medium ${status === 'active' ? 'text-indigo-300' :
-                                            status === 'completed' ? 'text-slate-400' :
-                                                status === 'error' ? 'text-red-400' :
-                                                    'text-slate-600'
+                                        status === 'completed' ? 'text-slate-400' :
+                                            status === 'error' ? 'text-red-400' :
+                                                'text-slate-600'
                                         }`}>
                                         {stage.label}
                                     </p>

@@ -100,7 +100,7 @@ const Sidebar: React.FC = () => {
     return (
         <>
             <div
-                className={`fixed left-0 top-0 h-screen bg-slate-900 dark:bg-slate-950 border-r border-slate-800 dark:border-slate-700 transition-all duration-300 ease-in-out z-40 ${isExpanded ? 'w-64' : 'w-16'
+                className={`fixed left-0 top-0 h-screen bg-slate-900/95 dark:bg-[#0a0a0a]/60 backdrop-blur-xl border-r border-slate-800 dark:border-white/5 transition-all duration-300 ease-in-out z-40 ${isExpanded ? 'w-64' : 'w-16'
                     }`}
                 onMouseEnter={() => setIsExpanded(true)}
                 onMouseLeave={() => setIsExpanded(false)}

@@ -52,7 +52,11 @@ class ZKATT_V2_Pipeline:
                 model=self.model_name,
                 messages=messages,
                 temperature=0.7,
-                max_tokens=max_new_tokens
+                max_tokens=max_new_tokens,
+                # Optimize for Low VRAM (6GB Card)
+                # num_ctx: 2048 saves ~250-500MB VRAM compared to 4096
+                # num_gpu: 99 requests full offloading if space permits
+                extra_body={"options": {"num_ctx": 2048, "num_gpu": 99}}
             )
             return completion.choices[0].message.content.strip()
         except Exception as e:

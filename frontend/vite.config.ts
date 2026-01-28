@@ -34,8 +34,8 @@ export default defineConfig({
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
         secure: false,
-        timeout: 300000,
-        proxyTimeout: 300000, // 5 minutes
+        timeout: 600000,
+        proxyTimeout: 600000, // 10 minutes
       },
       "/media": {
         target: "http://127.0.0.1:8000",

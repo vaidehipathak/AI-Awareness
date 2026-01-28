@@ -80,7 +80,7 @@ const AdminReportList: React.FC<{ onViewDetail: (id: number) => void }> = ({ onV
     };
 
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-xl shadow-sm border border-slate-200 dark:border-white/10 p-6">
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold bg-gradient-to-r from-teal-600 to-indigo-600 bg-clip-text text-transparent">
                     All Analysis Reports
@@ -98,14 +98,14 @@ const AdminReportList: React.FC<{ onViewDetail: (id: number) => void }> = ({ onV
                         placeholder="Search file, username, or email..."
                         value={search}
                         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                        className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                        className="w-full px-4 py-2 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
                     />
                 </div>
                 <div className="w-full md:w-48">
                     <select
                         value={riskFilter}
                         onChange={(e) => { setRiskFilter(e.target.value); setPage(1); }}
-                        className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none appearance-none"
+                        className="w-full px-4 py-2 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none appearance-none dark:text-white"
                     >
                         <option value="">All Risks</option>
                         <option value="HIGH">High Risk</option>
@@ -117,7 +117,7 @@ const AdminReportList: React.FC<{ onViewDetail: (id: number) => void }> = ({ onV
                     <select
                         value={sort}
                         onChange={(e) => { setSort(e.target.value); setPage(1); }}
-                        className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none appearance-none"
+                        className="w-full px-4 py-2 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none appearance-none dark:text-white"
                     >
                         <option value="date_desc">Newest First</option>
                         <option value="date_asc">Oldest First</option>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import ZKATTInput from '@/components/zkatt/ZKATTInput';
-import ZKATTConsole from '@/components/zkatt/ZKATTConsole';
-import ZKATTVerdict from '@/components/zkatt/ZKATTVerdict';
+import ZKATTInput from '../../components/zkatt/ZKATTInput';
+import ZKATTConsole from '../../components/zkatt/ZKATTConsole';
+import ZKATTVerdict from '../../components/zkatt/ZKATTVerdict';
 import { RefreshCcw, ShieldAlert, FileText, Fingerprint } from 'lucide-react';
 
 const ZKATTPage: React.FC = () => {
@@ -32,16 +32,27 @@ const ZKATTPage: React.FC = () => {
                 setLogs(prev => [...prev, logSequence[logIndex]]);
                 logIndex++;
             }
-        }, 800);
+        }, 45000); // 45s per log step (CPU Inference Speed)
+
+        // Timeout Safety Valve (600 Seconds / 10 Minutes)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 600000);
 
         try {
             const response = await fetch('/api/zkatt/simulate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ description, ...options }),
+                signal: controller.signal
             });
-            const data = await response.json();
 
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error(`Server Error: ${response.status} ${response.statusText}`);
+            }
+
+            const data = await response.json();
             clearInterval(logInterval);
             console.log("DEBUG: Full API Response:", data);
 
@@ -69,10 +80,15 @@ const ZKATTPage: React.FC = () => {
                 setStep('VERDICT');
             }, 1000);
 
-        } catch (error) {
-            console.error("DEBUG: Fetch/Parse Error:", error);
+        } catch (error: any) {
             clearInterval(logInterval);
-            setLogs(prev => [...prev, "CRITICAL ERROR: CONNECTION FAILED"]);
+            console.error("DEBUG: Fetch/Parse Error:", error);
+
+            if (error.name === 'AbortError') {
+                setLogs(prev => [...prev, "ERROR: TIMEOUT - Backend took too long to respond."]);
+            } else {
+                setLogs(prev => [...prev, `CRITICAL ERROR: ${error.message || "Connection Failed"}`]);
+            }
         }
     };
 
