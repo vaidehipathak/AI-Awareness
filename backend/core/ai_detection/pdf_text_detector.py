@@ -298,14 +298,21 @@ def detect_pdf_ai(text_input: str = "", metadata: Dict = None, image_bytes: byte
         else:
              final_risk_label = ai_risk_label
              
-        # Mapping verdict based on PII risk if high
+        # --- FIX APPLIED HERE ---
+        # The overall verdict/msg is set based on the highest risk, but the AI_ANALYSIS
+        # card explanation MUST use the AI message (ai_msg) generated above.
+        
         if risk_label == "HIGH":
             verdict = "High-Risk PII Detected"
-            ai_msg = f"Document contains critical PII ({len(pii_findings)} entities)."
+            # Only overwrite ai_msg if it hasn't been set by the AI analysis block itself
+            if not ai_msg or ai_msg == "Text shows sufficient linguistic variance.": # Check if AI message is still default
+                 ai_msg = f"Document contains critical PII ({len(pii_findings)} entities)."
         elif risk_label == "MEDIUM" and verdict == "Safe":
              verdict = "Medium-Risk PII Detected"
-             ai_msg = "Document contains sensitive personal data."
-
+             if not ai_msg or ai_msg == "Text shows sufficient linguistic variance.": # Check if AI message is still default
+                 ai_msg = "Document contains sensitive personal data."
+        # ------------------------
+        
         final_result_structure["risk_score"] = round(ai_score, 3)
         final_result_structure["verdict"] = verdict
         final_result_structure["explanation"] = f"{ai_msg} {status_note}".strip()
@@ -315,7 +322,7 @@ def detect_pdf_ai(text_input: str = "", metadata: Dict = None, image_bytes: byte
             "type": "AI_ANALYSIS",
             "score": final_result_structure["risk_score"],
             "label": ai_risk_label,
-            "explanation": final_result_structure["explanation"]
+            "explanation": ai_msg # <-- This now correctly uses the AI-derived ai_msg
         })
 
         # ALWAYS add PII detection result (even if empty)
