@@ -13,11 +13,14 @@ RULES:
 - Use placeholder but realistic values
 - Match structure, tone, and layout semantics
 - Output must LOOK real but be entirely fake
+- FOR FINANCIAL/MEDICAL DOCUMENTS: You MUST generate a detailed Markdown table with columns (e.g., Description, Code, Qty, Price, Total). Include a final TOTAL line.
+- FOR MEDICAL: Use realistic ICD-10 codes, medication names, and procedure details.
 
 OUTPUT:
-- Plain text document OR structured markdown (tables if needed)
+- Plain text document OR structured markdown (tables ARE REQUIRED for bills/statements)
 
 FAIL CONDITIONS:
 - Real institution names
 - Reusing user text verbatim
 - Unrealistic or generic output
+- Missing specific line items in bills

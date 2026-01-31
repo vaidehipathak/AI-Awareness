@@ -43,23 +43,27 @@ def simulate_attack(request):
         result = pipeline.run(description)
         
         # Parse the 'analysis' string which should now be in JSON format due to updated prompt
-        analysis_json = {}
         try:
             raw_analysis = result.get('analysis', '{}')
-            # Extract JSON if wrapped in markdown
-            if "```json" in raw_analysis:
-                raw_analysis = raw_analysis.split("```json")[1].split("```")[0]
-            elif "```" in raw_analysis:
-                raw_analysis = raw_analysis.split("```")[1].split("```")[0]
+            # Use regex to find the first JSON object
+            import re
+            json_match = re.search(r'(\{.*\})', raw_analysis, re.DOTALL)
             
-            analysis_json = json.loads(raw_analysis)
-        except Exception:
+            if json_match:
+                json_str = json_match.group(1)
+                analysis_json = json.loads(json_str)
+            else:
+                # Fallback: try pure string load if no braces found (unlikely but safe)
+                analysis_json = json.loads(raw_analysis)
+                
+        except Exception as e:
+            print(f"DEBUG: JSON Parsing Failed: {str(e)} | Raw: {raw_analysis}")
             # Fallback if parsing fails
             analysis_json = {
                 "overall_risk_score": 50,
                 "risk_summary": {
                     "identity_manipulation": "UNKNOWN", 
-                    "ai_detection_evasion": "UNKNOWN",
+                    "ai_detection_evasion": "UNKNOWN", 
                     "deepfake_potential": "UNKNOWN"
                 },
                 "attack_cards": [],

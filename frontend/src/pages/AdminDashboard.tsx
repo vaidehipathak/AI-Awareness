@@ -599,25 +599,25 @@ const AdminDashboard: React.FC = () => {
     <div className="space-y-6">
       {/* 4 Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden">
+        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm relative overflow-hidden">
           <div className="absolute left-0 top-4 bottom-4 w-1 bg-blue-500 rounded-r"></div>
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Reports</p>
           <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">{stats?.total_files || 0}</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden">
+        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm relative overflow-hidden">
           <div className="absolute left-0 top-4 bottom-4 w-1 bg-red-500 rounded-r"></div>
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">High Risk</p>
           <p className="text-3xl font-bold text-red-600 dark:text-red-400 mt-1">{stats?.high_risk_count || 0}</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden">
+        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm relative overflow-hidden">
           <div className="absolute left-0 top-4 bottom-4 w-1 bg-amber-500 rounded-r"></div>
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pending Review</p>
           <p className="text-3xl font-bold text-amber-600 dark:text-amber-400 mt-1">{stats?.pending_review || 0}</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden">
+        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm relative overflow-hidden">
           <div className="absolute left-0 top-4 bottom-4 w-1 bg-green-500 rounded-r"></div>
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Last Scan</p>
           <div className="mt-1">
@@ -631,14 +631,14 @@ const AdminDashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Recent Analysis Reports */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col">
-          <div className="p-6 border-b border-slate-100 dark:border-slate-700">
+        <div className="lg:col-span-2 bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-xl border border-slate-200 dark:border-white/10 shadow-sm flex flex-col">
+          <div className="p-6 border-b border-slate-100 dark:border-white/10">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Recent Analysis Reports</h2>
           </div>
           <div className="flex-1 overflow-x-auto">
             {/* Re-use table render logic but strictly top 5 or 10 */}
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400">
+              <thead className="bg-slate-50/50 dark:bg-white/5 text-slate-500 dark:text-slate-400">
                 <tr>
                   <th className="px-6 py-4 font-medium">FILE / USER</th>
                   <th className="px-6 py-4 font-medium">RISK</th>
@@ -646,9 +646,9 @@ const AdminDashboard: React.FC = () => {
                   <th className="px-6 py-4 font-medium text-right">ACTION</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+              <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                 {reports.slice(0, 5).map(report => (
-                  <tr key={report.report_id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                  <tr key={report.report_id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                     <td className="px-6 py-4">
                       <div className="font-medium text-slate-900 dark:text-white">{report.file_type}</div>
                       <div className="text-xs text-slate-500">{report.submitted_by}</div>
@@ -680,7 +680,7 @@ const AdminDashboard: React.FC = () => {
         {/* Right: Security Status & Audit */}
         <div className="space-y-6">
           {/* Security Status Card */}
-          <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+          <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
             <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Your Security Status</h3>
 
             <div className="flex items-center justify-between mb-4">
@@ -705,7 +705,7 @@ const AdminDashboard: React.FC = () => {
           </div>
 
           {/* Recent Audit Logs (Mini) */}
-          <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+          <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
             <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Recent Audit Logs</h3>
             <div className="space-y-4">
               {auditLogs.slice(0, 3).map(log => (
@@ -730,120 +730,121 @@ const AdminDashboard: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
-            Security Control Center
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-2">
-            Monitor threats, review incidents, and audit system access.
-          </p>
-        </div>
-
-        {/* Global Error */}
-        {(reportError || auditError) && (
-          <div className="mb-6 p-4 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-lg flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5" />
-            <p>{reportError || auditError}</p>
-          </div>
-        )}
-
-        {reEnrollError && (
-          <div className="mb-6 p-4 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-lg flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5" />
-            <p>{reEnrollError}</p>
-          </div>
-        )}
-
-        {/* Tabs */}
-        <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
-          <nav className="-mb-px flex space-x-8">
-            <button
-              onClick={() => setActiveTab('overview')}
-              className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'overview'
-                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-                }`}
-            >
-              Overview
-            </button>
-            <button
-              onClick={() => setActiveTab('reports')}
-              className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'reports'
-                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-                }`}
-            >
-              All Reports
-            </button>
-            <button
-              onClick={() => setActiveTab('audit')}
-              className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'audit'
-                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-                }`}
-            >
-              Full Audit Logs
-            </button>
-            <button
-              onClick={() => setActiveTab('users')}
-              className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'users'
-                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-                }`}
-            >
-              User Management
-            </button>
-          </nav>
-        </div>
-
-        {/* Content Area */}
-        <div>
-          {activeTab === 'overview' && renderOverview()}
-          {activeTab === 'reports' && renderReportsTable()}
-          {activeTab === 'audit' && renderAuditLogs()}
-          {activeTab === 'users' && <AdminUserManagement />}
-        </div>
-
+    <div className="max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
+          Security Control Center
+        </h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-2">
+          Monitor threats, review incidents, and audit system access.
+        </p>
       </div>
+
+      {/* Global Error */}
+      {(reportError || auditError) && (
+        <div className="mb-6 p-4 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-lg flex items-center gap-2">
+          <ShieldAlert className="w-5 h-5" />
+          <p>{reportError || auditError}</p>
+        </div>
+      )}
+
+      {reEnrollError && (
+        <div className="mb-6 p-4 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-lg flex items-center gap-2">
+          <ShieldAlert className="w-5 h-5" />
+          <p>{reEnrollError}</p>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'overview'
+              ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+          >
+            Overview
+          </button>
+          <button
+            onClick={() => setActiveTab('reports')}
+            className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'reports'
+              ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+          >
+            All Reports
+          </button>
+          <button
+            onClick={() => setActiveTab('audit')}
+            className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'audit'
+              ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+          >
+            Full Audit Logs
+          </button>
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'users'
+              ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+          >
+            User Management
+          </button>
+        </nav>
+      </div>
+
+      {/* Content Area */}
+      <div>
+        {activeTab === 'overview' && renderOverview()}
+        {activeTab === 'reports' && renderReportsTable()}
+        {activeTab === 'audit' && renderAuditLogs()}
+        {activeTab === 'users' && <AdminUserManagement />}
+      </div>
+
+
 
       {/* Detail Modal Overlay */}
       {selectedReport && renderDetailModal()}
 
       {/* Re-enroll Confirmation Modal */}
-      {showReEnrollConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-start gap-3">
-              <ShieldAlert className="w-6 h-6 text-amber-500 mt-1" />
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Re-enroll MFA?</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                  This will revoke your current TOTP secret and backup codes. You must scan a new QR and finish MFA setup before continuing.
-                </p>
+      {
+        showReEnrollConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-start gap-3">
+                <ShieldAlert className="w-6 h-6 text-amber-500 mt-1" />
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Re-enroll MFA?</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                    This will revoke your current TOTP secret and backup codes. You must scan a new QR and finish MFA setup before continuing.
+                  </p>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setShowReEnrollConfirm(false)}
+                  className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleReEnroll}
+                  disabled={reEnrollLoading}
+                  className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+                >
+                  {reEnrollLoading ? 'Revoking…' : 'Confirm & Re-enroll'}
+                </button>
               </div>
             </div>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowReEnrollConfirm(false)}
-                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleReEnroll}
-                disabled={reEnrollLoading}
-                className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
-              >
-                {reEnrollLoading ? 'Revoking…' : 'Confirm & Re-enroll'}
-              </button>
-            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
 

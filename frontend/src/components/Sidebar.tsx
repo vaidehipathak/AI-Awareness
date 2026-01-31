@@ -14,6 +14,7 @@ import {
     ChevronLeft,
     ChevronRight,
     Shield,
+    FileSearch,
 } from 'lucide-react';
 
 import AuthGateModal from './AuthGateModal';
@@ -44,8 +45,9 @@ const Sidebar: React.FC = () => {
         { to: '/blog', label: 'Manage Blog', icon: Newspaper },
         { to: '/awareness-hub', label: 'Manage AwarenessHub', icon: Lightbulb },
         { to: '/security-scanner', label: 'Security Scanner', icon: Shield },
-        { to: '/report', label: 'Reports', icon: FileText },
-        { to: '/zkatt', label: 'Forensic Simulator', icon: Shield },
+        { to: '/report', label: 'Analysis', icon: FileText },
+        { to: '/zkatt', label: 'Forensic Simulator', icon: FileSearch },
+
     ];
 
     // USER NAVIGATION: Action-focused with limited access
@@ -56,8 +58,9 @@ const Sidebar: React.FC = () => {
         { to: '/quiz', label: 'Quiz', icon: Brain },
         { to: '/blog', label: 'Blog', icon: Newspaper },
         { to: '/security-scanner', label: 'Security Scanner', icon: Shield },
-        { to: '/report', label: 'Report', icon: FileText },
-        { to: '/zkatt', label: 'Forensic Simulator', icon: Shield },
+        { to: '/report', label: 'Analysis', icon: FileText },
+        { to: '/zkatt', label: 'Forensic Simulator', icon: FileSearch },
+
     ];
 
     // PUBLIC NAVIGATION
@@ -68,8 +71,8 @@ const Sidebar: React.FC = () => {
         { to: '/security-scanner', label: 'Security Scanner', icon: Shield, protected: true },
         { to: '/games', label: 'Games', icon: Gamepad2, protected: true },
         { to: '/quiz', label: 'Quiz', icon: Brain, protected: true },
-        { to: '/report', label: 'Report', icon: FileText, protected: true },
-        { to: '/zkatt', label: 'Forensic Simulator', icon: Shield, protected: true },
+        { to: '/report', label: 'Analysis', icon: FileText, protected: true },
+        { to: '/zkatt', label: 'Forensic Simulator', icon: FileSearch, protected: true },
     ];
 
     let navItems = publicNavItems;
@@ -100,7 +103,7 @@ const Sidebar: React.FC = () => {
     return (
         <>
             <div
-                className={`fixed left-0 top-0 h-screen bg-slate-900 dark:bg-slate-950 border-r border-slate-800 dark:border-slate-700 transition-all duration-300 ease-in-out z-40 ${isExpanded ? 'w-64' : 'w-16'
+                className={`fixed left-0 top-0 h-screen bg-slate-900/95 dark:bg-[#0a0a0a]/60 backdrop-blur-xl border-r border-slate-800 dark:border-white/5 transition-all duration-300 ease-in-out z-[60] ${isExpanded ? 'w-64' : 'w-16'
                     }`}
                 onMouseEnter={() => setIsExpanded(true)}
                 onMouseLeave={() => setIsExpanded(false)}

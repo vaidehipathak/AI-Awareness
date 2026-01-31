@@ -1,0 +1,17 @@
+{
+    "name": "ai-awareness-root",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "install:all": "npm install && cd frontend && npm install && cd .. && pip install -r backend/requirements.txt",
+        "dev": "node scripts/dev-manager.js",
+        "dev:frontend": "cd frontend && npm run dev",
+        "dev:backend": "cd backend && python manage.py runserver",
+        "dev:ollama": "ollama serve",
+        "migrate": "cd backend && python manage.py migrate",
+        "db:push": "cd frontend && npm run db:push"
+    },
+    "devDependencies": {
+        "concurrently": "^8.2.0"
+    }
+}

@@ -60,8 +60,8 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-700">
-                <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
+            <div className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-white/10">
+                <div className="p-6 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
                     <h3 className="font-bold text-lg text-slate-800 dark:text-white">{item?.id ? 'Edit Content' : 'Create New'}</h3>
                     <button onClick={onClose} className="text-slate-500 hover:text-red-500 transition-colors"><X className="w-6 h-6" /></button>
                 </div>
@@ -71,7 +71,7 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
                         <input
                             type="text"
                             required
-                            className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-white/10 bg-white dark:bg-black/20 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                             value={formData.title || ''}
                             onChange={e => setFormData({ ...formData, title: e.target.value })}
                         />
@@ -93,7 +93,7 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
                         <div>
                             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Description / Teaser</label>
                             <textarea
-                                className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white h-24 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-white/10 bg-white dark:bg-black/20 text-slate-900 dark:text-white h-24 focus:ring-2 focus:ring-indigo-500 outline-none"
                                 value={formData.description || formData.teaser || ''}
                                 onChange={e => setFormData({ ...formData, description: e.target.value, teaser: e.target.value })}
                             />
@@ -105,7 +105,7 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
                         <div>
                             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Full Content (Markdown/HTML)</label>
                             <textarea
-                                className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white h-48 font-mono text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-white/10 bg-white dark:bg-black/20 text-slate-900 dark:text-white h-48 font-mono text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                                 value={formData.content || ''}
                                 onChange={e => setFormData({ ...formData, content: e.target.value })}
                             />
@@ -120,7 +120,7 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
                             </label>
                             <div className="relative">
                                 <textarea
-                                    className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-green-400 font-mono text-xs h-60 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-black/20 text-slate-800 dark:text-green-400 font-mono text-xs h-60 focus:ring-2 focus:ring-indigo-500 outline-none"
                                     defaultValue={
                                         JSON.stringify(
                                             contentType === 'games' ? formData.game_data :
@@ -146,7 +146,7 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
                         </div>
                     )}
 
-                    <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 dark:border-slate-700 mt-6">
+                    <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 dark:border-white/10 mt-6">
                         <button type="button" onClick={onClose} className="px-4 py-2 text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700 rounded-lg font-medium transition-colors">Cancel</button>
                         <button
                             type="submit"

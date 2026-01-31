@@ -104,9 +104,9 @@ const AdminContentManager: React.FC = () => {
     };
 
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
             {/* Tabs */}
-            <div className="flex border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+            <div className="flex border-b border-gray-200 dark:border-white/10 overflow-x-auto">
                 {Object.keys(endpoints).map((key) => (
                     <button
                         key={key}
@@ -122,7 +122,7 @@ const AdminContentManager: React.FC = () => {
             </div>
 
             {/* Toolbar */}
-            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 flex justify-between items-center border-b border-slate-200 dark:border-slate-700">
+            <div className="p-4 bg-slate-50/50 dark:bg-slate-900/30 flex justify-between items-center border-b border-slate-200 dark:border-white/10">
                 <h3 className="font-bold text-gray-700 dark:text-gray-200 capitalize">{activeSection} Management</h3>
                 <button onClick={handleCreate} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 transition-colors">
                     <Plus className="w-4 h-4" /> Create New
@@ -136,13 +136,13 @@ const AdminContentManager: React.FC = () => {
                 ) : (
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-slate-50 dark:bg-slate-900/50 text-xs uppercase text-slate-500 dark:text-slate-400 font-semibold">
+                            <tr className="bg-slate-50/50 dark:bg-slate-900/30 text-xs uppercase text-slate-500 dark:text-slate-400 font-semibold">
                                 <th className="p-4">Title</th>
                                 <th className="p-4">Status</th>
                                 <th className="p-4 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                        <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                             {items.length === 0 && (
                                 <tr><td colSpan={3} className="p-8 text-center text-slate-400">No items found.</td></tr>
                             )}
@@ -175,8 +175,8 @@ const AdminContentManager: React.FC = () => {
             {/* Edit/Create Modal */}
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
+                    <div className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-white/10">
+                        <div className="p-6 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
                             <h3 className="font-bold text-lg dark:text-white">{editingItem ? 'Edit Item' : 'Create New'}</h3>
                             <button onClick={() => setShowModal(false)} className="text-slate-500 hover:text-red-500"><X className="w-6 h-6" /></button>
                         </div>
@@ -186,7 +186,7 @@ const AdminContentManager: React.FC = () => {
                                 <input
                                     type="text"
                                     required
-                                    className="w-full px-4 py-2 rounded-lg border dark:bg-slate-900 dark:border-slate-700 dark:text-white"
+                                    className="w-full px-4 py-2 rounded-lg border dark:bg-black/20 dark:border-white/10 dark:text-white"
                                     value={formData.title}
                                     onChange={e => setFormData({ ...formData, title: e.target.value })}
                                 />
@@ -207,7 +207,7 @@ const AdminContentManager: React.FC = () => {
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description/Teaser</label>
                                     <textarea
-                                        className="w-full px-4 py-2 rounded-lg border dark:bg-slate-900 dark:border-slate-700 dark:text-white h-24"
+                                        className="w-full px-4 py-2 rounded-lg border dark:bg-black/20 dark:border-white/10 dark:text-white h-24"
                                         value={formData.description || formData.teaser || ''}
                                         onChange={e => setFormData({ ...formData, description: e.target.value, teaser: e.target.value })}
                                     />
@@ -221,7 +221,7 @@ const AdminContentManager: React.FC = () => {
                                         Advanced Data (JSON)
                                     </label>
                                     <textarea
-                                        className="w-full px-4 py-2 rounded-lg border dark:bg-slate-900 dark:border-slate-700 dark:text-white font-mono text-xs h-40"
+                                        className="w-full px-4 py-2 rounded-lg border dark:bg-black/20 dark:border-white/10 dark:text-white font-mono text-xs h-40"
                                         defaultValue={
                                             JSON.stringify(
                                                 activeSection === 'games' ? formData.game_data :

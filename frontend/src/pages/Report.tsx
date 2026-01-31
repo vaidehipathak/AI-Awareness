@@ -11,7 +11,7 @@ const ReportPage: React.FC = () => {
     const { theme } = useTheme();
     const darkMode = theme === 'dark';
 
-    const [activeTab, setActiveTab] = useState<'smart_scan' | 'image' | 'video'>('smart_scan');
+    const [activeTab, setActiveTab] = useState<'smart_scan' | 'image'>('smart_scan');
     const [file, setFile] = useState<File | null>(null);
     const [text, setText] = useState('');
     const [loading, setLoading] = useState(false);
@@ -194,7 +194,6 @@ const ReportPage: React.FC = () => {
                     >
                         <TabButton id="smart_scan" icon={Shield} label="Smart Scan (Text & Doc)" />
                         <TabButton id="image" icon={ImageIcon} label="Deepfake Image" />
-                        <TabButton id="video" icon={Video} label="Video Forensics" />
                     </motion.div>
 
                     <div className="grid lg:grid-cols-2 gap-12 items-start">
@@ -209,13 +208,11 @@ const ReportPage: React.FC = () => {
                                 <div className="w-12 h-12 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center shadow-lg">
                                     {activeTab === 'smart_scan' && <Shield size={24} />}
                                     {activeTab === 'image' && <ImageIcon size={24} />}
-                                    {activeTab === 'video' && <Video size={24} />}
                                 </div>
                                 <div>
                                     <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
                                         {activeTab === 'smart_scan' && 'Smart Analysis'}
                                         {activeTab === 'image' && 'Image Forensics'}
-                                        {activeTab === 'video' && 'Video Forensics'}
                                     </h2>
                                     <p className="text-slate-500 dark:text-slate-400 text-sm">Input data to begin scan</p>
                                 </div>
@@ -313,8 +310,7 @@ const ReportPage: React.FC = () => {
                                         onChange={handleFileChange}
                                         accept={
                                             activeTab === 'image' ? 'image/*' :
-                                                activeTab === 'video' ? 'video/*' :
-                                                    '.pdf'
+                                                '.pdf'
                                         }
                                     />
 

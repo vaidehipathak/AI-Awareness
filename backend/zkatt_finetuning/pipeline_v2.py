@@ -13,15 +13,25 @@ class ZKATT_V2_Pipeline:
             self.client = OpenAI(base_url=base_url, api_key=api_key)
             self.model_name = model_name
             
-            # Test connection
-            print("DEBUG: Checking Ollama Models List...")
-            models = self.client.models.list()
-            print(f"DEBUG: Ollama Models found: {len(models.data)}")
-            print("Successfully connected to Ollama Server!")
+            # Test connection with retries
+            import time
+            max_retries = 5
+            for attempt in range(max_retries):
+                try:
+                    print(f"DEBUG: Checking Ollama Models List (Attempt {attempt+1}/{max_retries})...")
+                    models = self.client.models.list()
+                    print(f"DEBUG: Ollama Models found: {len(models.data)}")
+                    print("Successfully connected to Ollama Server!")
+                    break
+                except Exception as ex:
+                    if attempt == max_retries - 1:
+                        # Re-raise on final failure
+                        raise ex
+                    print(f"Ollama not ready yet ({ex}). Retrying in 3s...")
+                    time.sleep(3)
         except Exception as e:
             print(f"Error connecting to Ollama: {e}")
             print("Please ensure Ollama is running ('ollama serve') and model is pulled.")
-            # Do NOT sys.exit(1) here, let the caller handle it or raise
             raise e
 
         # Load Prompts
@@ -52,7 +62,11 @@ class ZKATT_V2_Pipeline:
                 model=self.model_name,
                 messages=messages,
                 temperature=0.7,
-                max_tokens=max_new_tokens
+                max_tokens=max_new_tokens,
+                # Optimize for Low VRAM (6GB Card)
+                # num_ctx: 2048 saves ~250-500MB VRAM compared to 4096
+                # num_gpu: 99 requests full offloading if space permits
+                extra_body={"options": {"num_ctx": 2048, "num_gpu": 99}}
             )
             return completion.choices[0].message.content.strip()
         except Exception as e:
