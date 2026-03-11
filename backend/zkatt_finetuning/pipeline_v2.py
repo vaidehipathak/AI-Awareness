@@ -5,7 +5,7 @@ from openai import OpenAI
 
 # Z-KATT V2 - Ollama Edition
 class ZKATT_V2_Pipeline:
-    def __init__(self, base_url="http://localhost:11434/v1", api_key="ollama", model_name="ai-awareness-core-finetuned"):
+    def __init__(self, base_url="http://localhost:11434/v1", api_key="ollama", model_name="ai_awareness_core_finetuned"):
         print(f"Initializing Z-KATT Pipeline via Ollama ({base_url})...")
         
         try:
@@ -20,7 +20,9 @@ class ZKATT_V2_Pipeline:
                 try:
                     print(f"DEBUG: Checking Ollama Models List (Attempt {attempt+1}/{max_retries})...")
                     models = self.client.models.list()
-                    print(f"DEBUG: Ollama Models found: {len(models.data)}")
+                    # Safe check for models.data in new SDK
+                    model_list = models.data if hasattr(models, 'data') and models.data is not None else []
+                    print(f"DEBUG: Ollama Models found: {len(model_list)}")
                     print("Successfully connected to Ollama Server!")
                     break
                 except Exception as ex:

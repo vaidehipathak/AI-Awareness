@@ -145,13 +145,13 @@ def fetch_news(request):
         # Calculate date range (last 15 days)
         from_date = (tz.now() - timedelta(days=15)).strftime('%Y-%m-%d')
         
-        # Request parameters with focused keywords
+        # Request parameters with focused keywords and exclusions
         params = {
-            "q": '("artificial intelligence" OR "AI" OR "machine learning" OR "cybersecurity" OR "cyber security" OR "cybercrime" OR "cyber crime" OR "cyber attack" OR "data breach")',
+            "q": '("artificial intelligence" OR "cybersecurity" OR "LLM" OR "generative AI" OR "data breach") AND NOT (milk OR dairy OR cow OR cattle OR vaccine OR virus OR "raw milk" OR "weight loss")',
             "language": "en",
-            "sortBy": "publishedAt",
+            "sortBy": "relevancy",
             "from": from_date,
-            "pageSize": 100,
+            "pageSize": 50,
             "apiKey": api_key,
         }
         

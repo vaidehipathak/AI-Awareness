@@ -9,12 +9,15 @@ import {
     Newspaper,
     Lightbulb,
     FileText,
-    ScrollText,
     LogOut,
     ChevronLeft,
     ChevronRight,
     Shield,
+<<<<<<< Updated upstream
     FileSearch,
+=======
+    Users,
+>>>>>>> Stashed changes
 } from 'lucide-react';
 
 import AuthGateModal from './AuthGateModal';
@@ -39,6 +42,7 @@ const Sidebar: React.FC = () => {
     // ADMIN NAVIGATION: Management-focused with full access
     const adminNavItems: NavItem[] = [
         { to: '/', label: 'Home', icon: Home },
+        { to: '/about-us', label: 'About Us', icon: Users },
         { to: '/admin/dashboard', label: 'Admin Dashboard', icon: LayoutDashboard },
         { to: '/games', label: 'Manage Games', icon: Gamepad2 },
         { to: '/quiz', label: 'Manage Quiz', icon: Brain },
@@ -53,6 +57,7 @@ const Sidebar: React.FC = () => {
     // USER NAVIGATION: Action-focused with limited access
     const userNavItems: NavItem[] = [
         { to: '/', label: 'Home', icon: Home },
+        { to: '/about-us', label: 'About Us', icon: Users },
         { to: '/awareness-hub', label: 'AwarenessHub', icon: Lightbulb },
         { to: '/games', label: 'Games', icon: Gamepad2 },
         { to: '/quiz', label: 'Quiz', icon: Brain },
@@ -66,6 +71,7 @@ const Sidebar: React.FC = () => {
     // PUBLIC NAVIGATION
     const publicNavItems: NavItem[] = [
         { to: '/', label: 'Home', icon: Home, protected: false },
+        { to: '/about-us', label: 'About Us', icon: Users, protected: false },
         { to: '/awareness-hub', label: 'AwarenessHub', icon: Lightbulb, protected: false },
         { to: '/blog', label: 'Blog', icon: Newspaper, protected: false },
         { to: '/security-scanner', label: 'Security Scanner', icon: Shield, protected: true },
@@ -103,7 +109,11 @@ const Sidebar: React.FC = () => {
     return (
         <>
             <div
+<<<<<<< Updated upstream
                 className={`fixed left-0 top-0 h-screen bg-slate-900/95 dark:bg-[#0a0a0a]/60 backdrop-blur-xl border-r border-slate-800 dark:border-white/5 transition-all duration-300 ease-in-out z-[60] ${isExpanded ? 'w-64' : 'w-16'
+=======
+                className={`fixed left-0 top-[6.5rem] h-[calc(100vh-6.5rem)] bg-slate-900/95 dark:bg-[#0a0a0a]/60 backdrop-blur-xl border-r border-slate-800 dark:border-white/5 transition-all duration-300 ease-in-out z-40 ${isExpanded ? 'w-64' : 'w-16'
+>>>>>>> Stashed changes
                     }`}
                 onMouseEnter={() => setIsExpanded(true)}
                 onMouseLeave={() => setIsExpanded(false)}

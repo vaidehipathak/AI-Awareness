@@ -10,6 +10,7 @@ import PublicLayout from './layouts/PublicLayout';
 import UserLayout from './layouts/UserLayout';
 import ConditionalLayout from './layouts/ConditionalLayout';
 import Home from './pages/Home';
+import AboutUs from './pages/AboutUs';
 import AwarenessHub from './pages/AwarenessHub';
 import Quiz from './pages/Quiz';
 import Games from './pages/Games';
@@ -37,8 +38,8 @@ const App: React.FC = () => {
               {/* Conditional Layout Routes - Show sidebar when logged in, navbar only when logged out */}
               <Route element={<ConditionalLayout />}>
                 <Route path="/" element={<Home />} />
+                <Route path="/about-us" element={<AboutUs />} />
                 <Route path="/awareness-hub" element={<AwarenessHub />} />
-                <Route path="/blog" element={<Blog />} />
                 <Route path="/blog" element={<Blog />} />
                 <Route path="/zkatt" element={<ZKATTPage />} />
               </Route>

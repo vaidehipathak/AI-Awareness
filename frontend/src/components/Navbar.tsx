@@ -101,65 +101,73 @@ const Navbar: React.FC = () => {
 
   return (
     <>
+<<<<<<< Updated upstream
       <header className="bg-white/80 dark:bg-[#0a0a0a]/60 backdrop-blur-xl shadow-md border-b border-gray-200 dark:border-white/5 fixed top-0 left-0 right-0 z-50 transition-colors duration-500 md:pl-16">
         <nav className="container mx-auto px-4 md:px-8 py-4 flex justify-between items-center">
+=======
+      <header className="bg-white/80 dark:bg-[#0a0a0a]/60 backdrop-blur-xl shadow-md border-b border-gray-200 dark:border-white/5 fixed top-0 left-0 right-0 z-50 transition-colors duration-500">
+        <nav className="container mx-auto px-4 md:px-8 py-5 flex justify-between items-center">
+>>>>>>> Stashed changes
           <button onClick={() => navigate('/')} className="group relative">
             <span className="absolute -inset-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 blur-lg opacity-0 group-hover:opacity-30 transition-opacity duration-500" />
-            <span className="relative text-3xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
-              AwareX
-            </span>
+            <div className="relative flex items-center gap-3">
+              <img src="/src/assets/awarex_logo.png" alt="AwareX Logo" className="h-10 w-auto object-contain" />
+              <span className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
+                AwareX
+              </span>
+            </div>
           </button>
 
-          <div className="hidden md:flex items-center space-x-2 text-gray-700 dark:text-gray-300">
-            {/* Only show navigation links when NOT authenticated (sidebar provides navigation when logged in) 
-             * UPDATE: Now Sidebar provides navigation for EVERYONE (public & logged in).
-             * So we hide this block on desktop for public users too.
-             */}
-            {/* {!isAuthenticated && (
-              <NavLinks
-                isMobile={false}
-                onProtectedClick={handeProtectedClick}
-                isAuthenticated={isAuthenticated}
-              />
-            )} */}
-            <div className="ml-4 flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <ThemeToggle />
-                <GoogleTranslateWidget elementId="google_translate_element_desktop" />
-              </div>
-              {isAuthenticated && (
-                <>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
-                    {user?.email}
-                  </div>
-                  <button
-                    onClick={() => {
-                      logout();
-                      navigate('/');
-                    }}
-                    className="px-3 py-1 text-sm text-white bg-red-600 hover:bg-red-700 rounded transition"
-                  >
-                    Logout
-                  </button>
-                </>
-              )}
-              {!isAuthenticated && (
-                <NavLink
-                  to="/login"
-                  className="px-3 py-1 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded transition"
+          <div className="hidden md:flex items-center space-x-4 text-gray-700 dark:text-gray-300">
+            <ThemeToggle />
+            <div className="scale-110 origin-center">
+              <GoogleTranslateWidget />
+            </div>
+
+            {isAuthenticated ? (
+              <>
+                <span className="text-sm font-medium opacity-80">{user?.email}</span>
+                <button
+                  onClick={() => {
+                    logout();
+                    navigate('/');
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-red-600/90 hover:bg-red-600 text-white text-sm font-bold transition-all shadow-[0_0_15px_rgba(220,38,38,0.3)] hover:shadow-[0_0_25px_rgba(220,38,38,0.5)] active:scale-95 flex items-center gap-2"
                 >
-                  Login
-                </NavLink>
-              )}
+                  Logout
+                </button>
+              </>
+            ) : (
+              <NavLink
+                to="/login"
+                className={({ isActive }) =>
+                  `px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${isActive
+                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-[0_0_15px_rgba(99,102,241,0.4)]'
+                    : 'hover:bg-gray-100 dark:hover:bg-white/10'
+                  }`
+                }
+              >
+                Login
+              </NavLink>
+            )}
+
+            {/* SAKEC & CyberPeace Logos - Desktop */}
+            <div className="flex items-center gap-6 ml-6 border-l border-gray-300 dark:border-white/10 pl-6 py-1">
+              <img src="/src/assets/sakec_logo.png" alt="SAKEC Logo" className="h-16 w-auto object-contain hover:scale-105 transition-transform duration-300 drop-shadow-sm" />
+              <img src="/src/assets/cyberpeace_logo.png" alt="CyberPeace Logo" className="h-16 w-auto object-contain hover:scale-105 transition-transform duration-300 drop-shadow-sm" />
             </div>
           </div>
 
           <div className="md:hidden flex items-center space-x-4">
             <div className="flex items-center gap-2">
-
               <ThemeToggle />
               <GoogleTranslateWidget elementId="google_translate_element_mobile" />
-
+            </div>
+            {/* SAKEC Logo & Placeholder */}
+            <div className="flex items-center gap-2 ml-2">
+              <img src="/src/assets/sakec_logo.png" alt="SAKEC Logo" className="h-8 w-auto object-contain" />
+              {/* CyberPeace Logo */}
+              <img src="/src/assets/cyberpeace_logo.png" alt="CyberPeace Logo" className="h-8 w-auto object-contain" />
             </div>
             <button onClick={toggleMenu} aria-label="Toggle menu">
               {isOpen ? (
