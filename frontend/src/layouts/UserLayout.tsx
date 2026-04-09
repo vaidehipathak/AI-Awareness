@@ -19,7 +19,7 @@ const UserLayout: React.FC = () => {
             <Sidebar />
             <div className="flex flex-col flex-1 ml-16 relative z-10">
                 <Navbar />
-                <main className="flex-grow pt-24 py-8 px-4 md:px-8">
+                <main className="flex-grow pt-32 py-8 px-4 md:px-8">
                     <Outlet />
                 </main>
                 <Footer />

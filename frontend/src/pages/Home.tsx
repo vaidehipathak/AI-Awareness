@@ -179,360 +179,232 @@ const Home: React.FC = () => {
         </motion.div>
       </section>
 
-      {/* --- 2. IMPACT STATS (Glass Cards) --- */}
-      <section id="what-is-this" className="py-24 relative z-10">
+      {/* --- SECTION 2: FEATURES (Glassmorphism Cards) --- */}
+      <section className="py-24 relative z-10">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-4 uppercase tracking-tighter">
+              Advanced Protection Features
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest text-sm">
+              Securing your digital identity with deterministic AI analysis
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
-                title: "Synthetic Media",
-                desc: "Detect AI-generated faces & scenes.",
-                stat: "99.8% Accuracy",
+                title: "Deepfake Detection",
+                desc: "Identify synthetic faces and media manipulation with high-precision heuristic analysis.",
                 icon: ImageIcon,
-                color: "text-blue-500",
-                border: "group-hover:border-blue-500/50",
-                shadow: "group-hover:shadow-blue-500/20"
+                color: "from-blue-500 to-indigo-500"
               },
               {
-                title: "Privacy Leaks",
-                desc: "Scan text for hidden PII exposure.",
-                stat: "Real-time Scrub",
+                title: "PII Risk Assessment",
+                desc: "Automatically detect and scrub personally identifiable information from text and images.",
                 icon: Fingerprint,
-                color: "text-green-500",
-                border: "group-hover:border-green-500/50",
-                shadow: "group-hover:shadow-green-500/20"
+                color: "from-emerald-500 to-teal-500"
               },
               {
-                title: "Document Fraud",
-                desc: "Analyze PDFs for manipulation.",
-                stat: "Metadata Scan",
+                title: "PDF Forensics",
+                desc: "Deep-layer inspection of document metadata and structure to identify fraud and tampering.",
                 icon: FileText,
-                color: "text-orange-500",
-                border: "group-hover:border-orange-500/50",
-                shadow: "group-hover:shadow-orange-500/20"
+                color: "from-orange-500 to-amber-500"
               },
               {
-                title: "Misinfo Ed.",
-                desc: "Learn to spot fake news patterns.",
-                stat: "50+ Modules",
+                title: "Gamified Awareness",
+                desc: "Interactive missions and quizzes designed to build critical cybersecurity intuition.",
                 icon: BrainCircuit,
-                color: "text-purple-500",
-                border: "group-hover:border-purple-500/50",
-                shadow: "group-hover:shadow-purple-500/20"
+                color: "from-purple-500 to-pink-500"
               },
               {
-                title: "Forensics",
-                desc: "Deep inspection of signal traces.",
-                stat: "Spectral Analysis",
-                icon: FileUp,
-                color: "text-pink-500",
-                border: "group-hover:border-pink-500/50",
-                shadow: "group-hover:shadow-pink-500/20"
+                title: "Explainable Analysis",
+                desc: "No black-boxes. Every risk assessment comes with a deterministic, human-readable justification.",
+                icon: ShieldCheck,
+                color: "from-cyan-500 to-blue-500"
               },
-            ].map((item, i) => (
+              {
+                title: "Institutional Oversight",
+                desc: "Robust role-based access and audit trails for organizational security management.",
+                icon: Lock,
+                color: "from-slate-700 to-slate-900"
+              }
+            ].map((feature, i) => (
               <motion.div
                 key={i}
-                whileHover={{ y: -8, scale: 1.02 }}
+                whileHover={{ y: -10, scale: 1.02 }}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                onClick={() => navigate(item.title === 'Misinfo Ed.' ? '/awareness-hub' : '/report')}
-                className={`group relative p-6 h-64 rounded-3xl bg-white dark:bg-gray-900/40 border border-slate-100 dark:border-white/5 backdrop-blur-md transition-all duration-300 shadow-xl cursor-pointer overflow-hidden flex flex-col justify-between ${item.border} ${item.shadow}`}
+                className="group relative p-8 rounded-[2.5rem] bg-white/40 dark:bg-white/5 border border-white/20 backdrop-blur-2xl transition-all duration-500 shadow-2xl hover:shadow-indigo-500/20 overflow-hidden"
               >
-                {/* Hover Gradient Background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/0 dark:from-white/5 dark:to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-
-                <div>
-                  <div className={`w-12 h-12 rounded-2xl bg-slate-50 dark:bg-white/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                    <item.icon className={`w-6 h-6 ${item.color}`} />
-                  </div>
-                  <h3 className="font-bold text-slate-900 dark:text-white text-xl mb-2">{item.title}</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-                    {item.desc}
-                  </p>
+                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-6 shadow-lg transform group-hover:rotate-6 transition-transform`}>
+                  <feature.icon className="w-8 h-8 text-white" strokeWidth={2.5} />
                 </div>
-
-                <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-white/5 mt-4">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{item.stat}</span>
-                  <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/10 flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition-colors">
-                    <ArrowRight size={14} className="-rotate-45 group-hover:rotate-0 transition-transform duration-300" />
-                  </div>
-                </div>
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-4 tracking-tight">
+                  {feature.title}
+                </h3>
+                <p className="text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                  {feature.desc}
+                </p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* --- 3. PROBLEM & REALITY CHECK --- */}
-      <section id="problem" className="py-32 px-4 relative z-10">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
-              <h2 className="text-4xl md:text-5xl font-black mb-8 text-slate-900 dark:text-white leading-tight">
-                The Gap Between <br />
-                <span className="text-indigo-500">AI Power</span> & <span className="text-pink-500">Human Safety</span>
-              </h2>
-              <p className="text-xl text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">
-                While AI generates content in milliseconds, human verification takes hours. We bridge this critical gap with real-time analysis and education.
-              </p>
-
-              <div className="space-y-6">
-                {[
-                  "Identity Theft via Deepfakes",
-                  "Automated Phishing Attacks",
-                  "Invisible PII Leaks"
-                ].map((text, i) => (
-                  <div key={i} className="flex items-center gap-4 group">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-red-500 group-hover:text-white transition-colors duration-300">
-                      <AlertTriangle size={24} />
-                    </div>
-                    <span className="text-lg font-bold text-slate-700 dark:text-slate-300">{text}</span>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="relative"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-orange-500 rounded-[2.5rem] blur-[60px] opacity-20 animate-pulse" />
-              <div className="relative bg-slate-900 rounded-[2.5rem] p-10 border border-white/10 shadow-2xl overflow-hidden coding-font">
-                {/* Fake Terminal UI */}
-                <div className="flex gap-2 mb-8">
-                  <div className="w-3 h-3 rounded-full bg-red-500" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                  <div className="w-3 h-3 rounded-full bg-green-500" />
-                </div>
-                <div className="space-y-4 font-mono text-sm">
-                  <div className="text-green-400">$ scan video_input.mp4</div>
-                  <div className="text-slate-400"> Analyzing frame data... [================] 100%</div>
-                  <div className="text-red-400 font-bold bg-red-400/10 p-2 rounded border-l-2 border-red-500">
-                    [ALERT] Face Swap Detected (Confidence: 99.8%)
-                  </div>
-                  <div className="text-slate-400 opacity-50"> Origin: Synthetic GAN Generator</div>
-                  <div className="text-slate-400 opacity-50"> Audio: Mismatched Spectrogram</div>
-                </div>
-
-                <div className="mt-8 pt-8 border-t border-white/10 flex justify-between items-center">
-                  <span className="text-xs uppercase tracking-widest text-slate-500">System Status</span>
-                  <div className="flex items-center gap-2 text-green-400 text-xs font-bold uppercase">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" /> Active Protection
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
+      {/* --- SECTION 3: PURPOSE / WHY THIS PLATFORM EXISTS --- */}
+      <section className="py-32 bg-slate-900 text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay" />
+        <div className="max-w-4xl mx-auto px-4 relative z-10 text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="space-y-8"
+          >
+            <h2 className="text-4xl md:text-6xl font-black tracking-tighter uppercase leading-[0.9]">
+              Why AwareX Exists
+            </h2>
+            <div className="w-24 h-2 bg-indigo-500 mx-auto rounded-full" />
+            <p className="text-xl md:text-2xl text-slate-400 font-medium leading-relaxed italic">
+              "Traditional security tools are black-boxes that compromise privacy. We built AwareX to give you explainable, deterministic analysis that stays local and stays private."
+            </p>
+            <p className="text-lg text-slate-300 leading-relaxed max-w-2xl mx-auto text-left md:text-center">
+              AI-AwareX was born from the need for a transparent cybersecurity platform. By focusing on heuristic-based detection rather than opaque machine learning models, we provide institutional-grade risk assessment that anyone can understand and verify.
+            </p>
+          </motion.div>
         </div>
       </section>
 
-      {/* --- 4. STEP-BY-STEP (Connected Flow) --- */}
-      <section className="py-32 bg-slate-100 dark:bg-white/5 relative z-10">
+      {/* --- SECTION 4: PAGE PREVIEWS (Alternating Layout) --- */}
+      <section className="py-32 bg-white dark:bg-[#0a0a0a] relative z-10">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-20">
-            <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white mb-6">How We Protect You</h2>
+          <div className="text-center mb-24">
+            <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">
+              Explore the Platform
+            </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative">
-            {/* Connection Line (Desktop) */}
-            <div className="hidden md:block absolute top-[2.5rem] left-[10%] right-[10%] h-[2px] bg-slate-200 dark:bg-white/10 z-0" />
-
+          <div className="space-y-32">
             {[
-              { title: "Upload", icon: Upload, desc: "Secure & Encrypted" },
-              { title: "Scan", icon: ScanSearch, desc: "Multi-Model AI" },
-              { title: "Analyze", icon: BrainCircuit, desc: "Risk Scoring" },
-              { title: "Learn", icon: BookOpen, desc: "Actionable Insights" },
-            ].map((step, i) => (
+              {
+                name: "Awareness Hub",
+                desc: "Our flagship learning center. Master the Age of AI through interactive missions, real-world scenarios, and deep-dive modules on PII, bias, and media manipulation.",
+                link: "/awareness-hub",
+                img: "/assets/screens/awarenesshub.png"
+              },
+              {
+                name: "Interactive Games",
+                desc: "Cybersecurity doesn't have to be boring. Build your intuition through gamified challenges that test your ability to spot deepfakes and identify phishing attempts in real-time.",
+                link: "/games",
+                img: "/assets/screens/games.png"
+              },
+              {
+                name: "Analysis Reports",
+                desc: "Get crystal clear insights into your files. Our unified reporting engine provides detailed risk labels and human-readable justifications for every detection.",
+                link: "/report",
+                img: "/assets/screens/analysis.png"
+              },
+              {
+                name: "Admin Oversight",
+                desc: "For institutions and educators. Oversee platform activity, manage learning modules, and audit system performance through a centralized management dashboard.",
+                link: "/login",
+                img: "/assets/screens/admin_panel_security_control_center.png"
+              },
+              {
+                name: "About Our Mission",
+                desc: "Meet the team of developers and researchers dedicated to building a safer, more transparent digital future for everyone.",
+                link: "/about-us",
+                img: "/assets/screens/about-us.png"
+              }
+            ].map((page, i) => (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, x: i % 2 === 0 ? -50 : 50 }}
+                whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.2 }}
-                className="relative z-10 flex flex-col items-center text-center group"
+                className={`flex flex-col ${i % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'} gap-12 lg:gap-24 items-center`}
               >
-                <div className="w-20 h-20 rounded-2xl bg-white dark:bg-slate-800 shadow-xl border border-slate-100 dark:border-white/10 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
-                  <step.icon className="w-8 h-8 text-indigo-500" />
+                {/* Image Preview Container */}
+                <div 
+                  onClick={() => navigate(page.link)}
+                  className="w-full lg:w-1/2 aspect-video bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-[3rem] shadow-2xl overflow-hidden group cursor-pointer relative"
+                >
+                   <motion.img 
+                      src={page.img} 
+                      alt={page.name}
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                      className="w-full h-full object-cover"
+                   />
+                   <div className="absolute inset-0 bg-indigo-500/0 group-hover:bg-indigo-500/5 transition-colors duration-500 pointer-events-none" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{step.title}</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{step.desc}</p>
+
+                {/* Page Description */}
+                <div className="w-full lg:w-1/2 space-y-6">
+                  <h3 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                    {page.name}
+                  </h3>
+                  <p className="text-xl text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                    {page.desc}
+                  </p>
+                  <button
+                    onClick={() => navigate(page.link)}
+                    className="flex items-center gap-2 text-indigo-500 font-black uppercase tracking-widest hover:gap-4 transition-all"
+                  >
+                    View Page <ArrowRight size={20} strokeWidth={3} />
+                  </button>
+                </div>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* --- 5. LIVE DEMO WIDGET --- */}
-      <section className="py-32 px-4 relative z-10">
-        <div className="max-w-6xl mx-auto bg-white dark:bg-gray-900 rounded-[3rem] shadow-2xl border border-slate-200 dark:border-gray-800 overflow-hidden relative">
-          {/* Glossy Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
 
-          <div className="grid grid-cols-1 lg:grid-cols-3">
-            {/* Sidebar Controls */}
-            <div className="p-10 bg-slate-50 dark:bg-gray-800/50 border-r border-slate-100 dark:border-gray-700">
-              <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-8">Try It Live</h3>
-              <div className="space-y-4">
-                {(['IMAGE', 'PII', 'PDF'] as const).map(tab => (
-                  <button
-                    key={tab}
-                    onClick={() => setDemoTab(tab)}
-                    className={`w-full p-4 rounded-xl text-left font-bold transition-all flex items-center gap-4 ${demoTab === tab
-                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                      : 'bg-white dark:bg-gray-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-gray-700'
-                      }`}
-                  >
-                    {tab === 'IMAGE' && <ImageIcon size={20} />}
-                    {tab === 'PII' && <Fingerprint size={20} />}
-                    {tab === 'PDF' && <FileText size={20} />}
-                    {tab === 'IMAGE' ? 'Deepfake Scan' : tab === 'PII' ? 'PII Detection' : 'Document Analysis'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Interaction Area */}
-            <div className="lg:col-span-2 p-10 md:p-16 flex flex-col justify-center items-center text-center bg-dot-pattern">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={demoTab}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.2 }}
-                  className="w-full max-w-md"
-                >
-                  <div className="mb-8">
-                    <div className="w-24 h-24 mx-auto rounded-[2rem] bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-2xl mb-6">
-                      {demoTab === 'IMAGE' && <ImageIcon size={40} />}
-                      {demoTab === 'PII' && <Fingerprint size={40} />}
-                      {demoTab === 'PDF' && <FileText size={40} />}
-                    </div>
-                    <h4 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-                      {demoTab === 'IMAGE' && "Upload Suspicious Media"}
-                      {demoTab === 'PII' && "Check Text for PII"}
-                      {demoTab === 'PDF' && "Forensic PDF Scan"}
-                    </h4>
-                    <p className="text-slate-500 dark:text-slate-400">
-                      Advanced {demoTab.toLowerCase()} analysis algorithms ready.
-                    </p>
-                  </div>
-
-                  <div
-                    onClick={runDemoScan}
-                    className="relative h-64 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-3xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all group overflow-hidden"
-                  >
-                    {scanning ? (
-                      <motion.div
-                        initial={{ height: "0%" }}
-                        animate={{ height: "100%" }}
-                        transition={{ duration: 1.5, ease: "linear" }}
-                        className="absolute top-0 left-0 w-full bg-gradient-to-b from-transparent to-indigo-500/20 border-b-2 border-indigo-500 z-0"
-                      />
-                    ) : null}
-
-                    <Upload className={`w-12 h-12 text-slate-400 group-hover:text-indigo-500 mb-4 transition-colors z-10 ${scanning ? 'animate-bounce' : ''}`} />
-                    <span className="text-sm font-bold text-slate-600 dark:text-slate-300 z-10">
-                      {scanning ? "Processing..." : "Click to Run Demo"}
-                    </span>
-                  </div>
-                </motion.div>
-              </AnimatePresence>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* --- 6. ROLES SECTION --- */}
-      <section className="py-24 px-4 bg-slate-900 text-white rounded-[3rem] mx-4 lg:mx-8 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay" />
-
-        <div className="max-w-7xl mx-auto relative z-10">
-          <div className="text-center mb-20">
-            <h2 className="text-4xl font-black mb-4">Empowering Every Stakeholder</h2>
-            <p className="text-slate-400">Tailored tools for every role in the digital ecosystem.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { title: "Students", icon: GraduationCap, desc: "Learn via Gamified Quizzes", action: "Start Playing" },
-              { title: "Educators", icon: BookOpen, desc: "Curriculum & Risk Demos", action: "Get Resources" },
-              { title: "Admins", icon: ShieldCheck, desc: "Organizational Oversight", action: "Admin Panel" },
-            ].map((role, i) => (
-              <div key={i} className="bg-white/5 border border-white/10 p-8 rounded-3xl hover:bg-white/10 transition-colors group">
-                <role.icon className="w-12 h-12 text-indigo-400 mb-6 group-hover:scale-110 transition-transform" />
-                <h3 className="text-2xl font-bold mb-2">{role.title}</h3>
-                <p className="text-slate-400 mb-8 h-12">{role.desc}</p>
-                <button
-                  onClick={() => navigate(role.title === "Admins" ? '/login' : '/awareness-hub')}
-                  className="w-full py-4 rounded-xl bg-indigo-600 font-bold hover:bg-indigo-500 transition-colors"
-                >
-                  {role.action}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* --- 7. GOVT & TRUST --- */}
-      <section className="py-24 px-4 bg-white dark:bg-black/20 relative z-10">
-        <div className="max-w-7xl mx-auto">
+      {/* --- SECTION 5: GLOBAL AI LITERACY --- */}
+      <section className="py-24 border-t border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02]">
+        <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16">
-            <span className="text-sm font-bold text-indigo-500 uppercase tracking-widest">Global Resources</span>
-            <h2 className="text-3xl md:text-5xl font-black mt-4 text-slate-900 dark:text-white">Trusted Learning Platforms</h2>
+            <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-4">
+              Expand Your <span className="text-indigo-500">AI Literacy</span>
+            </h2>
+            <p className="text-xl text-slate-500 font-medium max-w-2xl mx-auto">
+              Continue your learning journey with these world-class educational resources and certifications.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {trustedPlatforms.map((platform, i) => (
-              <a
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { name: "Elements of AI", url: "https://www.elementsofai.com/", desc: "A free online course for everyone by the University of Helsinki." },
+              { name: "Ethics of AI", url: "https://ethics-of-ai.mooc.fi/", desc: "Deep dive into the ethical dimensions of artificial intelligence." },
+              { name: "IBM SkillsBuild", url: "https://skillsbuild.org/students/course-catalog/artificial-intelligence", desc: "Professional AI credentials and pathways for students." },
+              { name: "Great Learning", url: "https://www.mygreatlearning.com/ai/free-courses", desc: "Free certifications for beginners and professionals alike." },
+              { name: "Alison Ethics", url: "https://alison.com/course/ai-governance-and-ethics", desc: "Comprehensive course on AI governance and responsibility." },
+              { name: "AI For All", url: "https://ai-for-all.in/#/home", desc: "Empowering every citizen with fundamental AI awareness." }
+            ].map((platform, i) => (
+              <motion.a
                 key={i}
                 href={platform.url}
                 target="_blank"
-                rel="noopener noreferrer"
-                className="group relative h-56 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-black/5 dark:border-white/5"
+                rel="noreferrer"
+                whileHover={{ y: -5 }}
+                className="group p-6 rounded-3xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:border-indigo-500/50 transition-all shadow-lg hover:shadow-indigo-500/10 flex flex-col justify-between"
               >
-                {/* Background Gradient */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${platform.color} transition-opacity duration-300`} />
-
-                {/* Watermark Logo (Background) */}
-                {/* Watermark Logo (Background) */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-30 group-hover:opacity-50 transition-all duration-500 pointer-events-none grayscale group-hover:grayscale-0 mix-blend-overlay z-0">
-                  <img
-                    src={(platform as any).customLogo || `https://logo.clearbit.com/${platform.domain}`}
-                    alt=""
-                    className="w-40 h-40 object-contain"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
+                <div>
+                  <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-2 group-hover:text-indigo-500 transition-colors">
+                    {platform.name}
+                  </h4>
+                  <p className="text-slate-500 text-sm font-medium leading-relaxed">
+                    {platform.desc}
+                  </p>
                 </div>
-
-                {/* Content */}
-                <div className="absolute inset-0 p-8 flex flex-col justify-between text-white z-10">
-                  <div className="relative">
-                    <h3 className="text-2xl font-bold mb-2 leading-tight drop-shadow-md">{platform.name}</h3>
-                    <p className="text-white/90 font-medium text-sm line-clamp-2 drop-shadow-sm">{platform.desc}</p>
-                  </div>
-
-                  <div className="flex justify-between items-center mt-6">
-                    <span className="text-xs font-bold uppercase tracking-wider bg-white/20 px-4 py-2 rounded-full backdrop-blur-md group-hover:bg-white group-hover:text-slate-900 transition-colors">
-                      Visit Site
-                    </span>
-                    <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md group-hover:scale-110 transition-transform">
-                      <ExternalLink size={20} className="text-white" />
-                    </div>
-                  </div>
+                <div className="mt-6 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-indigo-500 opacity-0 group-hover:opacity-100 transition-all">
+                  Visit Platform <ArrowRight size={14} strokeWidth={3} />
                 </div>
-              </a>
+              </motion.a>
             ))}
           </div>
         </div>

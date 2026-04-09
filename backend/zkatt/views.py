@@ -1,4 +1,4 @@
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 import os
@@ -18,68 +18,58 @@ except ImportError as e:
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@authentication_classes([])
 def simulate_attack(request):
     """
-    API Endpoint for Z-KATT Risk Verdict Simulation.
-    Visual Flow: User Input -> Console -> Verdict.
+    Mode 2: Free Prompt API for Z-KATT.
+    Generates a 5-phase attack scenario JSON using AI.
     """
-    description = request.data.get('description', '')
+    from core.ai_client import call_ai_service
     
-    if IMPORT_ERROR:
-        return Response({"error": f"Server Configuration Error: {IMPORT_ERROR}"}, status=500)
+    prompt = request.data.get('prompt', '')
+    if not prompt:
+        return Response({"error": "Prompt is required"}, status=400)
 
-    if not description:
-        return Response({"error": "Description is required"}, status=400)
+    system_prompt = """You are a cybersecurity educator. Given a user-described attack scenario, 
+generate a JSON object with this exact structure:
+{
+  "category": "string (short name)",
+  "phases": [
+    { "phase": "Attacker Action", "content": "string", "details": ["string", "string", "string"] },
+    { "phase": "Victim Perspective", "content": "string", "details": ["string", "string", "string"] },
+    { "phase": "Consequence", "content": "string", "details": ["string", "string", "string"] },
+    { "phase": "Warning Signs", "content": "string", "details": ["string", "string", "string"] },
+    { "phase": "Prevention Tips", "content": "string", "details": ["string", "string", "string"] }
+  ]
+}
+Return ONLY valid JSON. No markdown. No preamble. No talk. Ensure it is exactly 5 phases with those specific names."""
 
-    # Initialize Pipeline (Ensure LM Studio is running or use mock)
     try:
-        pipeline = ZKATT_V2_Pipeline() # This might fail if LM Studio is down
-    except Exception as e:
-        return Response({"error": f"Failed to init pipeline: {str(e)}"}, status=503)
-
-    # Run Pipeline (This is synchronous and slow - ideally use Celery, but for MVP we wait)
-    # TODO: Add progress streaming if possible
-    try:
-        result = pipeline.run(description)
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"Generate a simulation for this attack: {prompt}"}
+        ]
         
-        # Parse the 'analysis' string which should now be in JSON format due to updated prompt
-        try:
-            raw_analysis = result.get('analysis', '{}')
-            # Use regex to find the first JSON object
+        raw_response = call_ai_service(messages, temperature=0.7, max_tokens=1000)
+        
+        # Robust JSON parsing
+        json_str = raw_response.strip()
+        if "```" in json_str:
             import re
-            json_match = re.search(r'(\{.*\})', raw_analysis, re.DOTALL)
-            
-            if json_match:
-                json_str = json_match.group(1)
-                analysis_json = json.loads(json_str)
-            else:
-                # Fallback: try pure string load if no braces found (unlikely but safe)
-                analysis_json = json.loads(raw_analysis)
-                
-        except Exception as e:
-            print(f"DEBUG: JSON Parsing Failed: {str(e)} | Raw: {raw_analysis}")
-            # Fallback if parsing fails
-            analysis_json = {
-                "overall_risk_score": 50,
-                "risk_summary": {
-                    "identity_manipulation": "UNKNOWN", 
-                    "ai_detection_evasion": "UNKNOWN", 
-                    "deepfake_potential": "UNKNOWN"
-                },
-                "attack_cards": [],
-                "actionable_awareness": ["Automated analysis failed. Please review logs."],
-                "delta_message": "Analysis failed to parse structured output."
-            }
-
-        response_data = {
-            "risk_verdict": analysis_json,
-            "evidence": {
-                "original_pdf": "/media/zkatt/twin_original.pdf", # Placeholder URL logic
-                "attacked_pdf": "/media/zkatt/twin_attacked.pdf"
-            }
-        }
+            blocks = re.findall(r'```(?:json)?\s*(.*?)\s*```', json_str, re.DOTALL)
+            if blocks:
+                json_str = blocks[0]
         
-        return Response(response_data)
+        # Strip potential non-JSON noise at start/end
+        first_brace = json_str.find('{')
+        last_brace = json_str.rfind('}')
+        if first_brace != -1 and last_brace != -1:
+            json_str = json_str[first_brace:last_brace+1]
+            
+        data = json.loads(json_str)
+        return Response(data)
 
     except Exception as e:
-        return Response({"error": f"Simulation failed: {str(e)}"}, status=500)
+        # Silently log error, frontend will handle fallback
+        print(f"Z-KATT AI Error: {e}")
+        return Response({"error": "AI generation failed. Switching to guided mode."}, status=200)

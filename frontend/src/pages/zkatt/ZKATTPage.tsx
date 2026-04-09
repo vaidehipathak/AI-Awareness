@@ -1,208 +1,316 @@
-import React, { useState } from 'react';
-import ZKATTInput from '../../components/zkatt/ZKATTInput';
-import ZKATTConsole from '../../components/zkatt/ZKATTConsole';
-import ZKATTVerdict from '../../components/zkatt/ZKATTVerdict';
-import { RefreshCcw, ShieldAlert, FileText, Fingerprint } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { 
+  ShieldAlert, Mail, FileWarning, Wallet, 
+  ChevronRight, ChevronLeft, RotateCcw, 
+  Play, Pause, Terminal, Send, Search
+} from 'lucide-react';
+import { ZKATT_SCENARIOS, ZKATTSenario, ZKATTPhase } from '../../data/zkattScenarios';
+
+// --- TYPES ---
+type Mode = 'GUIDED' | 'FREE';
+type SimulationState = 'IDLE' | 'LOADING' | 'PLAYING' | 'COMPLETED';
 
 const ZKATTPage: React.FC = () => {
-    const [step, setStep] = useState<'INPUT' | 'SIMULATING' | 'VERDICT'>('INPUT');
-    const [logs, setLogs] = useState<string[]>([]);
-    const [verdictData, setVerdictData] = useState<any>(null);
+  const [mode, setMode] = useState<Mode>('GUIDED');
+  const [status, setStatus] = useState<SimulationState>('IDLE');
+  const [scenario, setScenario] = useState<ZKATTSenario | null>(null);
+  const [currentPhase, setCurrentPhase] = useState(0);
+  const [isAutoPlay, setIsAutoPlay] = useState(true);
+  const [prompt, setPrompt] = useState('');
+  const [loadingLogs, setLoadingLogs] = useState<string[]>([]);
 
-    const handleInitiate = async (description: string, options: any) => {
-        setStep('SIMULATING');
-        setLogs(["INITIALIZING Z-KATT CORE SYSTEM...", "CONNECTING TO LOCAL LLM CLUSTER..."]);
+  // --- AUTO-ADVANCE LOGIC ---
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (status === 'PLAYING' && isAutoPlay && scenario) {
+      if (currentPhase < scenario.phases.length - 1) {
+        timer = setTimeout(() => {
+          setCurrentPhase(prev => prev + 1);
+        }, 4000);
+      } else {
+        setStatus('COMPLETED');
+      }
+    }
+    return () => clearTimeout(timer);
+  }, [status, currentPhase, isAutoPlay, scenario]);
 
-        // Simulated Logs for UX (runs in parallel with actual fetch)
-        const logSequence = [
-            "Analyzing Intent: " + description,
-            "Researching Branding Profile...",
-            "Compiling Synthetic Twin Template...",
-            "SUCCESS: Twin Generated in memory.",
-            "Loading Adversarial Modules [Masker, Manipulator]...",
-            "Injecting PII Permutations...",
-            "Simulating AI Detection Layer...",
-            "Analyzing Forensic Delta...",
-            "Calculating Risk Score..."
-        ];
+  // --- HANDLERS ---
+  const handleLaunchScenario = (sc: ZKATTSenario) => {
+    setScenario(sc);
+    setCurrentPhase(0);
+    setStatus('PLAYING');
+  };
 
-        let logIndex = 0;
-        const logInterval = setInterval(() => {
-            if (logIndex < logSequence.length) {
-                setLogs(prev => [...prev, logSequence[logIndex]]);
-                logIndex++;
-            }
-        }, 45000); // 45s per log step (CPU Inference Speed)
+  const handleFreePrompt = async () => {
+    if (!prompt.trim()) return;
+    setStatus('LOADING');
+    setLoadingLogs(['INITIALIZING AI ENGINE...', 'ANALYZING ATTACK VECTOR...']);
+    
+    // Simulate terminal logs
+    const interval = setInterval(() => {
+        setLoadingLogs(prev => [...prev, `FETCHING DATA: ${Math.random().toString(36).substring(7).toUpperCase()}...`]);
+    }, 800);
 
-        // Timeout Safety Valve (600 Seconds / 10 Minutes)
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 600000);
+    try {
+      const response = await fetch('/api/zkatt/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      });
+      
+      const data = await response.json();
+      clearInterval(interval);
 
-        try {
-            const response = await fetch('/api/zkatt/simulate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ description, ...options }),
-                signal: controller.signal
-            });
+      if (data.phases) {
+        setScenario(data);
+        setStatus('PLAYING');
+        setCurrentPhase(0);
+      } else {
+        // Fallback
+        handleFallback(prompt);
+      }
+    } catch (e) {
+      clearInterval(interval);
+      handleFallback(prompt);
+    }
+  };
 
-            clearTimeout(timeoutId);
+  const handleFallback = (input: string) => {
+    const lowerInput = input.toLowerCase();
+    let bestMatch = ZKATT_SCENARIOS[0]; // Default Phishing
+    if (lowerInput.includes('money') || lowerInput.includes('bank') || lowerInput.includes('card')) {
+        bestMatch = ZKATT_SCENARIOS[2];
+    } else if (lowerInput.includes('file') || lowerInput.includes('malware') || lowerInput.includes('virus')) {
+        bestMatch = ZKATT_SCENARIOS[1];
+    }
+    setScenario(bestMatch);
+    setStatus('PLAYING');
+    setCurrentPhase(0);
+    // Simple alert-like toast simulated
+    console.log("Fallback triggered: Switched to Guided Mode");
+  };
 
-            if (!response.ok) {
-                throw new Error(`Server Error: ${response.status} ${response.statusText}`);
-            }
+  const reset = () => {
+    setStatus('IDLE');
+    setScenario(null);
+    setCurrentPhase(0);
+    setPrompt('');
+  };
 
-            const data = await response.json();
-            clearInterval(logInterval);
-            console.log("DEBUG: Full API Response:", data);
+  // --- RENDER HELPERS ---
+  const getPhaseColor = (index: number) => {
+    const colors = [
+      'border-red-500 shadow-red-500/20 text-red-500', 
+      'border-slate-400 shadow-slate-500/20 text-slate-300', 
+      'border-orange-600 shadow-orange-600/20 text-orange-500', 
+      'border-amber-400 shadow-amber-400/20 text-amber-400', 
+      'border-emerald-500 shadow-emerald-500/20 text-emerald-500'
+    ];
+    return colors[index] || 'border-indigo-500';
+  };
 
-            if (data.error) {
-                setLogs(prev => [...prev, "ERROR: " + data.error]);
-                return;
-            }
+  return (
+    <div className="min-h-screen bg-[#050505] text-white font-mono p-4 md:p-8 pt-24 relative overflow-hidden">
+      
+      {/* SCANLINE EFFECT */}
+      <div className="fixed inset-0 pointer-events-none opacity-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] z-50"></div>
 
-            if (!data.risk_verdict) {
-                console.error("DEBUG: Missing risk_verdict in response!", data);
-                setLogs(prev => [...prev, "ERROR: Invalid Backend Response (Missing Verdict Data)"]);
-                return;
-            }
-
-            setLogs(prev => [...prev, "SUCCESS: VULNERABILITY REPORT GENERATED."]);
-
-            // Artificial delay to let user see "Success"
-            setTimeout(() => {
-                // Merge evidence links into the verdict data object
-                const finalData = {
-                    ...data.risk_verdict,
-                    evidence: data.evidence
-                };
-                setVerdictData(finalData);
-                setStep('VERDICT');
-            }, 1000);
-
-        } catch (error: any) {
-            clearInterval(logInterval);
-            console.error("DEBUG: Fetch/Parse Error:", error);
-
-            if (error.name === 'AbortError') {
-                setLogs(prev => [...prev, "ERROR: TIMEOUT - Backend took too long to respond."]);
-            } else {
-                setLogs(prev => [...prev, `CRITICAL ERROR: ${error.message || "Connection Failed"}`]);
-            }
-        }
-    };
-
-    const handleReset = () => {
-        setStep('INPUT');
-        setLogs([]);
-        setVerdictData(null);
-    };
-
-    return (
-        <div className="min-h-screen overflow-hidden bg-slate-50 dark:bg-[#0a0a0a] transition-colors duration-500 font-sans selection:bg-indigo-500 selection:text-white">
-
-            {/* Ambient Background - Matching Home Page */}
-            <div className="fixed inset-0 pointer-events-none z-0">
-                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/10 rounded-full blur-[80px] mix-blend-multiply dark:mix-blend-screen animate-blob" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/10 rounded-full blur-[80px] mix-blend-multiply dark:mix-blend-screen animate-blob animation-delay-2000" />
-                <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-pink-500/10 rounded-full blur-[80px] mix-blend-multiply dark:mix-blend-screen animate-blob animation-delay-4000" />
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] brightness-100 contrast-150 mix-blend-overlay"></div>
-            </div>
-
-            {/* Page Header */}
-            <div className="relative z-10 pt-24 pb-12 px-4 text-center">
-                <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 rounded-full bg-white/80 dark:bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl">
-                    <ShieldAlert className="w-4 h-4 text-red-500 animate-pulse" />
-                    <span className="text-xs font-bold tracking-[0.2em] uppercase text-slate-600 dark:text-slate-300">
-                        Zero-Knowledge Adversarial Twin Toolkit
-                    </span>
-                </div>
-                <h1 className="text-5xl md:text-6xl font-black text-slate-900 dark:text-white mb-4 tracking-tighter">
-                    Forensic <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">Simulation</span> Engine
-                </h1>
-                <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-8">
-                    Simulate AI-driven attacks on documents and generate synthetic evidence for educational purposes.
-                </p>
-
-                {/* What You'll Learn Section */}
-                <div className="max-w-5xl mx-auto mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-xl hover:shadow-2xl hover:scale-105 transition-all">
-                        <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-                            <ShieldAlert className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-                        </div>
-                        <h3 className="font-bold text-slate-900 dark:text-white mb-2">Understand AI Vulnerabilities</h3>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">
-                            See how AI can manipulate documents and learn to identify synthetic alterations in real-world scenarios.
-                        </p>
-                    </div>
-
-                    <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-xl hover:shadow-2xl hover:scale-105 transition-all">
-                        <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                            <FileText className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                        </div>
-                        <h3 className="font-bold text-slate-900 dark:text-white mb-2">Forensic Analysis Skills</h3>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">
-                            Develop critical thinking to detect document fraud, PII leaks, and adversarial attacks on sensitive data.
-                        </p>
-                    </div>
-
-                    <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-xl hover:shadow-2xl hover:scale-105 transition-all">
-                        <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center">
-                            <Fingerprint className="w-6 h-6 text-pink-600 dark:text-pink-400" />
-                        </div>
-                        <h3 className="font-bold text-slate-900 dark:text-white mb-2">Privacy Protection Awareness</h3>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">
-                            Learn how personal information can be exploited and understand best practices for data security.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Main Content */}
-            <div className="relative z-10 px-4 pb-24 flex flex-col items-center justify-center">
-                {step === 'INPUT' && (
-                    <div className="animate-in fade-in zoom-in duration-500 w-full">
-                        <ZKATTInput onInitiate={handleInitiate} isLoading={false} />
-                    </div>
-                )}
-
-                {step === 'SIMULATING' && (
-                    <div className="w-full max-w-4xl space-y-6">
-                        <div className="text-center p-6 rounded-3xl bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-white/20 shadow-xl">
-                            <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500 animate-pulse">
-                                Running Forensic Simulation...
-                            </h2>
-                        </div>
-                        <ZKATTConsole logs={logs} />
-                    </div>
-                )}
-
-                {step === 'VERDICT' && (
-                    <div className="w-full space-y-8">
-                        {verdictData ? (
-                            <ZKATTVerdict data={verdictData} />
-                        ) : (
-                            <div className="max-w-2xl mx-auto text-center p-8 rounded-3xl bg-red-500/10 border border-red-500/20 backdrop-blur-xl shadow-xl">
-                                <h3 className="text-xl font-bold mb-2 text-red-600 dark:text-red-400">Rendering Error</h3>
-                                <p className="text-slate-600 dark:text-slate-400">Simulation completed, but result data is missing.</p>
-                            </div>
-                        )}
-
-                        <div className="flex justify-center">
-                            <button
-                                onClick={handleReset}
-                                className="group relative px-8 py-4 bg-white dark:bg-white/10 text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-full font-bold backdrop-blur-md hover:bg-slate-100 dark:hover:bg-white/20 transition-all flex items-center gap-3 shadow-xl hover:shadow-2xl hover:scale-105"
-                            >
-                                <RefreshCcw className="w-5 h-5" />
-                                Run New Simulation
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </div>
+      <div className="max-w-6xl mx-auto relative z-10">
+        
+        {/* HEADER */}
+        <div className="text-center mb-12">
+            <h1 className="text-4xl md:text-6xl font-black tracking-tighter mb-4 flex items-center justify-center gap-4">
+                <ShieldAlert className="w-10 h-10 text-indigo-500" />
+                Z-KATT <span className="text-indigo-500">ENGINE v1.0</span>
+            </h1>
+            <p className="text-slate-400 max-w-xl mx-auto italic">Zero-Knowledge Attack Training Tool</p>
         </div>
-    );
+
+        {/* MODE SWITCHER */}
+        {status === 'IDLE' && (
+            <div className="flex justify-center mb-12">
+                <div className="bg-white/5 backdrop-blur-md p-1 rounded-full border border-white/10 inline-flex">
+                    <button 
+                        onClick={() => setMode('GUIDED')}
+                        className={`px-8 py-2 rounded-full font-bold transition-all ${mode === 'GUIDED' ? 'bg-indigo-600 text-white shadow-[0_0_20px_rgba(79,70,229,0.5)]' : 'text-slate-400 hover:text-white'}`}
+                    >
+                        GUIDED MODE
+                    </button>
+                    <button 
+                        onClick={() => setMode('FREE')}
+                        className={`px-8 py-2 rounded-full font-bold transition-all ${mode === 'FREE' ? 'bg-indigo-600 text-white shadow-[0_0_20px_rgba(79,70,229,0.5)]' : 'text-slate-400 hover:text-white'}`}
+                    >
+                        FREE PROMPT
+                    </button>
+                </div>
+            </div>
+        )}
+
+        {/* MAIN DISPLAY AREA */}
+        <div className="min-h-[500px]">
+            {status === 'IDLE' && mode === 'GUIDED' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {ZKATT_SCENARIOS.map(sc => (
+                        <div 
+                            key={sc.id}
+                            onClick={() => handleLaunchScenario(sc)}
+                            className="bg-white/5 border border-white/10 p-6 rounded-2xl cursor-pointer hover:border-indigo-500/50 hover:bg-white/10 transition-all group relative overflow-hidden"
+                        >
+                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-30 transition-opacity">
+                                {sc.id === 'phishing' && <Mail className="w-12 h-12" />}
+                                {sc.id === 'malware' && <FileWarning className="w-12 h-12" />}
+                                {sc.id === 'financial' && <Wallet className="w-12 h-12" />}
+                            </div>
+                            <h3 className="text-xl font-black mb-2 text-indigo-400">{sc.category}</h3>
+                            <p className="text-sm text-slate-400 mb-4">{sc.description}</p>
+                            <div className="flex items-center text-xs font-bold text-slate-500 group-hover:text-white transition-colors">
+                                INITIATE SIMULATION <ChevronRight className="w-4 h-4" />
+                            </div>
+                        </div>
+                    ))}
+                    {/* COMING SOON SLOTS */}
+                    {[1, 2].map(i => (
+                        <div key={i} className="bg-white/5 border border-white/5 p-6 rounded-2xl opacity-50 grayscale cursor-not-allowed">
+                            <div className="inline-block px-2 py-1 bg-white/10 rounded text-[10px] mb-2">COMING SOON</div>
+                            <h3 className="text-xl font-black mb-2 text-slate-600">New Category {i}</h3>
+                            <p className="text-sm text-slate-700">Encrypted transmission pending...</p>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {status === 'IDLE' && mode === 'FREE' && (
+                <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in zoom-in-95 duration-500">
+                    <div className="bg-white/5 border border-white/10 p-8 rounded-3xl backdrop-blur-xl">
+                        <Terminal className="w-8 h-8 text-indigo-500 mb-4" />
+                        <h2 className="text-2xl font-black mb-2">FREE PROMPT INJECTION</h2>
+                        <p className="text-slate-400 text-sm mb-6 italic">Describe any cyber attack scenario, and the AI will generate a step-by-step simulation.</p>
+                        <textarea 
+                            value={prompt}
+                            onChange={(e) => setPrompt(e.target.value)}
+                            placeholder="e.g. A SQL injection attack on a local pizza shop database..."
+                            className="w-full h-32 bg-black/50 border border-white/10 rounded-xl p-4 text-indigo-400 focus:border-indigo-500 outline-none transition-all resize-none mb-4"
+                        />
+                        <button 
+                            onClick={handleFreePrompt}
+                            className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-black text-lg flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(79,70,229,0.3)] transition-all"
+                        >
+                            GENERATE SIMULATION <Send className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {status === 'LOADING' && (
+                <div className="max-w-2xl mx-auto">
+                    <div className="bg-black/80 border border-indigo-500/30 p-8 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,1)]">
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                            <h2 className="text-xl font-bold text-indigo-400 animate-pulse">EXECUTING AI ENGINE...</h2>
+                        </div>
+                        <div className="space-y-2 font-mono text-xs overflow-hidden h-48 scroll-smooth">
+                            {loadingLogs.map((log, i) => (
+                                <div key={i} className="text-emerald-500/80">
+                                    <span className="text-white opacity-30">[{new Date().toLocaleTimeString()}]</span> {log}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {(status === 'PLAYING' || status === 'COMPLETED') && scenario && (
+                <div className="animate-in fade-in duration-700">
+                    {/* PROGRESS BAR */}
+                    <div className="max-w-3xl mx-auto mb-8 flex gap-2">
+                        {scenario.phases.map((_, i) => (
+                            <div 
+                                key={i} 
+                                className={`h-2 flex-1 rounded-full transition-all duration-1000 ${i <= currentPhase ? 'bg-indigo-500 shadow-[0_0_10px_rgba(79,70,229,0.8)]' : 'bg-white/10'}`}
+                            />
+                        ))}
+                    </div>
+
+                    {/* PHASE PLAYER */}
+                    <div className={`max-w-4xl mx-auto bg-black/60 backdrop-blur-2xl border-2 rounded-3xl p-8 md:p-12 transition-all duration-500 ${getPhaseColor(currentPhase)}`}>
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                            <div>
+                                <span className="text-[10px] uppercase tracking-widest opacity-50 block mb-1">Phase {currentPhase + 1} / 5</span>
+                                <h2 className="text-3xl md:text-4xl font-black italic tracking-tighter transition-all">
+                                    {scenario.phases[currentPhase].phase}
+                                </h2>
+                            </div>
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={() => setIsAutoPlay(!isAutoPlay)}
+                                    className="p-3 bg-white/5 hover:bg-white/10 rounded-full transition-colors"
+                                >
+                                    {isAutoPlay ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                                </button>
+                                <button 
+                                    onClick={reset}
+                                    className="p-3 bg-white/5 hover:bg-white/10 rounded-full transition-colors"
+                                >
+                                    <RotateCcw className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="space-y-8">
+                            <div className="text-xl leading-relaxed animate-in fade-in slide-in-from-left-4 duration-500">
+                                {scenario.phases[currentPhase].content}
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {scenario.phases[currentPhase].details.map((detail, idx) => (
+                                    <div key={idx} className="flex gap-3 items-start bg-white/5 p-4 rounded-xl border border-white/5 border-l-4 border-l-inherit animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: `${idx * 150}ms` }}>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-current mt-2" />
+                                        <span className="text-sm opacity-80">{detail}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* CONTROLS */}
+                        <div className="mt-12 flex justify-between items-center bg-black/40 p-4 rounded-2xl border border-white/5">
+                            <button 
+                                onClick={() => setCurrentPhase(p => Math.max(0, p - 1))}
+                                disabled={currentPhase === 0}
+                                className="flex items-center gap-2 font-bold px-4 py-2 rounded-lg hover:bg-white/10 disabled:opacity-20 transition-all"
+                            >
+                                <ChevronLeft /> PREV
+                            </button>
+                            
+                            {status === 'COMPLETED' ? (
+                                <button 
+                                    onClick={reset}
+                                    className="px-8 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg font-black transition-all shadow-[0_0_20px_rgba(79,70,229,0.5)]"
+                                >
+                                    RESTART
+                                </button>
+                            ) : (
+                                <button 
+                                    onClick={() => setCurrentPhase(p => Math.min(scenario.phases.length - 1, p + 1))}
+                                    className="flex items-center gap-2 font-bold px-4 py-2 bg-white/5 rounded-lg hover:bg-white/10 transition-all border border-white/10"
+                                >
+                                    NEXT <ChevronRight />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {mode === 'FREE' && (
+                        <div className="text-center mt-8 text-xs text-slate-500 italic flex items-center justify-center gap-2">
+                            <Search className="w-3 h-3" />
+                            ⚠ Experimental mode — AI-generated results may vary. For reliable learning, use Guided Mode.
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default ZKATTPage;
-
