@@ -13,11 +13,8 @@ import {
     ChevronLeft,
     ChevronRight,
     Shield,
-<<<<<<< Updated upstream
-    FileSearch,
-=======
     Users,
->>>>>>> Stashed changes
+    FileSearch,
 } from 'lucide-react';
 
 import AuthGateModal from './AuthGateModal';
@@ -109,11 +106,7 @@ const Sidebar: React.FC = () => {
     return (
         <>
             <div
-<<<<<<< Updated upstream
-                className={`fixed left-0 top-0 h-screen bg-slate-900/95 dark:bg-[#0a0a0a]/60 backdrop-blur-xl border-r border-slate-800 dark:border-white/5 transition-all duration-300 ease-in-out z-[60] ${isExpanded ? 'w-64' : 'w-16'
-=======
                 className={`fixed left-0 top-[6.5rem] h-[calc(100vh-6.5rem)] bg-slate-900/95 dark:bg-[#0a0a0a]/60 backdrop-blur-xl border-r border-slate-800 dark:border-white/5 transition-all duration-300 ease-in-out z-40 ${isExpanded ? 'w-64' : 'w-16'
->>>>>>> Stashed changes
                     }`}
                 onMouseEnter={() => setIsExpanded(true)}
                 onMouseLeave={() => setIsExpanded(false)}

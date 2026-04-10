@@ -29,7 +29,7 @@ const teamMembers: TeamMember[] = [
   {
     name: "Vaidehi Pathak",
     role: "Team Lead (3rd Year)",
-    image: "/assets/team/vaidehi.jpeg",
+    image: "/assets/team/vaidehi.png",
     description: "Focuses on system architecture and integration of AI detection modules.",
     github: "https://github.com/vaidehipathak",
     linkedin: "https://www.linkedin.com/in/vaidehi-pathak-b6610a28b/",

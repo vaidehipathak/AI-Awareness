@@ -101,13 +101,8 @@ const Navbar: React.FC = () => {
 
   return (
     <>
-<<<<<<< Updated upstream
-      <header className="bg-white/80 dark:bg-[#0a0a0a]/60 backdrop-blur-xl shadow-md border-b border-gray-200 dark:border-white/5 fixed top-0 left-0 right-0 z-50 transition-colors duration-500 md:pl-16">
-        <nav className="container mx-auto px-4 md:px-8 py-4 flex justify-between items-center">
-=======
       <header className="bg-white/80 dark:bg-[#0a0a0a]/60 backdrop-blur-xl shadow-md border-b border-gray-200 dark:border-white/5 fixed top-0 left-0 right-0 z-50 transition-colors duration-500">
         <nav className="container mx-auto px-4 md:px-8 py-5 flex justify-between items-center">
->>>>>>> Stashed changes
           <button onClick={() => navigate('/')} className="group relative">
             <span className="absolute -inset-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 blur-lg opacity-0 group-hover:opacity-30 transition-opacity duration-500" />
             <div className="relative flex items-center gap-3">
