@@ -5,9 +5,10 @@ import {
   Play, Pause, Terminal, Send, Search
 } from 'lucide-react';
 import { ZKATT_SCENARIOS, ZKATTSenario, ZKATTPhase } from '../../data/zkattScenarios';
+import MockIdDemo from './MockIdDemo';
 
 // --- TYPES ---
-type Mode = 'GUIDED' | 'FREE';
+type Mode = 'GUIDED' | 'FREE' | 'PII_DEMO';
 type SimulationState = 'IDLE' | 'LOADING' | 'PLAYING' | 'COMPLETED';
 
 const ZKATTPage: React.FC = () => {
@@ -142,6 +143,12 @@ const ZKATTPage: React.FC = () => {
                     >
                         FREE PROMPT
                     </button>
+                    <button 
+                        onClick={() => setMode('PII_DEMO')}
+                        className={`px-8 py-2 rounded-full font-bold transition-all ${mode === 'PII_DEMO' ? 'bg-indigo-600 text-white shadow-[0_0_20px_rgba(79,70,229,0.5)]' : 'text-slate-400 hover:text-white'}`}
+                    >
+                        PII DEMO
+                    </button>
                 </div>
             </div>
         )}
@@ -199,6 +206,10 @@ const ZKATTPage: React.FC = () => {
                         </button>
                     </div>
                 </div>
+            )}
+
+            {status === 'IDLE' && mode === 'PII_DEMO' && (
+                <MockIdDemo />
             )}
 
             {status === 'LOADING' && (

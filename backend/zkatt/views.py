@@ -24,7 +24,7 @@ def simulate_attack(request):
     Mode 2: Free Prompt API for Z-KATT.
     Generates a 5-phase attack scenario JSON using AI.
     """
-    from core.ai_client import call_ai_service
+    from core.ai_client import lmstudio_chat
     
     prompt = request.data.get('prompt', '')
     if not prompt:
@@ -50,7 +50,7 @@ Return ONLY valid JSON. No markdown. No preamble. No talk. Ensure it is exactly 
             {"role": "user", "content": f"Generate a simulation for this attack: {prompt}"}
         ]
         
-        raw_response = call_ai_service(messages, temperature=0.7, max_tokens=1000)
+        raw_response = lmstudio_chat(messages, temperature=0.7, max_tokens=1000)
         
         # Robust JSON parsing
         json_str = raw_response.strip()

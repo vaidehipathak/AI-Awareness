@@ -7,7 +7,7 @@ from .aadhaar_validator import is_valid_aadhaar
 
 PII_PRIORITY = {
     "AADHAAR": 5, "VID": 5, "PAN": 5,
-    "CREDIT_DEBIT_CARD": 4, "CVV": 5,
+    "CREDIT_DEBIT_CARD": 5, "CVV": 5,
     "UPI_ID": 4, "BANK_ACCOUNT": 3,
     "PHONE": 2, "EMAIL": 2,
     "DOB": 3, "URL": 1,
@@ -71,13 +71,32 @@ def detect_pii(text):
              continue  # Allow Aadhaar through if context is high, even if confidence is borderline
 
 
-        # Suppress overlaps
-        if any(
-            overlaps(h["start"], h["end"], f["start"], f["end"]) and
-            PII_PRIORITY.get(f["type"],0) >= PII_PRIORITY.get(h["type"],0)
-            for f in final_hits
-        ):
+        # Suppress overlaps or remove lower priority overlapping entities
+        is_suppressed = False
+        to_remove = []
+        for f in final_hits:
+            if overlaps(h["start"], h["end"], f["start"], f["end"]):
+                priority_f = PII_PRIORITY.get(f["type"], 0)
+                priority_h = PII_PRIORITY.get(h["type"], 0)
+                
+                if priority_f > priority_h:
+                    is_suppressed = True
+                    break
+                elif priority_f == priority_h:
+                    # Break ties using confidence scores
+                    if f.get("confidence", 0) >= round(conf, 2):
+                        is_suppressed = True
+                        break
+                    else:
+                        to_remove.append(f)
+                else:
+                    to_remove.append(f)
+        
+        if is_suppressed:
             continue
+            
+        for f in to_remove:
+            final_hits.remove(f)
 
         final_hits.append({
             "type": h["type"],

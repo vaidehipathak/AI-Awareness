@@ -75,6 +75,15 @@ def keyword_score(text, pii_type, start, end, window=40):
     if pii_type == "UPI_ID":
         return 0.3 if any(k in context for k in SENSITIVE_KEYWORDS["UPI_ID"]) else 0.1
 
+    # VID vs Credit Card disambiguation
+    if pii_type == "VID":
+        if any(k in context for k in SENSITIVE_KEYWORDS["VID"]) or any(k in context for k in SENSITIVE_KEYWORDS["AADHAAR"]):
+            return 0.4 # Strong boost
+    
+    if pii_type == "CREDIT_DEBIT_CARD":
+        if any(k in context for k in SENSITIVE_KEYWORDS["AADHAAR"]) or any(k in context for k in SENSITIVE_KEYWORDS["VID"]):
+            return -1.0 # It's a VID, not a credit card!
+
     for kw in SENSITIVE_KEYWORDS.get(pii_type, []):
         if kw in context:
             return 0.3
