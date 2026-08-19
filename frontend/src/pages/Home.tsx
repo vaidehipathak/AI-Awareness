@@ -310,7 +310,7 @@ const Home: React.FC = () => {
               {
                 name: "Admin Oversight",
                 desc: "For institutions and educators. Oversee platform activity, manage learning modules, and audit system performance through a centralized management dashboard.",
-                link: "/login",
+                link: "/admin/dashboard",
                 img: "/assets/screens/admin_panel_security_control_center.png"
               },
               {
