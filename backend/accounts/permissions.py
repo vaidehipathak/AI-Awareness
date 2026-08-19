@@ -89,10 +89,12 @@ class IsOwnerOrAdmin(BaseAuditPermission):
         return request.user and request.user.is_authenticated
 
     def has_object_permission(self, request, view, obj):
-        # Admin can do anything - BUT should we enforce MFA here?
-        # Ideally yes, but typically view-level permission (has_permission) handles the gate.
-        # If IsAdminWithMFA is used at view level, request.user.role == ADMIN is already MFA checked.
+        # Admin can access — but only if MFA-verified (prevents access with stale/pre-MFA tokens)
         if request.user.role == 'ADMIN':
+            mfa_verified = bool(request.auth and request.auth.get('mfa_verified', False))
+            if not mfa_verified:
+                self._log_denial(request, "OWNER_OR_ADMIN_MFA_REQUIRED")
+                return False
             return True
 
         # Check ownership

@@ -9,10 +9,17 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 def _get_cipher():
     """
-    Derive a deterministic Fernet key from the Django SECRET_KEY.
-    This ensures we can decrypt secrets even if the app restarts, 
-    as long as SECRET_KEY remains constant.
+    Returns a Fernet cipher instance.
+    Uses MFA_ENCRYPTION_KEY from environment if configured;
+    otherwise derives a deterministic key from Django SECRET_KEY.
     """
+    mfa_key = os.getenv("MFA_ENCRYPTION_KEY")
+    if mfa_key:
+        try:
+            return Fernet(mfa_key.encode() if isinstance(mfa_key, str) else mfa_key)
+        except Exception:
+            pass
+
     # Use SECRET_KEY to derive a 32-byte key for Fernet
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),

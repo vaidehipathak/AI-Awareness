@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../../config';
 import { useAuth } from '../../contexts/AuthContext';
 import { Search, ChevronLeft, ChevronRight, AlertCircle, RefreshCcw, ShieldCheck, ShieldAlert, UserX, UserCheck, KeyRound, Lock, GripHorizontal, Trash2 } from 'lucide-react';
 
@@ -31,7 +32,7 @@ const AdminUserManagement: React.FC = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await axios.get('http://localhost:8000/auth/admin/users/', {
+            const response = await axios.get(`${API_BASE_URL}/auth/admin/users/`, {
                 headers: { Authorization: `Bearer ${token}` },
                 params: { page, search: search || undefined }
             });
@@ -61,7 +62,7 @@ const AdminUserManagement: React.FC = () => {
         setSuccessMsg('');
 
         try {
-            const response = await axios.post(`http://localhost:8000/auth/admin/users/${userId}/${action}/`, {}, {
+            const response = await axios.post(`${API_BASE_URL}/auth/admin/users/${userId}/${action}/`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setSuccessMsg(response.data.message);

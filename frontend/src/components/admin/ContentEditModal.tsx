@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Save, X } from 'lucide-react';
+import { API_BASE_URL } from '../../config';
+import { Save, X, Edit3, Sparkles, FileText, CheckSquare, Code } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface ContentEditModalProps {
@@ -25,10 +26,10 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
     }, [item]);
 
     const endpoints = {
-        articles: 'http://localhost:8000/api/content/articles/',
-        games: 'http://localhost:8000/api/content/games/',
-        quiz: 'http://localhost:8000/api/content/quiz/',
-        awareness: 'http://localhost:8000/api/content/awareness/'
+        articles: `${API_BASE_URL}/api/content/articles/`,
+        games: `${API_BASE_URL}/api/content/games/`,
+        quiz: `${API_BASE_URL}/api/content/quiz/`,
+        awareness: `${API_BASE_URL}/api/content/awareness/`
     };
 
     const handleSave = async (e: React.FormEvent) => {
@@ -36,7 +37,6 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
         setLoading(true);
         try {
             const endpoint = endpoints[contentType];
-            // Determine if create or update - assuming if item has ID it's update
             if (item && item.id) {
                 await axios.patch(`${endpoint}${item.id}/`, formData, {
                     headers: { Authorization: `Bearer ${token}` }
@@ -58,42 +58,89 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
 
     if (!isOpen) return null;
 
+    const isEdit = Boolean(item && item.id);
+    const contentTypeLabels: Record<string, string> = {
+        articles: 'Blog Article',
+        games: 'Game Entry',
+        quiz: 'Quiz Question Set',
+        awareness: 'Awareness Module'
+    };
+
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-white/10">
-                <div className="p-6 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
-                    <h3 className="font-bold text-lg text-slate-800 dark:text-white">{item?.id ? 'Edit Content' : 'Create New'}</h3>
-                    <button onClick={onClose} className="text-slate-500 hover:text-red-500 transition-colors"><X className="w-6 h-6" /></button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
+            <div className="bg-white dark:bg-[#12131a] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-white/10 flex flex-col">
+                
+                {/* Modal Header */}
+                <div className="p-5 px-6 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-slate-50 dark:bg-gradient-to-r dark:from-indigo-950/40 dark:to-slate-900/60 sticky top-0 z-10 backdrop-blur-md">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                            {isEdit ? <Edit3 className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-lg text-slate-900 dark:text-white leading-tight">
+                                {isEdit ? `Edit ${contentTypeLabels[contentType] || 'Content'}` : `Create ${contentTypeLabels[contentType] || 'Content'}`}
+                            </h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {isEdit ? `Modifying item #${item.id}` : 'Fill in the fields below to publish new content.'}
+                            </p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={onClose} 
+                        className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                        aria-label="Close modal"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
                 </div>
-                <form onSubmit={handleSave} className="p-6 space-y-4">
+
+                {/* Modal Form */}
+                <form onSubmit={handleSave} className="p-6 space-y-5 flex-1">
+                    
+                    {/* Title */}
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Title</label>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
+                            Title <span className="text-red-500">*</span>
+                        </label>
                         <input
                             type="text"
                             required
-                            className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-white/10 bg-white dark:bg-black/20 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            placeholder="Enter a descriptive title..."
+                            className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/15 bg-white dark:bg-slate-900/70 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 outline-none transition-all text-sm font-medium"
                             value={formData.title || ''}
                             onChange={e => setFormData({ ...formData, title: e.target.value })}
                         />
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    {/* Active Checkbox */}
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <CheckSquare className="w-5 h-5 text-indigo-500" />
+                            <div>
+                                <label htmlFor="is_active" className="text-sm font-semibold text-slate-800 dark:text-slate-200 cursor-pointer">
+                                    Active / Published
+                                </label>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">Controls visibility for end-users on the platform.</p>
+                            </div>
+                        </div>
                         <input
                             type="checkbox"
                             id="is_active"
-                            className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
                             checked={formData.is_active || false}
                             onChange={e => setFormData({ ...formData, is_active: e.target.checked })}
                         />
-                        <label htmlFor="is_active" className="text-sm font-medium text-slate-700 dark:text-slate-300">Active (Visible to Users)</label>
                     </div>
 
                     {/* Description / Teaser */}
                     {(contentType === 'articles' || contentType === 'awareness') && (
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Description / Teaser</label>
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
+                                Description / Teaser Summary
+                            </label>
                             <textarea
-                                className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-white/10 bg-white dark:bg-black/20 text-slate-900 dark:text-white h-24 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                placeholder="Short overview or summary displayed on content cards..."
+                                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/15 bg-white dark:bg-slate-900/70 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 h-24 focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 outline-none transition-all text-sm resize-y"
                                 value={formData.description || formData.teaser || ''}
                                 onChange={e => setFormData({ ...formData, description: e.target.value, teaser: e.target.value })}
                             />
@@ -103,9 +150,12 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
                     {/* Blog Content */}
                     {(contentType === 'articles') && (
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Full Content (Markdown/HTML)</label>
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
+                                Full Article Content (Markdown / HTML)
+                            </label>
                             <textarea
-                                className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-white/10 bg-white dark:bg-black/20 text-slate-900 dark:text-white h-48 font-mono text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                placeholder="Write the main article content here using Markdown or HTML formatting..."
+                                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/15 bg-white dark:bg-slate-900/70 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 h-48 font-mono text-xs focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 outline-none transition-all leading-relaxed resize-y"
                                 value={formData.content || ''}
                                 onChange={e => setFormData({ ...formData, content: e.target.value })}
                             />
@@ -115,12 +165,15 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
                     {/* JSON Editor for Complex Data */}
                     {['games', 'quiz', 'awareness'].includes(contentType) && (
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                Advanced Data Structure (JSON)
-                            </label>
-                            <div className="relative">
+                            <div className="flex justify-between items-center mb-1.5">
+                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                                    <Code className="w-4 h-4 text-indigo-400" /> Advanced Data Structure (JSON)
+                                </label>
+                                <span className="text-[11px] text-indigo-500 dark:text-indigo-400 font-mono font-medium">Valid JSON Required</span>
+                            </div>
+                            <div className="relative rounded-xl border border-slate-300 dark:border-white/15 overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500/40 focus-within:border-indigo-500">
                                 <textarea
-                                    className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-black/20 text-slate-800 dark:text-green-400 font-mono text-xs h-60 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    className="w-full p-4 bg-slate-900 text-emerald-400 font-mono text-xs h-60 outline-none leading-relaxed resize-y scrollbar-thin"
                                     defaultValue={
                                         JSON.stringify(
                                             contentType === 'games' ? formData.game_data :
@@ -140,18 +193,26 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
                                         }
                                     }}
                                 />
-                                <div className="absolute top-2 right-2 text-[10px] text-slate-400 pointer-events-none">JSON</div>
                             </div>
-                            <p className="text-xs text-slate-500 mt-1">Edit the raw data structure for questions, modules, or game configs.</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
+                                Direct JSON editor for interactive quiz questions, game parameters, or awareness modules.
+                            </p>
                         </div>
                     )}
 
-                    <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 dark:border-white/10 mt-6">
-                        <button type="button" onClick={onClose} className="px-4 py-2 text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700 rounded-lg font-medium transition-colors">Cancel</button>
+                    {/* Footer Actions */}
+                    <div className="pt-4 flex justify-end gap-3 border-t border-slate-200 dark:border-white/10 mt-6">
+                        <button 
+                            type="button" 
+                            onClick={onClose} 
+                            className="px-5 py-2.5 text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10 rounded-xl font-medium text-sm transition-colors"
+                        >
+                            Cancel
+                        </button>
                         <button
                             type="submit"
                             disabled={loading}
-                            className={`px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-md flex items-center gap-2 font-bold transition-transform active:scale-95 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                            className={`px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl shadow-lg shadow-indigo-500/25 flex items-center gap-2 text-sm font-bold transition-all active:scale-95 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
                         >
                             <Save className="w-4 h-4" /> {loading ? 'Saving...' : 'Save Changes'}
                         </button>
@@ -163,3 +224,4 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
 };
 
 export default ContentEditModal;
+

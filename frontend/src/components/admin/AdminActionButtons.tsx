@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../../config';
 import { Edit, Trash2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import ContentEditModal from './ContentEditModal';
@@ -19,10 +20,10 @@ const AdminActionButtons: React.FC<AdminActionButtonsProps> = ({ item, contentTy
     if (!user || user.role !== 'ADMIN') return null;
 
     const endpoints = {
-        articles: 'http://localhost:8000/api/content/articles/',
-        games: 'http://localhost:8000/api/content/games/',
-        quiz: 'http://localhost:8000/api/content/quiz/',
-        awareness: 'http://localhost:8000/api/content/awareness/'
+        articles: `${API_BASE_URL}/api/content/articles/`,
+        games: `${API_BASE_URL}/api/content/games/`,
+        quiz: `${API_BASE_URL}/api/content/quiz/`,
+        awareness: `${API_BASE_URL}/api/content/awareness/`
     };
 
     const handleToggle = async (e: React.MouseEvent) => {

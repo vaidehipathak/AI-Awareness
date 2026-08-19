@@ -67,7 +67,7 @@ const AskAI: React.FC = () => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout
 
-      const response = await fetch('http://localhost:8000/api/ask-ai/', {
+      const response = await fetch('/api/ask-ai/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -96,7 +96,7 @@ const AskAI: React.FC = () => {
       if (error.name === 'AbortError') {
         errorText += 'The request timed out. LM Studio may be busy. Please try again.';
       } else if (error instanceof TypeError && error.message.includes('fetch')) {
-        errorText += 'Cannot connect to the backend server at http://localhost:8000. Make sure Django is running.';
+        errorText += 'Cannot connect to the backend server. Make sure Django is running.';
       } else {
         errorText += error.message || 'Please try again or check if the backend is running.';
       }

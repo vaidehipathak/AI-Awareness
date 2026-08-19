@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 import { useTheme } from 'next-themes';
 import { Plus, Lock, Play, CheckCircle2, ArrowLeft, Shield, Brain } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -233,7 +234,7 @@ const QuestionRenderer: React.FC<{
 
 const fetchAllQuizzes = async (): Promise<Record<Difficulty, Quiz[]>> => {
     try {
-        const res = await axios.get('http://localhost:8000/api/content/quiz/');
+        const res = await axios.get(`${API_BASE_URL}/api/content/quiz/`);
         const data = res.data;
         const newCatalog: Record<Difficulty, Quiz[]> = {
             easy: [],
@@ -326,7 +327,7 @@ const QuizPage: React.FC = () => {
         if (user?.role !== 'ADMIN') return;
         setLoadingAdmin(true);
         try {
-            const res = await axios.get('http://localhost:8000/api/content/quiz/');
+            const res = await axios.get(`${API_BASE_URL}/api/content/quiz/`);
             setAllQuizzes(res.data || []);
         } catch (err) { console.error('Failed to load quizzes', err); }
         finally { setLoadingAdmin(false); }

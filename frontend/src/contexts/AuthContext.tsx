@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config';
 
 export interface User {
   id: number;
@@ -59,8 +60,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     email: null,
     tempToken: null,
   });
-
-  const API_BASE_URL = "http://127.0.0.1:8000";
 
   const persistPending2FA = (state: Pending2FAState) => {
     setPending2FA(state);
@@ -160,14 +159,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const response = await fetch(url, { ...options, headers });
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        if (response.status === 204) return { ok: true, data: {}, status: 204 };
-        throw new Error(`Server returned ${contentType || 'unknown content type'} instead of JSON`);
+      if (response.status === 204) return { ok: true, data: {}, status: 204 };
+
+      const rawText = await response.text();
+      let data: any = {};
+
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch (parseErr) {
+        if (!response.ok) {
+          throw new Error(
+            response.status >= 500
+              ? 'Backend server error. Please check Django server.'
+              : `Server error (${response.status}): ${rawText.slice(0, 100) || 'Invalid response'}`
+          );
+        }
+        throw new Error('Server returned non-JSON response');
       }
-      const data = await response.json();
+
       return { ok: response.ok, data, status: response.status };
-    } catch (err) {
+    } catch (err: any) {
+      if (err instanceof TypeError || (err && err.message === 'Failed to fetch')) {
+        throw new Error('Unable to connect to server. Please check if the backend server is running.');
+      }
       throw err;
     }
   };
@@ -397,10 +411,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (!ok) {
       let errorMessage = 'Registration failed';
-      if (data.username) errorMessage = `Username error: ${data.username[0]}`;
-      else if (data.email) errorMessage = `Email error: ${data.email[0]}`;
-      else if (data.password) errorMessage = `Password error: ${data.password[0]}`;
+      if (data.email) errorMessage = Array.isArray(data.email) ? data.email[0] : data.email;
+      else if (data.username) errorMessage = Array.isArray(data.username) ? data.username[0] : data.username;
+      else if (data.password) errorMessage = Array.isArray(data.password) ? data.password[0] : data.password;
       else if (data.detail) errorMessage = data.detail;
+      else if (data.error) errorMessage = data.error;
       else if (typeof data === 'string') errorMessage = data;
       throw new Error(errorMessage);
     }

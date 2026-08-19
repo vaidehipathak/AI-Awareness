@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../../config';
 import { useAuth } from '../../contexts/AuthContext';
 import { ChevronLeft, ChevronRight, AlertCircle, RefreshCcw, FileText, Eye } from 'lucide-react';
 
@@ -36,7 +37,7 @@ const AdminReportList: React.FC<{ onViewDetail: (id: number) => void }> = ({ onV
         setLoading(true);
         setError('');
         try {
-            const response = await axios.get('http://localhost:8000/api/admin/reports/', {
+            const response = await axios.get(`${API_BASE_URL}/api/admin/reports/`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 },

@@ -80,13 +80,19 @@ class LoginSerializer(serializers.Serializer):
 
     def get_tokens(self, user):
         """
-        Generate JWT tokens with custom claims (role).
+        Generate JWT tokens with custom claims (role, email, jwt_token_version).
         """
         refresh = RefreshToken.for_user(user)
         
         # Add custom claims
         refresh['role'] = user.role
         refresh['email'] = user.email
+        refresh['jwt_token_version'] = user.jwt_token_version
+        
+        # Ensure access token inherits the claim
+        refresh.access_token['role'] = user.role
+        refresh.access_token['email'] = user.email
+        refresh.access_token['jwt_token_version'] = user.jwt_token_version
 
         return {
             'refresh': str(refresh),

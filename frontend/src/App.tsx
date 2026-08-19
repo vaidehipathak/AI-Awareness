@@ -16,7 +16,6 @@ import Quiz from './pages/Quiz';
 import Games from './pages/Games';
 import Blog from './pages/Blog';
 import Report from './pages/Report';
-import SecurityScanner from './pages/SecurityScanner';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import OtpEnroll from './pages/OtpEnroll';
@@ -67,7 +66,6 @@ const App: React.FC = () => {
                 <Route path="/quiz" element={<Quiz />} />
                 <Route path="/games" element={<Games />} />
                 <Route path="/report" element={<Report />} />
-                <Route path="/security-scanner" element={<SecurityScanner />} />
               </Route>
 
               {/* Admin Routes */}

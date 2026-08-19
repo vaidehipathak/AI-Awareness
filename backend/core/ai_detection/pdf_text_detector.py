@@ -182,18 +182,15 @@ def detect_pdf_ai(text_input: str = "", metadata: Dict = None, image_bytes: byte
         else:
             raw_text = text_input
         
-        # Log extracted text for debugging
+        # Log only safe metadata — never log raw text or actual PII values
         logger.info(f"Extracted text length: {len(raw_text or '')} characters")
         if raw_text:
-            # Log first 500 chars for preview, but check ENTIRE text for patterns
-            logger.info(f"First 500 chars of extracted text: {raw_text[:500]}")
-            # Check for potential Aadhaar patterns in the FULL text (not just first 1000 chars)
             import re
             aadhaar_patterns = re.findall(r'\d{4}[-\s]?\d{4}[-\s]?\d{4}|\d{12}', raw_text)
             if aadhaar_patterns:
-                logger.info(f"Found {len(aadhaar_patterns)} potential Aadhaar patterns in FULL text: {aadhaar_patterns[:10]}")
+                logger.info(f"Found {len(aadhaar_patterns)} potential Aadhaar patterns in document (values redacted)")
             else:
-                logger.warning("No Aadhaar patterns found in extracted text")
+                logger.info("No Aadhaar patterns found in extracted text")
         else:
             logger.warning("WARNING: No text extracted from document!")
             

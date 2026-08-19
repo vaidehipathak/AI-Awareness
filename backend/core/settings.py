@@ -14,29 +14,43 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment variables from backend/.env if present (keeps prod env-only safe)
-load_dotenv(BASE_DIR / ".env", override=True)
+# Load .env only in dev — do NOT override platform-supplied env vars in production.
+# Production (Cloud Run, Heroku, etc.) sets vars at container/dyno level; those take precedence.
+load_dotenv(BASE_DIR / ".env", override=False)
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-1#b(vqc-b6vvoe*#j1a-k#c&rsl&*)rrnv%g1kn%nby77d@ft6'
+# No fallback — if SECRET_KEY is missing Django refuses to start rather than silently using a known key.
+SECRET_KEY = os.getenv('SECRET_KEY')
+if not SECRET_KEY:
+    raise ImproperlyConfigured(
+        "SECRET_KEY environment variable is not set. "
+        "Set it in backend/.env before starting the server."
+    )
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0').split(',')
+    if host.strip()
+]
 
 # Application definition
 
 INSTALLED_APPS = [
     'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -49,13 +63,15 @@ INSTALLED_APPS = [
     'accounts',
     'analysis',
     'content',
-    'scanner',  # Vulnerability scanner integration
     'zkatt',    # Forensic simulator app
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
+    # CorsMiddleware MUST be first — before any response-generating middleware
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.security.SecurityMiddleware',
+    # Injects CSP, Permissions-Policy, Referrer-Policy on every response
+    'core.security_headers.SecurityHeadersMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -88,16 +104,22 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
-DATABASES = {
-    "default": dj_database_url.parse(
-        os.environ["DATABASE_URL"],
-        conn_max_age=0,
-        ssl_require=True
-    )
-}
+db_url = os.getenv("DATABASE_URL")
+if db_url:
+    DATABASES = {
+        "default": dj_database_url.parse(
+            db_url,
+            conn_max_age=0,
+            ssl_require=False if ("sqlite" in db_url or "localhost" in db_url or "127.0.0.1" in db_url) else True
+        )
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # NewsAPI Configuration
 NEWS_API_KEY = os.getenv('NEWS_API_KEY', '')
@@ -112,6 +134,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {'min_length': 8},
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -151,20 +174,25 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Custom User Model
 AUTH_USER_MODEL = 'accounts.User'
 
+# ---------------------------------------------------------------------------
 # CORS Settings
+# ---------------------------------------------------------------------------
+# Whitelist only explicitly trusted origins in both dev and production
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'http://localhost:5174',
-    'http://127.0.0.1:5174',
+    origin.strip()
+    for origin in os.getenv(
+        'CORS_ALLOWED_ORIGINS',
+        'http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000,http://localhost:5174,http://127.0.0.1:5174'
+    ).split(',')
+    if origin.strip()
 ]
 CORS_ALLOW_CREDENTIALS = True
 
 # Django REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
+        'accounts.authentication.VersionedJWTAuthentication',
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
@@ -176,41 +204,37 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '100/day',
-        'user': '1000/day'
+        'user': '1000/day',
+        'ai_chatbot': '30/hour',   # Dedicated limit for AI chatbot endpoint
     }
 }
 
 # Simple JWT Configuration
-from datetime import timedelta
-
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'ROTATE_REFRESH_TOKENS': False,
-    'BLACKLIST_AFTER_ROTATION': False,
+    'ROTATE_REFRESH_TOKENS': True,          # Issue a new refresh token on each use
+    'BLACKLIST_AFTER_ROTATION': True,       # Invalidate old refresh token after rotation — prevents token reuse
     'UPDATE_LAST_LOGIN': True,
-    
+
     'ALGORITHM': 'HS256',
     'SIGNING_KEY': SECRET_KEY,
     'VERIFYING_KEY': None,
-    
+
     'AUTH_HEADER_TYPES': ('Bearer',),
     'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
     'USER_ID_FIELD': 'id',
     'USER_ID_CLAIM': 'user_id',
-    
+
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
     'TOKEN_TYPE_CLAIM': 'token_type',
 }
 
 # Email Configuration
-# Default to Console backend for safety if not configured.
-# To use SMTP, set EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend in .env
-# Email Configuration
-# Default to Console backend for development/safety
+# Default to Console backend for development.
+# In production, set BREVO_SMTP_USER + BREVO_SMTP_PASSWORD in env to switch to real SMTP.
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-# Check if Brevo credentials are provided in env
 _brevo_user = os.getenv('BREVO_SMTP_USER')
 _brevo_password = os.getenv('BREVO_SMTP_PASSWORD')
 
@@ -223,8 +247,29 @@ if _brevo_user and _brevo_password:
     EMAIL_HOST_PASSWORD = _brevo_password
     DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@awarex.io')
 else:
-    # Fallback to Console
     DEFAULT_FROM_EMAIL = 'noreply@awarex.io'
 
 
+# ---------------------------------------------------------------------------
+# Production Security Settings (active when DEBUG=False)
+# ---------------------------------------------------------------------------
+if not DEBUG:
+    # Force HTTPS
+    SECURE_SSL_REDIRECT = True
 
+    # Tell Django it's behind a TLS-terminating proxy (e.g. Cloud Run / Nginx)
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+    # HTTP Strict Transport Security — browsers won't contact the site over plain HTTP
+    SECURE_HSTS_SECONDS = 31536000        # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+    # Protect session and CSRF cookies — never sent over plain HTTP
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+    # Basic content-security defaults
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_BROWSER_XSS_FILTER = True
+    X_FRAME_OPTIONS = 'DENY'

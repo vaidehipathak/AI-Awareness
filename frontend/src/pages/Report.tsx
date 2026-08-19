@@ -56,7 +56,7 @@ const ReportPage: React.FC = () => {
 
         try {
             // All file uploads go to /api/analyze/ - backend router handles file type detection
-            const endpoint = 'http://localhost:8000/api/analyze/';
+            const endpoint = '/api/analyze/';
 
             if (file) {
                 formData.append('file', file);

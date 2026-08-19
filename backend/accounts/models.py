@@ -47,6 +47,16 @@ class User(AbstractUser):
         help_text=_("If true, user must re-enroll MFA on next login; set when admin resets MFA.")
     )
 
+    jwt_token_version = models.IntegerField(
+        default=0,
+        help_text=_("Incremented to instantly invalidate all active JWT tokens for this user.")
+    )
+
+    def invalidate_all_sessions(self):
+        """Increment token version to instantly revoke all active JWT tokens across all devices."""
+        self.jwt_token_version += 1
+        self.save(update_fields=['jwt_token_version'])
+
     # Explicitly mentioning is_active as per requirements, 
     # though AbstractUser already provides this with default=True.
     is_active = models.BooleanField(

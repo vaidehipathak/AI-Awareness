@@ -14,7 +14,7 @@ def model_router(text):
             "confidence": p["confidence"],
             "start": p["start"],
             "end": p["end"],
-            "value": p["value"] # Keep original for backend logic if needed, but masked is for display
+            # Raw value intentionally omitted — only masked_value is returned to callers
         }
         for p in pii
     ]

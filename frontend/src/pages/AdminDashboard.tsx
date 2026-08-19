@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -146,7 +147,7 @@ const AdminDashboard: React.FC = () => {
   const fetchStats = async () => {
     if (!token) return;
     try {
-      const response = await axios.get('http://localhost:8000/api/admin/stats/', {
+      const response = await axios.get(`${API_BASE_URL}/api/admin/stats/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setStats(response.data);
@@ -161,7 +162,7 @@ const AdminDashboard: React.FC = () => {
     if (!token) return;
     setLoadingReports(true);
     try {
-      const res = await fetch(`http://localhost:8000/api/admin/reports/?page=${page}&page_size=20`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/reports/?page=${page}&page_size=20`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -182,7 +183,7 @@ const AdminDashboard: React.FC = () => {
     if (!token) return;
     setLoadingAudit(true);
     try {
-      const res = await fetch(`http://localhost:8000/auth/admin/audit-logs/?page=${page}&page_size=20`, {
+      const res = await fetch(`${API_BASE_URL}/auth/admin/audit-logs/?page=${page}&page_size=20`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -201,7 +202,7 @@ const AdminDashboard: React.FC = () => {
     if (!token) return;
     setLoadingReports(true); // Overlay spinner
     try {
-      const res = await fetch(`http://localhost:8000/api/admin/reports/${reportId}/`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/reports/${reportId}/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -218,7 +219,7 @@ const AdminDashboard: React.FC = () => {
     if (!token) return;
     setUpdating(true);
     try {
-      const res = await fetch(`http://localhost:8000/api/admin/reports/${reportId}/status/`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/reports/${reportId}/status/`, {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -249,7 +250,7 @@ const AdminDashboard: React.FC = () => {
     setReEnrollError(null);
     setReEnrollLoading(true);
     try {
-      const res = await fetch('http://localhost:8000/auth/admin/mfa/re-enroll/', {
+      const res = await fetch(`${API_BASE_URL}/auth/admin/mfa/re-enroll/`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`

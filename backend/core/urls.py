@@ -11,20 +11,45 @@ from .safety import generate_safe_reply
 
 logger = logging.getLogger(__name__)
 
-@csrf_exempt
-@require_http_methods(["POST"])
-def ask_ai(request):
-    try:
-        data = json.loads(request.body)
-        user_message = data.get('message', '').strip()
-        if not user_message:
-            return JsonResponse({'reply': 'Please provide a message.'}, status=400)
-        reply = generate_safe_reply(user_message)
-        return JsonResponse({'reply': reply})
-    except Exception as e:
-        return JsonResponse({
-            'reply': 'Ensure LM Studio is running on http://localhost:1234 with Gemma 3 loaded.'
-        }, status=500)
+from rest_framework.views import APIView
+from rest_framework.response import Response as DRFResponse
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.throttling import UserRateThrottle
+
+class AIChatbotThrottle(UserRateThrottle):
+    """Dedicated throttle for the AI chatbot — 30 requests/hour per user."""
+    scope = 'ai_chatbot'
+
+MAX_AI_INPUT_LENGTH = 2000  # characters
+
+class AskAIView(APIView):
+    """
+    POST /api/ask-ai/
+    Authenticated users only. Rate-limited. Input capped at 2,000 characters.
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [AIChatbotThrottle]
+
+    def post(self, request):
+        try:
+            user_message = (request.data.get('message') or '').strip()
+            if not user_message:
+                return DRFResponse({'reply': 'Please provide a message.'}, status=400)
+            if len(user_message) > MAX_AI_INPUT_LENGTH:
+                return DRFResponse(
+                    {'reply': f'Message exceeds the {MAX_AI_INPUT_LENGTH}-character limit.'},
+                    status=400
+                )
+            reply = generate_safe_reply(user_message)
+            return DRFResponse({'reply': reply})
+        except Exception as e:
+            logger.exception("ask_ai error: %s", e)
+            return DRFResponse(
+                {'reply': 'AI service is temporarily unavailable.'},
+                status=500
+            )
+
+ask_ai = AskAIView.as_view()
 
 @require_http_methods(["GET"])
 def health_check(request):
@@ -40,13 +65,24 @@ urlpatterns = [
     
     path('auth/', include('accounts.urls')),
     path('api/content/', include('content.urls')),
-    path('api/scanner/', include('scanner.urls')),  # Vulnerability scanner endpoints
     path('api/zkatt/', include('zkatt.urls')),
 ]
 
-# Serve media files in development
+# Serve media files in development — gated behind login to prevent public exposure
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib.auth.decorators import login_required
+from django.views.static import serve as _serve_static
 
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    # Wrap the built-in static file server with login_required
+    # so /media/* requires an authenticated session even in dev mode.
+    _protected_media = login_required(_serve_static)
+    urlpatterns += [
+        path(
+            'media/<path:path>',
+            _protected_media,
+            {'document_root': settings.MEDIA_ROOT},
+            name='protected-media',
+        )
+    ]

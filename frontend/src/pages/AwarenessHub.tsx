@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from 'next-themes';
@@ -1185,7 +1186,7 @@ const AwarenessHub: React.FC = () => {
 
   const fetchTopics = async () => {
     try {
-      const res = await axios.get('http://localhost:8000/api/content/awareness/');
+      const res = await axios.get(`${API_BASE_URL}/api/content/awareness/`);
       // Map backend fields to frontend Resource type
       const mapped = res.data.map((t: any) => ({
         id: t.id,

@@ -66,11 +66,11 @@ function checkBackendDeps() {
     log("Checking Backend Dependencies...", colors.cyan);
     // rigorous check: try importing a key package
     try {
-        execSync('python -c "import django"', { stdio: 'ignore' });
+        execSync('py -3.11 -c "import django"', { stdio: 'ignore' });
         log("Backend dependencies appear installed (Django found).", colors.green);
     } catch (e) {
         log("Backend dependencies missing or venv not active. Installing...", colors.yellow);
-        runCommand('pip install -r backend/requirements.txt', path.join(__dirname, '../'));
+        runCommand('py -3.11 -m pip install -r backend/requirements.txt', path.join(__dirname, '../'));
     }
 }
 

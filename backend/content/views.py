@@ -10,10 +10,19 @@ from accounts.models import AuditLog
 from accounts.permissions import IsAdminWithMFA # Assuming this exists or generic Admin
 
 class IsAdminOrReadOnly(permissions.BasePermission):
+    """
+    Read-only access for everyone.
+    Write access requires ADMIN role + mfa_verified claim in JWT.
+    """
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
-            return True # Allow read-only for everyone
-        return request.user and request.user.is_authenticated and getattr(request.user, 'role', '') == 'ADMIN'
+            return True
+        if not (request.user and request.user.is_authenticated):
+            return False
+        if getattr(request.user, 'role', '') != 'ADMIN':
+            return False
+        # Enforce MFA for all write operations (CREATE / UPDATE / DELETE)
+        return bool(request.auth and request.auth.get('mfa_verified', False))
 
 class ContentAuditViewSet(viewsets.ModelViewSet):
     """
@@ -167,6 +176,7 @@ def fetch_news(request):
                 # Clear old cache
                 CachedNewsArticle.objects.all().delete()
                 
+                cache_objects = []
                 for article in raw_articles:
                     title_text = (article.get('title') or '').lower()
                     
@@ -192,36 +202,32 @@ def fetch_news(request):
                     else:
                         published_dt = tz.now()
                     
-                    # Save to cache
-                    try:
-                        cached_article, created = CachedNewsArticle.objects.get_or_create(
-                            url=article_url,
-                            defaults={
-                                'title': article.get('title') or 'Untitled Article',
-                                'author': article.get('author'),
-                                'published_at': published_dt,
-                                'description': (article.get('description') or 'Click to read more.')[:500],
-                                'url_to_image': article.get('urlToImage'),
-                                'source_name': source_name,
-                                'content': (article.get('content') or '')[:500]
-                            }
-                        )
-                        
-                        sanitized_article = {
-                            'title': cached_article.title,
-                            'author': cached_article.author or 'Unknown Author',
-                            'publishedAt': cached_article.published_at.isoformat(),
-                            'description': cached_article.description,
-                            'url': cached_article.url,
-                            'urlToImage': cached_article.url_to_image,
-                            'source': {'name': cached_article.source_name},
-                            'content': cached_article.content
-                        }
-                        
-                        valid_articles.append(sanitized_article)
-                    except Exception as e:
-                        print(f"Error caching article: {e}")
-                        continue
+                    cache_objects.append(CachedNewsArticle(
+                        url=article_url[:500],
+                        title=article.get('title') or 'Untitled Article',
+                        author=article.get('author'),
+                        published_at=published_dt,
+                        description=(article.get('description') or 'Click to read more.')[:500],
+                        url_to_image=article.get('urlToImage'),
+                        source_name=source_name,
+                        content=(article.get('content') or '')[:500]
+                    ))
+                
+                # Bulk insert all articles in a single database query
+                if cache_objects:
+                    CachedNewsArticle.objects.bulk_create(cache_objects, ignore_conflicts=True)
+
+                for cached_article in cache_objects:
+                    valid_articles.append({
+                        'title': cached_article.title,
+                        'author': cached_article.author or 'Unknown Author',
+                        'publishedAt': cached_article.published_at.isoformat(),
+                        'description': cached_article.description,
+                        'url': cached_article.url,
+                        'urlToImage': cached_article.url_to_image,
+                        'source': {'name': cached_article.source_name},
+                        'content': cached_article.content
+                    })
                 
                 # Log the API request
                 NewsAPIRequestLog.objects.create(

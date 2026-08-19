@@ -1,5 +1,5 @@
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 import os
 import sys
@@ -16,19 +16,23 @@ except ImportError as e:
     ZKATT_V2_Pipeline = None
     IMPORT_ERROR = str(e)
 
+MAX_ZKATT_INPUT_LENGTH = 2000  # characters
+
 @api_view(['POST'])
-@permission_classes([AllowAny])
-@authentication_classes([])
+@permission_classes([IsAuthenticated])
 def simulate_attack(request):
     """
     Mode 2: Free Prompt API for Z-KATT.
     Generates a 5-phase attack scenario JSON using AI.
+    Requires authentication. Input limited to 2,000 characters.
     """
     from core.ai_client import lmstudio_chat
     
     prompt = request.data.get('prompt', '')
     if not prompt:
         return Response({"error": "Prompt is required"}, status=400)
+    if len(prompt) > MAX_ZKATT_INPUT_LENGTH:
+        return Response({"error": f"Prompt exceeds the {MAX_ZKATT_INPUT_LENGTH}-character limit."}, status=400)
 
     system_prompt = """You are a cybersecurity educator. Given a user-described attack scenario, 
 generate a JSON object with this exact structure:
@@ -70,6 +74,6 @@ Return ONLY valid JSON. No markdown. No preamble. No talk. Ensure it is exactly 
         return Response(data)
 
     except Exception as e:
-        # Silently log error, frontend will handle fallback
+        # Silently log error, frontend will handle non-200 response and fallback
         print(f"Z-KATT AI Error: {e}")
-        return Response({"error": "AI generation failed. Switching to guided mode."}, status=200)
+        return Response({"error": "AI generation failed. Switching to guided mode."}, status=500)

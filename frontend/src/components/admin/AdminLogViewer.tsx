@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../../config';
 import { useAuth } from '../../contexts/AuthContext';
 import { Search, Filter, ChevronLeft, ChevronRight, AlertCircle, RefreshCcw } from 'lucide-react';
 
@@ -31,7 +32,7 @@ const AdminLogViewer: React.FC = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await axios.get('http://localhost:8000/auth/admin/audit-logs/', {
+            const response = await axios.get(`${API_BASE_URL}/auth/admin/audit-logs/`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 },

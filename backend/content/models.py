@@ -119,8 +119,8 @@ class CachedNewsArticle(models.Model):
     author = models.CharField(max_length=255, blank=True, null=True)
     published_at = models.DateTimeField()
     description = models.TextField(blank=True, null=True)
-    url = models.URLField(unique=True)
-    url_to_image = models.URLField(blank=True, null=True)
+    url = models.URLField(max_length=1000, unique=True)
+    url_to_image = models.URLField(max_length=1000, blank=True, null=True)
     source_name = models.CharField(max_length=255)
     content = models.TextField(blank=True, null=True)
     

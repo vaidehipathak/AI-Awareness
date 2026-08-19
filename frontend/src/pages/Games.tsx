@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 import { useTheme } from 'next-themes';
 import { ChevronRight, Clock, Trophy, Brain, Target, Eye, BookOpen, Cpu, Zap, Shuffle, Award, Plus, Settings, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -77,7 +78,7 @@ const GamesPage: React.FC = () => {
 
     const fetchGames = async () => {
         try {
-            const res = await axios.get('http://localhost:8000/api/content/games/');
+            const res = await axios.get(`${API_BASE_URL}/api/content/games/`);
             const games = res.data;
             setAllGames(games);
 
@@ -559,7 +560,7 @@ const GamesPage: React.FC = () => {
                     </div>
                 </div>
 
-                {matched.length === cards.length / 2 ? (
+                {cards.length > 0 && matched.length === cards.length / 2 ? (
                     <div className="text-center py-12">
                         <h3 className="text-3xl font-bold mb-4">You Win!</h3>
                         <button onClick={init} className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold">Play Again</button>

@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
-from rest_framework_simplejwt.authentication import JWTAuthentication
+# VersionedJWTAuthentication is used via the project default (set in settings.py REST_FRAMEWORK)
 
 from accounts.permissions import IsOwnerOrAdmin, IsAdminWithMFA
 import json
@@ -32,7 +32,7 @@ class AnalyzeView(APIView):
     - file: uploaded file
     - metadata: optional JSON string
     """
-    authentication_classes = [JWTAuthentication]
+    # No authentication_classes override — inherits project default (VersionedJWTAuthentication)
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
 

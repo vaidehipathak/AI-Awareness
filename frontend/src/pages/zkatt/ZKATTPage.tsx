@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   ShieldAlert, Mail, FileWarning, Wallet, 
   ChevronRight, ChevronLeft, RotateCcw, 
-  Play, Pause, Terminal, Send, Search
+  Play, Pause, Terminal, Send, Search, Lock
 } from 'lucide-react';
+import { API_BASE_URL } from '../../config';
 import { ZKATT_SCENARIOS, ZKATTSenario, ZKATTPhase } from '../../data/zkattScenarios';
+import { useAuth } from '../../contexts/AuthContext';
 import MockIdDemo from './MockIdDemo';
 
 // --- TYPES ---
@@ -12,6 +15,8 @@ type Mode = 'GUIDED' | 'FREE' | 'PII_DEMO';
 type SimulationState = 'IDLE' | 'LOADING' | 'PLAYING' | 'COMPLETED';
 
 const ZKATTPage: React.FC = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>('GUIDED');
   const [status, setStatus] = useState<SimulationState>('IDLE');
   const [scenario, setScenario] = useState<ZKATTSenario | null>(null);
@@ -44,6 +49,13 @@ const ZKATTPage: React.FC = () => {
 
   const handleFreePrompt = async () => {
     if (!prompt.trim()) return;
+
+    const token = localStorage.getItem('auth_token');
+    if (!token && !user) {
+      handleFallback(prompt);
+      return;
+    }
+
     setStatus('LOADING');
     setLoadingLogs(['INITIALIZING AI ENGINE...', 'ANALYZING ATTACK VECTOR...']);
     
@@ -53,14 +65,26 @@ const ZKATTPage: React.FC = () => {
     }, 800);
 
     try {
-      const response = await fetch('/api/zkatt/simulate', {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/zkatt/simulate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ prompt })
       });
       
-      const data = await response.json();
       clearInterval(interval);
+
+      // Check response.ok before attempting to parse or call fallback
+      if (!response.ok) {
+        handleFallback(prompt);
+        return;
+      }
+
+      const data = await response.json();
 
       if (data.phases) {
         setScenario(data);
@@ -87,7 +111,6 @@ const ZKATTPage: React.FC = () => {
     setScenario(bestMatch);
     setStatus('PLAYING');
     setCurrentPhase(0);
-    // Simple alert-like toast simulated
     console.log("Fallback triggered: Switched to Guided Mode");
   };
 
@@ -188,23 +211,37 @@ const ZKATTPage: React.FC = () => {
 
             {status === 'IDLE' && mode === 'FREE' && (
                 <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in zoom-in-95 duration-500">
-                    <div className="bg-white/5 border border-white/10 p-8 rounded-3xl backdrop-blur-xl">
-                        <Terminal className="w-8 h-8 text-indigo-500 mb-4" />
-                        <h2 className="text-2xl font-black mb-2">FREE PROMPT INJECTION</h2>
-                        <p className="text-slate-400 text-sm mb-6 italic">Describe any cyber attack scenario, and the AI will generate a step-by-step simulation.</p>
-                        <textarea 
-                            value={prompt}
-                            onChange={(e) => setPrompt(e.target.value)}
-                            placeholder="e.g. A SQL injection attack on a local pizza shop database..."
-                            className="w-full h-32 bg-black/50 border border-white/10 rounded-xl p-4 text-indigo-400 focus:border-indigo-500 outline-none transition-all resize-none mb-4"
-                        />
-                        <button 
-                            onClick={handleFreePrompt}
-                            className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-black text-lg flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(79,70,229,0.3)] transition-all"
-                        >
-                            GENERATE SIMULATION <Send className="w-5 h-5" />
-                        </button>
-                    </div>
+                    {!user && !localStorage.getItem('auth_token') ? (
+                        <div className="bg-white/5 border border-amber-500/30 p-8 rounded-3xl backdrop-blur-xl text-center">
+                            <Lock className="w-12 h-12 text-amber-400 mx-auto mb-4" />
+                            <h2 className="text-2xl font-black mb-2 text-white">AUTHENTICATION REQUIRED</h2>
+                            <p className="text-slate-400 text-sm mb-6">Please log in to use AI Free Prompt simulation mode.</p>
+                            <button 
+                                onClick={() => navigate('/login')}
+                                className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-white transition-all shadow-lg"
+                            >
+                                Please Log In
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="bg-white/5 border border-white/10 p-8 rounded-3xl backdrop-blur-xl">
+                            <Terminal className="w-8 h-8 text-indigo-500 mb-4" />
+                            <h2 className="text-2xl font-black mb-2">FREE PROMPT INJECTION</h2>
+                            <p className="text-slate-400 text-sm mb-6 italic">Describe any cyber attack scenario, and the AI will generate a step-by-step simulation.</p>
+                            <textarea 
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                placeholder="e.g. A SQL injection attack on a local pizza shop database..."
+                                className="w-full h-32 bg-black/50 border border-white/10 rounded-xl p-4 text-indigo-400 focus:border-indigo-500 outline-none transition-all resize-none mb-4"
+                            />
+                            <button 
+                                onClick={handleFreePrompt}
+                                className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-black text-lg flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(79,70,229,0.3)] transition-all"
+                            >
+                                GENERATE SIMULATION <Send className="w-5 h-5" />
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
 

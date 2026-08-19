@@ -147,9 +147,12 @@ const Navbar: React.FC = () => {
             )}
 
             {/* SAKEC & CyberPeace Logos - Desktop */}
-            <div className="flex items-center gap-6 ml-6 border-l border-gray-300 dark:border-white/10 pl-6 py-1">
-              <img src="/src/assets/sakec_logo.png" alt="SAKEC Logo" className="h-16 w-auto object-contain hover:scale-105 transition-transform duration-300 drop-shadow-sm" />
-              <img src="/src/assets/cyberpeace_logo.png" alt="CyberPeace Logo" className="h-16 w-auto object-contain hover:scale-105 transition-transform duration-300 drop-shadow-sm" />
+            <div className="flex items-center gap-3 ml-4 border-l border-gray-200 dark:border-white/10 pl-4 py-1">
+              <div className="flex items-center gap-3 bg-white/90 dark:bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-gray-200 dark:border-white/20 shadow-sm hover:scale-[1.02] transition-transform duration-300">
+                <img src="/src/assets/sakec_logo.png" alt="SAKEC Logo" className="h-9 w-auto object-contain" />
+                <div className="w-[1px] h-6 bg-gray-300" />
+                <img src="/src/assets/cyberpeace_logo.png" alt="CyberPeace Logo" className="h-9 w-auto object-contain" />
+              </div>
             </div>
           </div>
 
@@ -158,11 +161,11 @@ const Navbar: React.FC = () => {
               <ThemeToggle />
               <GoogleTranslateWidget elementId="google_translate_element_mobile" />
             </div>
-            {/* SAKEC Logo & Placeholder */}
-            <div className="flex items-center gap-2 ml-2">
-              <img src="/src/assets/sakec_logo.png" alt="SAKEC Logo" className="h-8 w-auto object-contain" />
-              {/* CyberPeace Logo */}
-              <img src="/src/assets/cyberpeace_logo.png" alt="CyberPeace Logo" className="h-8 w-auto object-contain" />
+            {/* SAKEC & CyberPeace Logos - Mobile */}
+            <div className="flex items-center gap-2 bg-white/90 dark:bg-white/95 px-2 py-1 rounded-lg border border-gray-200 dark:border-white/20 shadow-sm">
+              <img src="/src/assets/sakec_logo.png" alt="SAKEC Logo" className="h-6 w-auto object-contain" />
+              <div className="w-[1px] h-4 bg-gray-300" />
+              <img src="/src/assets/cyberpeace_logo.png" alt="CyberPeace Logo" className="h-6 w-auto object-contain" />
             </div>
             <button onClick={toggleMenu} aria-label="Toggle menu">
               {isOpen ? (

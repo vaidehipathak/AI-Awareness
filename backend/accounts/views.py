@@ -1,4 +1,4 @@
-﻿from rest_framework import status
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -16,6 +16,7 @@ from .serializers import UserRegistrationSerializer, LoginSerializer, AuditLogSe
 from .mfa_serializers import MFAEnrollmentSerializer, MFAVerifySerializer
 from .models import AuditLog, MFASecret
 from .utils import encrypt_secret, decrypt_secret, hash_backup_codes, find_and_remove_backup_code
+from .utils_email import send_password_reset_email
 from .permissions import IsAdminUserRole
 
 User = get_user_model()
@@ -349,11 +350,17 @@ class MFAVerifyView(APIView):
                 metadata=get_audit_metadata(request, {"method": "otp" if otp_input else "backup"})
             )
             
-            # Issue NEW Token with mfa_verified = True
+            # Issue NEW Token with mfa_verified = True and current jwt_token_version
             refresh = RefreshToken.for_user(user)
             refresh['role'] = user.role
             refresh['email'] = user.email
+            refresh['jwt_token_version'] = user.jwt_token_version
             refresh['mfa_verified'] = True
+            
+            refresh.access_token['role'] = user.role
+            refresh.access_token['email'] = user.email
+            refresh.access_token['jwt_token_version'] = user.jwt_token_version
+            refresh.access_token['mfa_verified'] = True
             
             return Response({
                 "message": "MFA verified successfully.",
@@ -440,10 +447,10 @@ class ForgotPasswordView(APIView):
             )
             
             # Send Email
-            from .utils_email import send_password_reset_email
-            
+            import os
+            frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173').rstrip('/')
             # Frontend uses HashRouter, so we need /#/ in the URL
-            reset_link = f"http://localhost:5173/#/reset-password?token={raw_token}"
+            reset_link = f"{frontend_url}/#/reset-password?token={raw_token}"
             
             send_password_reset_email(email, reset_link)
 
@@ -504,43 +511,17 @@ class ResetPasswordView(APIView):
         user.failed_login_attempts = 0
         user.account_locked_until = None
         
-        # Require MFA re-verify for Admin
+        # Invalidate all active JWT tokens across all devices
+        user.invalidate_all_sessions()
+
         if user.role == 'ADMIN':
-            # We can leverage mfa_enabled logic or a new field.
-            # Requirement: "Require MFA re-verify on next login"
-            # Since admin login ALWAYS requires MFA (Standard flow), 
-            # checking `mfa_enabled` is sufficient if it was disabled.
-            # But the requirement implies re-verification if they already have it.
-            # The LoginView logic enforces MFA for Admins every time anyway:
-            # if auth_user.role == 'ADMIN': ... return "requires_otp"
-            # So standard behavior covers "Require MFA". 
-            # Unless "re-verify" means re-enroll? 
-            # "Log ADMIN_MFA_REVERIFY_REQUIRED" implies just logging logic.
-            # Validating "MFA re-verification" - LoginView handles it.
-            pass
+            user.mfa_reset_required = False
 
         user.save()
         
         # Mark token used
         reset_token.used = True
         reset_token.save()
-        
-        # Invalidate all other tokens for this user? 
-        # (Optional but good practice, requirement said "Invalidates all existing sessions")
-        # Django sessions are usually DB or cache based. We use JWT.
-        # To invalidate JWTs, we'd need a blacklist or "token_version" on user.
-        # Current implementation doesn't seem to support JWT revocation explicitly without blacklist.
-        # But we can assume "Invalidates all existing sessions" means we should try.
-        # Since we don't have token blacklist implemented, changing password inherently invalidates
-        # old access tokens if we checked password hash in token (which we don't usually).
-        # We can implement a `token_version` if needed, but given the constraints, 
-        # I'll rely on the fact that the password changed so they can't login with old creds.
-        # Actually, `simple_jwt` doesn't validate password on verify, only signatures.
-        # So active JWTs remain valid until expiry.
-        # However, `RefreshToken.for_user(user)` will generate new ones.
-        # Requirement: "Invalidates all existing sessions". 
-        # Adding a hack: We can't easily kill JWTs without blacklist.
-        # I will Log that we should have done it.
         
         AuditLog.objects.create(
             actor=user,

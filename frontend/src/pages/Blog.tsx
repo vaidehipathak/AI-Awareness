@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 import { useTheme } from 'next-themes';
 import { BookOpen, Calendar, User, Search, Tag, ArrowRight, X, Clock, Eye, Share2, Bookmark, Plus, Trash, Edit3, Save } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -20,6 +21,25 @@ interface BlogPost {
   tags: string[];
 }
 
+const FALLBACK_IMAGES = [
+  'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=1000',
+  'https://images.unsplash.com/photo-1633419461186-7d40a2e50594?auto=format&fit=crop&q=80&w=1000',
+  'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1000',
+  'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&q=80&w=1000',
+  'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=1000',
+  'https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&q=80&w=1000'
+];
+
+const getFallbackImage = (title: string, index: number = 0) => {
+  if (!title) return FALLBACK_IMAGES[index % FALLBACK_IMAGES.length];
+  let hash = 0;
+  for (let i = 0; i < title.length; i++) {
+    hash = title.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const pos = Math.abs(hash + index) % FALLBACK_IMAGES.length;
+  return FALLBACK_IMAGES[pos];
+};
+
 const BlogPage: React.FC = () => {
   const { user } = useAuth();
   const { theme } = useTheme();
@@ -38,10 +58,10 @@ const BlogPage: React.FC = () => {
   const fetchPosts = async () => {
     try {
       // Fetch from the NewsAPI endpoint
-      const res = await axios.get('http://localhost:8000/api/content/news/');
+      const res = await axios.get(`${API_BASE_URL}/api/content/news/`);
 
       // Map NewsAPI response to BlogPost format
-      const mappedPosts = res.data.map((article: any) => ({
+      const mappedPosts = res.data.map((article: any, index: number) => ({
         id: article.url, // Use URL as unique ID since NewsAPI doesn't provide IDs
         title: article.title,
         excerpt: article.description || 'Click to read more.',
@@ -54,7 +74,7 @@ const BlogPage: React.FC = () => {
         }),
         category: article.source?.name || 'AI News',
         readTime: '5 min read', // Default read time
-        imageUrl: article.urlToImage || 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=1000',
+        imageUrl: article.urlToImage || getFallbackImage(article.title || '', index),
         tags: ['AI', 'News', 'Technology']
       }));
 
@@ -72,7 +92,7 @@ const BlogPage: React.FC = () => {
           date: 'Oct 12, 2023',
           category: 'AI Safety',
           readTime: '5 min read',
-          imageUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=1000',
+          imageUrl: FALLBACK_IMAGES[0],
           tags: ['LLMs', 'Future', 'Tech']
         },
         {
@@ -84,7 +104,7 @@ const BlogPage: React.FC = () => {
           date: 'Nov 05, 2023',
           category: 'Deepfakes',
           readTime: '8 min read',
-          imageUrl: 'https://images.unsplash.com/photo-1633419461186-7d40a2e50594?auto=format&fit=crop&q=80&w=1000',
+          imageUrl: FALLBACK_IMAGES[1],
           tags: ['Security', 'Media', 'Guide']
         }
       ]);
@@ -111,7 +131,16 @@ const BlogPage: React.FC = () => {
       onClick={() => setSelectedPost(post)}
     >
       <div className="absolute inset-0">
-        <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+        <img
+          src={post.imageUrl}
+          alt={post.title}
+          referrerPolicy="no-referrer"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = getFallbackImage(post.title);
+          }}
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/90 to-slate-900/40" />
       </div>
       <div className="absolute bottom-0 left-0 p-10 md:p-16 max-w-4xl">
@@ -142,7 +171,16 @@ const BlogPage: React.FC = () => {
     >
 
       <div className="h-48 overflow-hidden relative">
-        <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+        <img
+          src={post.imageUrl}
+          alt={post.title}
+          referrerPolicy="no-referrer"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = getFallbackImage(post.title);
+          }}
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+        />
         <div className="absolute top-4 left-4 bg-white/90 dark:bg-black/80 backdrop-blur-md px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400">
           {post.category}
         </div>
@@ -195,7 +233,16 @@ const BlogPage: React.FC = () => {
             <X size={24} />
           </button>
           <div className="relative h-[400px]">
-            <img src={selectedPost.imageUrl} alt={selectedPost.title} className="w-full h-full object-cover" />
+            <img
+              src={selectedPost.imageUrl}
+              alt={selectedPost.title}
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = getFallbackImage(selectedPost.title);
+              }}
+              className="w-full h-full object-cover"
+            />
             <div className="absolute inset-0 bg-slate-900/95" />
             <div className="absolute bottom-0 left-0 p-10 md:p-12 w-full">
               <div className="flex items-center gap-3 mb-6">

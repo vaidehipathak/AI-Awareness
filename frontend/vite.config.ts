@@ -31,6 +31,11 @@ export default defineConfig({
         timeout: 600000,
         proxyTimeout: 600000, // 10 minutes
       },
+      "/auth": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+        secure: false,
+      },
       "/media": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,

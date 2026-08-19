@@ -25,10 +25,41 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Input Sanitization & Trimming
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Input Validation
+    if (!cleanEmail) {
+      setError('Please enter your email address.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
+    if (cleanEmail.length > 254) {
+      setError('Email address is too long.');
+      return;
+    }
+
+    if (!password) {
+      setError('Please enter your password.');
+      return;
+    }
+
+    if (password.length > 128) {
+      setError('Password exceeds maximum allowed length.');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const result = await login(email, password);
+      const result = await login(cleanEmail, password);
       const from = (location.state as any)?.from || '/';
 
       if (result.status === 'authenticated') {
@@ -179,6 +210,7 @@ const Login: React.FC = () => {
                       type="email"
                       autoComplete="email"
                       required
+                      maxLength={254}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="block w-full pl-10 pr-3 py-3 bg-white/50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-sm"
@@ -214,6 +246,7 @@ const Login: React.FC = () => {
                       type="password"
                       autoComplete="current-password"
                       required
+                      maxLength={128}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="block w-full pl-10 pr-3 py-3 bg-white/50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-sm"
@@ -248,6 +281,36 @@ const Login: React.FC = () => {
                 )}
               </motion.button>
             </form>
+
+            {/* Quick Fill Demo Credentials */}
+            <div className="mt-6 p-4 rounded-2xl bg-slate-100/80 dark:bg-white/5 border border-slate-200/60 dark:border-white/10 backdrop-blur-sm">
+              <p className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-2 uppercase tracking-wider">
+                Quick Demo Fill
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setEmail('xi-jinping@china.com'); setPassword('password123'); }}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 font-semibold border border-indigo-200/50 dark:border-indigo-500/20 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all active:scale-95"
+                >
+                  xi-jinping@china.com
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setEmail('learner@demo.com'); setPassword('password123'); }}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 font-semibold border border-indigo-200/50 dark:border-indigo-500/20 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all active:scale-95"
+                >
+                  learner@demo.com
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setEmail('oblif@example.com'); setPassword('Admin@12345'); }}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-300 font-semibold border border-purple-200/50 dark:border-purple-500/20 hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-all active:scale-95"
+                >
+                  Admin Account
+                </button>
+              </div>
+            </div>
 
             <motion.div
               initial={{ opacity: 0 }}

@@ -45,7 +45,6 @@ const Sidebar: React.FC = () => {
         { to: '/quiz', label: 'Manage Quiz', icon: Brain },
         { to: '/blog', label: 'Manage Blog', icon: Newspaper },
         { to: '/awareness-hub', label: 'Manage AwarenessHub', icon: Lightbulb },
-        { to: '/security-scanner', label: 'Security Scanner', icon: Shield },
         { to: '/report', label: 'Analysis', icon: FileText },
         { to: '/zkatt', label: 'Forensic Simulator', icon: FileSearch },
 
@@ -59,7 +58,6 @@ const Sidebar: React.FC = () => {
         { to: '/games', label: 'Games', icon: Gamepad2 },
         { to: '/quiz', label: 'Quiz', icon: Brain },
         { to: '/blog', label: 'Blog', icon: Newspaper },
-        { to: '/security-scanner', label: 'Security Scanner', icon: Shield },
         { to: '/report', label: 'Analysis', icon: FileText },
         { to: '/zkatt', label: 'Forensic Simulator', icon: FileSearch },
 
@@ -71,7 +69,6 @@ const Sidebar: React.FC = () => {
         { to: '/about-us', label: 'About Us', icon: Users, protected: false },
         { to: '/awareness-hub', label: 'AwarenessHub', icon: Lightbulb, protected: false },
         { to: '/blog', label: 'Blog', icon: Newspaper, protected: false },
-        { to: '/security-scanner', label: 'Security Scanner', icon: Shield, protected: true },
         { to: '/games', label: 'Games', icon: Gamepad2, protected: true },
         { to: '/quiz', label: 'Quiz', icon: Brain, protected: true },
         { to: '/report', label: 'Analysis', icon: FileText, protected: true },
@@ -112,17 +109,19 @@ const Sidebar: React.FC = () => {
                 onMouseLeave={() => setIsExpanded(false)}
             >
                 {/* Sidebar Header */}
-                <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800 dark:border-slate-700">
+                <div className="h-14 flex items-center justify-between px-4 border-b border-slate-800 dark:border-white/10">
                     {isExpanded ? (
-                        <span className="text-white font-bold text-lg">AwareX</span>
-                    ) : (
-                        <span className="text-white font-bold text-sm">A</span>
-                    )}
+                        <div className="flex items-center gap-2">
+                            <span className="text-white font-black text-base tracking-tight">AwareX</span>
+                            <span className="text-[10px] bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded border border-indigo-500/30 font-semibold uppercase">Menu</span>
+                        </div>
+                    ) : null}
                     <button
                         onClick={() => setIsExpanded(!isExpanded)}
-                        className="text-slate-400 hover:text-white transition-colors"
+                        className={`text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors ${!isExpanded ? 'mx-auto' : ''}`}
+                        title={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
                     >
-                        {isExpanded ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+                        {isExpanded ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
                     </button>
                 </div>
 

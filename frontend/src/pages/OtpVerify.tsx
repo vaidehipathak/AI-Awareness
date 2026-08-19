@@ -40,6 +40,10 @@ const OtpVerify: React.FC = () => {
       const from = (location.state as any)?.from || (user?.role === 'ADMIN' ? '/admin/dashboard' : '/');
       navigate(from, { replace: true });
     } catch (err) {
+      if ((err as Error & { code?: string }).code === 'MFA_REENROLL_REQUIRED') {
+        navigate('/otp-enroll', { replace: true });
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Invalid authentication code');
     } finally {
       setLoading(false);

@@ -39,9 +39,9 @@ const teamMembers: TeamMember[] = [
   },
   {
     name: "Om Mehta",
-    role: "Developer (2nd Year)",
+    role: "Backend & Security Engineer (2nd Year)",
     image: "/assets/team/om.png",
-    description: "Architect of the secure, rule-based backend infrastructure.",
+    description: "Built and secured the Django backend, including JWT authentication, admin MFA, role-based access controls, file-analysis APIs, and audit logging.",
     github: "https://github.com/Om-Mehta-143",
     linkedin: "https://linkedin.com/in/om-vivek-mehta",
     email: "om.mehta24@sakec.ac.in",
@@ -49,9 +49,9 @@ const teamMembers: TeamMember[] = [
   },
   {
     name: "Neel Pasad",
-    role: "Developer (2nd Year)",
+    role: "Frontend & Game Development Engineer (2nd Year)",
     image: "/assets/team/neel.png",
-    description: "Lead developer managing both the React frontend and Django backend systems.",
+    description: "Built interactive cybersecurity games and frontend learning experiences that make AI safety and digital-security concepts engaging and accessible.",
     github: "https://github.com/neel-pasad",
     linkedin: "https://www.linkedin.com/in/neel-pasad22",
     email: "neel.pasad24@sakec.ac.in",
@@ -60,9 +60,9 @@ const teamMembers: TeamMember[] = [
   },
   {
     name: "Swayam Poojari",
-    role: "Developer (3rd Year)",
+    role: "Detection & Explainable AI Engineer (3rd Year)",
     image: "/assets/team/swayam.jpeg",
-    description: "Specializes in heuristic-based detection and explainable AI models.",
+    description: "Developed heuristic detection logic and explainable risk-scoring workflows for PII, AI-generated content, and digital-safety analysis.",
     github: "https://github.com/Swayam-2006",
     linkedin: "https://www.linkedin.com/in/swayam-poojari-6828b027a",
     email: "swayam.17955@sakec.ac.in",
@@ -70,9 +70,9 @@ const teamMembers: TeamMember[] = [
   },
   {
     name: "Jay Gurav",
-    role: "Developer (3rd Year)",
+    role: "Frontend Performance & Visualization Engineer (3rd Year)",
     image: "/assets/team/jay.jpeg",
-    description: "Expert in frontend performance and real-time data visualization.",
+    description: "Improved frontend performance and built clear, responsive visualizations that make security insights and platform activity easier to understand.",
     github: "https://github.com/JayG1711",
     linkedin: "https://www.linkedin.com/in/jay-gurav/",
     email: "jaygurav2004@gmail.com",
@@ -81,9 +81,9 @@ const teamMembers: TeamMember[] = [
   },
   {
     name: "Purva Nalawade",
-    role: "Developer (3rd Year)",
+    role: "UI/UX & Design Systems Engineer (3rd Year)",
     image: "/assets/team/purva.jpeg",
-    description: "Creator of the platform's glassmorphism and neobrutalist aesthetic.",
+    description: "Designed the platform's visual identity and reusable interface system, bringing the glassmorphism and neobrutalist style into a cohesive user experience.",
     github: "https://github.com/Nalawade-Purva",
     linkedin: "https://www.linkedin.com/in/purva-nalawade-532921315",
     email: "purva.17737@sakec.ac.in",
@@ -227,7 +227,7 @@ const AboutUs: React.FC = () => {
               
               <div className="space-y-6">
                 {[
-                  { icon: Zap, text: "Real-time analysis without cloud dependency" },
+                  { icon: Zap, text: "Privacy-conscious analysis with controlled integrations" },
                   { icon: Globe, text: "Privacy-first approach to PII discovery" },
                   { icon: Code2, text: "Deterministic models for explainable risk scoring" }
                 ].map((item, i) => (
@@ -249,7 +249,7 @@ const AboutUs: React.FC = () => {
                  </div>
                  <h3 className="text-3xl font-black mb-6 uppercase tracking-tight">Active Defense</h3>
                  <p className="text-slate-400 text-lg leading-relaxed">
-                   By combining on-premises processing with sophisticated heuristic analysis, we eliminate the need for sending sensitive data to third-party APIs.
+                   By combining local analysis with carefully controlled services, we minimize unnecessary exposure of sensitive data while keeping results explainable and practical.
                  </p>
               </div>
             </div>
