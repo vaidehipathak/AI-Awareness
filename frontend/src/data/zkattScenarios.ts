@@ -111,5 +111,104 @@ export const ZKATT_SCENARIOS: ZKATTSenario[] = [
         details: ['Never share OTPs with anyone', 'Set daily transfer limits', 'Use official Bank Apps for alerts']
       }
     ]
+  },
+  {
+    id: 'deepfake',
+    category: 'Deepfake / CEO Fraud',
+    description: 'An AI voice clone of company leadership demanding an emergency transfer.',
+    icon: 'Video',
+    phases: [
+      {
+        phase: 'Attacker Action',
+        content: 'The attacker scrapes 45 seconds of the CEO speaking on YouTube to train a real-time AI voice cloning model.',
+        details: ['Synthesizes realistic background cadence', 'Spoofs internal corporate caller ID', 'Calls the Senior Finance Controller directly']
+      },
+      {
+        phase: 'Victim Perspective',
+        content: '"Hi Alex, I am in a confidential board meeting. We need an urgent vendor deposit of ₹15,00,000 before market close."',
+        details: ['Voice sounds 100% authentic', 'CEO uses realistic colloquial phrases and nicknames', 'High urgency: "Do not delay this acquisition"']
+      },
+      {
+        phase: 'Consequence',
+        content: 'The finance controller bypasses standard multi-sign authorization and executes the wire transfer to an offshore mule account.',
+        details: ['Funds laundered through crypto within minutes', 'No clawback possible', 'Substantial financial and reputation loss']
+      },
+      {
+        phase: 'Warning Signs',
+        content: 'Requests to bypass standard purchase order or dual-approval workflows over the phone.',
+        details: ['Refusal to join video conference or answer verbal code phrases', 'Extreme urgency and pressure', 'Odd timing (e.g. late Friday afternoon)']
+      },
+      {
+        phase: 'Prevention Tips',
+        content: 'Enforce strict out-of-band verification and verbal passphrase protocols for any executive financial requests.',
+        details: ['Establish secret executive verification codes', 'Mandatory 4-eyes approval on large transfers', 'Employee awareness on AI voice cloning']
+      }
+    ]
+  },
+  {
+    id: 'ransomware',
+    category: 'Ransomware Extortion',
+    description: 'Automated cryptolocker encrypting network files and exfiltrating databases.',
+    icon: 'ShieldAlert',
+    phases: [
+      {
+        phase: 'Attacker Action',
+        content: 'Attackers purchase stolen employee VPN credentials from the dark web and deploy an automated LockBit ransomware script.',
+        details: ['Disables local Volume Shadow Copies (backups)', 'Deploys encryption payloads across Active Directory', 'Exfiltrates confidential IP to mega.nz cloud']
+      },
+      {
+        phase: 'Victim Perspective',
+        content: 'At 8:00 AM, employees find all desktop files renamed to ".locked" and wallpaper replaced with a ransom countdown timer.',
+        details: ['Desktop wallpaper changes to red skull', 'Text file "HOW_TO_DECRYPT_FILES.txt" on every directory', 'Demands $250,000 in Bitcoin within 48 hours']
+      },
+      {
+        phase: 'Consequence',
+        content: 'All operational databases and customer records are encrypted; critical enterprise services grind to a complete halt.',
+        details: ['Daily operations paralyzed', 'Extortion double-threat: "Pay or we publish customer records"', 'Costly forensic recovery and regulatory fines']
+      },
+      {
+        phase: 'Warning Signs',
+        content: 'Suspicious off-hours VPN logins from unexpected geographic regions and spike in network write operations.',
+        details: ['Disabled EDR/Antivirus alerts', 'Massive batch file renaming events', 'Unusual PowerShell child processes spawned by wscript']
+      },
+      {
+        phase: 'Prevention Tips',
+        content: 'Implement the 3-2-1 backup strategy with immutable offline storage and enforce MFA on all VPN and remote access gates.',
+        details: ['Air-gapped immutable cloud backups', 'Enforce Phishing-Resistant MFA (FIDO2)', 'Regular endpoint patch management']
+      }
+    ]
+  },
+  {
+    id: 'quishing',
+    category: 'QR Code Attack (Quishing)',
+    description: 'Malicious QR code sticker placed over legitimate payment terminals.',
+    icon: 'QrCode',
+    phases: [
+      {
+        phase: 'Attacker Action',
+        content: 'The fraudster prints physical adhesive QR code stickers that redirect to a cloned payment phishing portal.',
+        details: ['Sticks fake QR directly on parking meters and cafe payment stands', 'URL shortened to mask destination domain', 'Dynamic redirection based on mobile device OS']
+      },
+      {
+        phase: 'Victim Perspective',
+        content: 'You scan the QR code to pay for parking. The mobile browser opens what looks like the official municipal payment page.',
+        details: ['Prompts for Card Number, Expiry, CVV, and OTP', 'Displays convincing local city council logos', 'Fake "Processing Payment" loading spinner']
+      },
+      {
+        phase: 'Consequence',
+        content: 'Your card credentials and live OTP are captured instantly by the attacker\'s relay server, executing fraudulent transactions.',
+        details: ['Card used for unauthorized online purchases', 'Victim left with an unpaid parking fine', 'Identity data harvested for credential stuffing']
+      },
+      {
+        phase: 'Warning Signs',
+        content: 'A QR code that appears pasted or layered on top of another surface, or opens an unfamiliar URL domain.',
+        details: ['Physical sticker peeling or misalignment', 'Browser address bar shows non-standard domain', 'Unusual request for unnecessary personal data']
+      },
+      {
+        phase: 'Prevention Tips',
+        content: 'Always check the domain name in your mobile browser before entering any payment details from a scanned QR code.',
+        details: ['Use verified mobile apps rather than random QR links', 'Feel physical QR surfaces for stickers before scanning', 'Enable SMS transaction alerts with card lock']
+      }
+    ]
   }
 ];

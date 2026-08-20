@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  ShieldAlert, Mail, FileWarning, Wallet, 
+  ShieldAlert, Mail, FileWarning, Wallet, Video, QrCode,
   ChevronRight, ChevronLeft, RotateCcw, 
   Play, Pause, Terminal, Send, Search, Lock
 } from 'lucide-react';
@@ -103,10 +103,16 @@ const ZKATTPage: React.FC = () => {
   const handleFallback = (input: string) => {
     const lowerInput = input.toLowerCase();
     let bestMatch = ZKATT_SCENARIOS[0]; // Default Phishing
-    if (lowerInput.includes('money') || lowerInput.includes('bank') || lowerInput.includes('card')) {
-        bestMatch = ZKATT_SCENARIOS[2];
-    } else if (lowerInput.includes('file') || lowerInput.includes('malware') || lowerInput.includes('virus')) {
-        bestMatch = ZKATT_SCENARIOS[1];
+    if (lowerInput.includes('voice') || lowerInput.includes('deepfake') || lowerInput.includes('ceo') || lowerInput.includes('audio')) {
+        bestMatch = ZKATT_SCENARIOS[3]; // Deepfake
+    } else if (lowerInput.includes('ransom') || lowerInput.includes('lock') || lowerInput.includes('encrypt')) {
+        bestMatch = ZKATT_SCENARIOS[4]; // Ransomware
+    } else if (lowerInput.includes('qr') || lowerInput.includes('quish') || lowerInput.includes('scan')) {
+        bestMatch = ZKATT_SCENARIOS[5]; // Quishing
+    } else if (lowerInput.includes('money') || lowerInput.includes('bank') || lowerInput.includes('card') || lowerInput.includes('otp')) {
+        bestMatch = ZKATT_SCENARIOS[2]; // Bank / Financial Scam
+    } else if (lowerInput.includes('file') || lowerInput.includes('malware') || lowerInput.includes('virus') || lowerInput.includes('trojan')) {
+        bestMatch = ZKATT_SCENARIOS[1]; // Malware
     }
     setScenario(bestMatch);
     setStatus('PLAYING');
@@ -184,26 +190,23 @@ const ZKATTPage: React.FC = () => {
                         <div 
                             key={sc.id}
                             onClick={() => handleLaunchScenario(sc)}
-                            className="bg-white/5 border border-white/10 p-6 rounded-2xl cursor-pointer hover:border-indigo-500/50 hover:bg-white/10 transition-all group relative overflow-hidden"
+                            className="bg-white/5 border border-white/10 p-6 rounded-2xl cursor-pointer hover:border-indigo-500/50 hover:bg-white/10 transition-all group relative overflow-hidden flex flex-col justify-between"
                         >
                             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-30 transition-opacity">
                                 {sc.id === 'phishing' && <Mail className="w-12 h-12" />}
                                 {sc.id === 'malware' && <FileWarning className="w-12 h-12" />}
                                 {sc.id === 'financial' && <Wallet className="w-12 h-12" />}
+                                {sc.id === 'deepfake' && <Video className="w-12 h-12" />}
+                                {sc.id === 'ransomware' && <ShieldAlert className="w-12 h-12" />}
+                                {sc.id === 'quishing' && <QrCode className="w-12 h-12" />}
                             </div>
-                            <h3 className="text-xl font-black mb-2 text-indigo-400">{sc.category}</h3>
-                            <p className="text-sm text-slate-400 mb-4">{sc.description}</p>
-                            <div className="flex items-center text-xs font-bold text-slate-500 group-hover:text-white transition-colors">
-                                INITIATE SIMULATION <ChevronRight className="w-4 h-4" />
+                            <div>
+                                <h3 className="text-xl font-black mb-2 text-indigo-400">{sc.category}</h3>
+                                <p className="text-sm text-slate-400 mb-4">{sc.description}</p>
                             </div>
-                        </div>
-                    ))}
-                    {/* COMING SOON SLOTS */}
-                    {[1, 2].map(i => (
-                        <div key={i} className="bg-white/5 border border-white/5 p-6 rounded-2xl opacity-50 grayscale cursor-not-allowed">
-                            <div className="inline-block px-2 py-1 bg-white/10 rounded text-[10px] mb-2">COMING SOON</div>
-                            <h3 className="text-xl font-black mb-2 text-slate-600">New Category {i}</h3>
-                            <p className="text-sm text-slate-700">Encrypted transmission pending...</p>
+                            <div className="flex items-center text-xs font-bold text-slate-500 group-hover:text-white transition-colors mt-auto">
+                                INITIATE SIMULATION <ChevronRight className="w-4 h-4 ml-1" />
+                            </div>
                         </div>
                     ))}
                 </div>
