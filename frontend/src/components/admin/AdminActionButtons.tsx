@@ -30,13 +30,32 @@ const AdminActionButtons: React.FC<AdminActionButtonsProps> = ({ item, contentTy
         e.stopPropagation();
         setLoading(true);
         try {
+            const activeToken = localStorage.getItem('auth_token') || token;
+            const headers = activeToken ? { Authorization: `Bearer ${activeToken}` } : {};
             await axios.patch(`${endpoints[contentType]}${item.id}/`,
                 { is_active: !item.is_active },
-                { headers: { Authorization: `Bearer ${token}` } }
+                { headers }
             );
             onUpdate();
-        } catch (err) {
+        } catch (err: any) {
             console.error("Toggle failed", err);
+            // Fallback retry with fresh token if available
+            const refresh = localStorage.getItem('auth_refresh');
+            if (refresh && err.response?.status === 401) {
+                try {
+                    const res = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, { refresh });
+                    const newAccess = res.data.access;
+                    localStorage.setItem('auth_token', newAccess);
+                    await axios.patch(`${endpoints[contentType]}${item.id}/`,
+                        { is_active: !item.is_active },
+                        { headers: { Authorization: `Bearer ${newAccess}` } }
+                    );
+                    onUpdate();
+                    return;
+                } catch (retryErr) {
+                    console.error("Retry toggle failed", retryErr);
+                }
+            }
         } finally {
             setLoading(false);
         }
@@ -48,12 +67,29 @@ const AdminActionButtons: React.FC<AdminActionButtonsProps> = ({ item, contentTy
 
         setLoading(true);
         try {
+            const activeToken = localStorage.getItem('auth_token') || token;
+            const headers = activeToken ? { Authorization: `Bearer ${activeToken}` } : {};
             await axios.delete(`${endpoints[contentType]}${item.id}/`, {
-                headers: { Authorization: `Bearer ${token}` }
+                headers
             });
             onUpdate();
-        } catch (err) {
+        } catch (err: any) {
             console.error("Delete failed", err);
+            const refresh = localStorage.getItem('auth_refresh');
+            if (refresh && err.response?.status === 401) {
+                try {
+                    const res = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, { refresh });
+                    const newAccess = res.data.access;
+                    localStorage.setItem('auth_token', newAccess);
+                    await axios.delete(`${endpoints[contentType]}${item.id}/`, {
+                        headers: { Authorization: `Bearer ${newAccess}` }
+                    });
+                    onUpdate();
+                    return;
+                } catch (retryErr) {
+                    console.error("Retry delete failed", retryErr);
+                }
+            }
         } finally {
             setLoading(false);
         }

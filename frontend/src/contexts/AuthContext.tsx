@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
 import { API_BASE_URL } from '../config';
 
 export interface User {
@@ -148,6 +149,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     };
     initAuth();
+
+    // Axios response interceptor for transparent JWT refresh on 401
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config;
+        if (error.response?.status === 401 && !originalRequest?._retry) {
+          originalRequest._retry = true;
+          const refresh = localStorage.getItem('auth_refresh');
+          if (refresh) {
+            try {
+              const res = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, { refresh });
+              const newAccess = res.data.access;
+              localStorage.setItem('auth_token', newAccess);
+              if (res.data.refresh) {
+                localStorage.setItem('auth_refresh', res.data.refresh);
+              }
+              setToken(newAccess);
+              if (originalRequest.headers) {
+                originalRequest.headers['Authorization'] = `Bearer ${newAccess}`;
+              }
+              return axios(originalRequest);
+            } catch (refreshErr) {
+              console.warn('Auto refresh token failed', refreshErr);
+            }
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
   }, []);
 
   const safeFetch = async (endpoint: string, options: RequestInit) => {

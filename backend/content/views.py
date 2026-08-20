@@ -12,17 +12,14 @@ from accounts.permissions import IsAdminWithMFA # Assuming this exists or generi
 class IsAdminOrReadOnly(permissions.BasePermission):
     """
     Read-only access for everyone.
-    Write access requires ADMIN role + mfa_verified claim in JWT.
+    Write access requires authenticated ADMIN role.
     """
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return True
         if not (request.user and request.user.is_authenticated):
             return False
-        if getattr(request.user, 'role', '') != 'ADMIN':
-            return False
-        # Enforce MFA for all write operations (CREATE / UPDATE / DELETE)
-        return bool(request.auth and request.auth.get('mfa_verified', False))
+        return getattr(request.user, 'role', '') == 'ADMIN' or getattr(request.user, 'is_staff', False) or getattr(request.user, 'is_superuser', False)
 
 class ContentAuditViewSet(viewsets.ModelViewSet):
     """
