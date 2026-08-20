@@ -1145,7 +1145,7 @@ const STATIC_TOPICS: Resource[] = [
 ];
 
 const AwarenessHub: React.FC = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { theme } = useTheme();
   const darkMode = theme === 'dark';
   const [topics, setTopics] = useState<Resource[]>([]);
@@ -1186,9 +1186,11 @@ const AwarenessHub: React.FC = () => {
 
   const fetchTopics = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/content/awareness/`);
+      const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+      const res = await axios.get(`${API_BASE_URL}/api/content/awareness/`, config);
+      const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
       // Map backend fields to frontend Resource type
-      const mapped = res.data.map((t: any) => ({
+      const mapped = data.map((t: any) => ({
         id: t.id,
         is_active: t.is_active,
         title: t.title,
@@ -1210,7 +1212,7 @@ const AwarenessHub: React.FC = () => {
 
   useEffect(() => {
     fetchTopics();
-  }, []);
+  }, [token]);
 
   /* ---------------- ADMIN VIEW ---------------- */
 

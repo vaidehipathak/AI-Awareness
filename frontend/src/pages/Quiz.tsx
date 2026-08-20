@@ -264,7 +264,7 @@ const fetchAllQuizzes = async (): Promise<Record<Difficulty, Quiz[]>> => {
 };
 
 const QuizPage: React.FC = () => {
-    const { user } = useAuth();
+    const { user, token } = useAuth();
     const { theme } = useTheme();
     const darkMode = theme === 'dark';
 
@@ -327,12 +327,14 @@ const QuizPage: React.FC = () => {
         if (user?.role !== 'ADMIN') return;
         setLoadingAdmin(true);
         try {
-            const res = await axios.get(`${API_BASE_URL}/api/content/quiz/`);
-            setAllQuizzes(res.data || []);
+            const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+            const res = await axios.get(`${API_BASE_URL}/api/content/quiz/`, config);
+            const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
+            setAllQuizzes(data);
         } catch (err) { console.error('Failed to load quizzes', err); }
         finally { setLoadingAdmin(false); }
     };
-    useEffect(() => { fetchQuizzesForAdmin(); }, [user?.role]);
+    useEffect(() => { fetchQuizzesForAdmin(); }, [user?.role, token]);
 
     const resetQuizState = () => { setQuestionIndex(0); setAnswers([]); setResult(null); };
     const goToDifficulty = () => { setView('difficulty'); setActiveDifficulty(null); setSelectedQuiz(null); resetQuizState(); };

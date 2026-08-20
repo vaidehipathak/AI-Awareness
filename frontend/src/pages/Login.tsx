@@ -289,35 +289,6 @@ const Login: React.FC = () => {
               </motion.button>
             </form>
 
-            {/* Quick Fill Demo Credentials */}
-            <div className="mt-6 p-4 rounded-2xl bg-slate-100/80 dark:bg-white/5 border border-slate-200/60 dark:border-white/10 backdrop-blur-sm">
-              <p className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-2 uppercase tracking-wider">
-                Quick Demo Fill
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => { setEmail('xi-jinping@china.com'); setPassword('password123'); }}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 font-semibold border border-indigo-200/50 dark:border-indigo-500/20 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all active:scale-95"
-                >
-                  xi-jinping@china.com
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setEmail('learner@demo.com'); setPassword('password123'); }}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 font-semibold border border-indigo-200/50 dark:border-indigo-500/20 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all active:scale-95"
-                >
-                  learner@demo.com
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setEmail('oblif@example.com'); setPassword('Admin@12345'); }}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-300 font-semibold border border-purple-200/50 dark:border-purple-500/20 hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-all active:scale-95"
-                >
-                  Admin Account
-                </button>
-              </div>
-            </div>
 
             <motion.div
               initial={{ opacity: 0 }}

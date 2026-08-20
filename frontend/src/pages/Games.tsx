@@ -67,7 +67,7 @@ const GamesPage: React.FC = () => {
 
 
     // Game Data State
-    const { user } = useAuth();
+    const { user, token } = useAuth();
     const [allGames, setAllGames] = useState<any[]>([]);
     const [dragDropData, setDragDropData] = useState<any[]>([]);
     const [trueFalseData, setTrueFalseData] = useState<any[]>([]);
@@ -78,8 +78,9 @@ const GamesPage: React.FC = () => {
 
     const fetchGames = async () => {
         try {
-            const res = await axios.get(`${API_BASE_URL}/api/content/games/`);
-            const games = res.data;
+            const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+            const res = await axios.get(`${API_BASE_URL}/api/content/games/`, config);
+            const games = Array.isArray(res.data) ? res.data : (res.data.results || []);
             setAllGames(games);
 
             let dd: any[] = [];
@@ -114,7 +115,7 @@ const GamesPage: React.FC = () => {
 
     useEffect(() => {
         fetchGames();
-    }, []);
+    }, [token]);
 
     // --- UI COMPONENTS ---
 
@@ -593,6 +594,11 @@ const GamesPage: React.FC = () => {
 
     /* ---------------- LEARNER VIEW ---------------- */
 
+    const isGameActive = (gameType: string) => {
+        const g = allGames.find(item => item.game_type === gameType);
+        return g ? g.is_active : true;
+    };
+
     const LearnerGamesMenu = () => (
         <div className="min-h-screen bg-slate-50 dark:bg-[#0a0a0a] transition-colors duration-500 font-sans relative overflow-hidden">
             {/* --- AMBIENT BACKGROUND --- */}
@@ -618,51 +624,63 @@ const GamesPage: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-20">
-                    <GameCard
-                        icon={Clock}
-                        title="Speed Protocols"
-                        description="Quick-fire True/False questions. Test your reaction time."
-                        onClick={() => setCurrentGame('truefalse')}
-                        color="from-red-500 to-pink-500"
-                    />
+                    {isGameActive('TRUE_FALSE') && (
+                        <GameCard
+                            icon={Clock}
+                            title="Speed Protocols"
+                            description="Quick-fire True/False questions. Test your reaction time."
+                            onClick={() => setCurrentGame('truefalse')}
+                            color="from-red-500 to-pink-500"
+                        />
+                    )}
 
-                    <GameCard
-                        icon={Eye}
-                        title="Deepfake Scan"
-                        description="Analyze video feeds and identify synthetic manipulations."
-                        onClick={() => setCurrentGame('deepfake')}
-                        color="from-purple-500 to-indigo-500"
-                    />
+                    {isGameActive('DEEPFAKE_DETECTOR') && (
+                        <GameCard
+                            icon={Eye}
+                            title="Deepfake Scan"
+                            description="Analyze video feeds and identify synthetic manipulations."
+                            onClick={() => setCurrentGame('deepfake')}
+                            color="from-purple-500 to-indigo-500"
+                        />
+                    )}
 
-                    <GameCard
-                        icon={Target}
-                        title="Bias Detection"
-                        description="Uncover hidden biases in algorithmic decision making."
-                        onClick={() => setCurrentGame('bias-spotter')}
-                        color="from-orange-500 to-amber-500"
-                    />
+                    {isGameActive('BIAS_SPOTTER') && (
+                        <GameCard
+                            icon={Target}
+                            title="Bias Detection"
+                            description="Uncover hidden biases in algorithmic decision making."
+                            onClick={() => setCurrentGame('bias-spotter')}
+                            color="from-orange-500 to-amber-500"
+                        />
+                    )}
 
-                    <GameCard
-                        icon={Zap}
-                        title="Phishing Filter"
-                        description="Sort incoming comms. Isolate threats from safe messages."
-                        onClick={() => setCurrentGame('phishing')}
-                        color="from-cyan-500 to-blue-500"
-                    />
-                    <GameCard
-                        icon={Shuffle}
-                        title="Drag & Matach"
-                        description="Connect terms with their correct definitions."
-                        onClick={() => setCurrentGame('dragdrop')}
-                        color="from-green-500 to-emerald-500"
-                    />
-                    <GameCard
-                        icon={Brain}
-                        title="Neural Memory"
-                        description="Train your memory recall with AI concepts."
-                        onClick={() => setCurrentGame('memory')}
-                        color="from-teal-500 to-green-500"
-                    />
+                    {isGameActive('PHISHING_SORTER') && (
+                        <GameCard
+                            icon={Zap}
+                            title="Phishing Filter"
+                            description="Sort incoming comms. Isolate threats from safe messages."
+                            onClick={() => setCurrentGame('phishing')}
+                            color="from-cyan-500 to-blue-500"
+                        />
+                    )}
+                    {isGameActive('DRAG_DROP') && (
+                        <GameCard
+                            icon={Shuffle}
+                            title="Drag & Match"
+                            description="Connect terms with their correct definitions."
+                            onClick={() => setCurrentGame('dragdrop')}
+                            color="from-green-500 to-emerald-500"
+                        />
+                    )}
+                    {isGameActive('MEMORY') && (
+                        <GameCard
+                            icon={Brain}
+                            title="Neural Memory"
+                            description="Train your memory recall with AI concepts."
+                            onClick={() => setCurrentGame('memory')}
+                            color="from-teal-500 to-green-500"
+                        />
+                    )}
                 </div>
 
                 <div className="mt-12">
@@ -727,8 +745,8 @@ const GamesPage: React.FC = () => {
                                                         {getPreview(game)}
                                                     </td>
                                                     <td className="p-4 align-middle">
-                                                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${game.is_active ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
-                                                            {game.is_active ? 'Active' : 'Draft'}
+                                                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${game.is_active ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}`}>
+                                                            {game.is_active ? 'Active' : 'Hidden'}
                                                         </span>
                                                     </td>
                                                     <td className="p-4 align-middle text-right">
