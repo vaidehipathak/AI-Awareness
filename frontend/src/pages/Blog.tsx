@@ -19,6 +19,10 @@ interface BlogPost {
   readTime: string;
   imageUrl: string;
   tags: string[];
+  is_active?: boolean;
+  isDbArticle?: boolean;
+  rawItem?: any;
+  source_url?: string;
 }
 
 const FALLBACK_IMAGES = [
@@ -41,7 +45,7 @@ const getFallbackImage = (title: string, index: number = 0) => {
 };
 
 const BlogPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { theme } = useTheme();
   const darkMode = theme === 'dark';
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -57,12 +61,53 @@ const BlogPage: React.FC = () => {
 
   const fetchPosts = async () => {
     try {
-      // Fetch from the NewsAPI endpoint
-      const res = await axios.get(`${API_BASE_URL}/api/content/news/`);
+      const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+      
+      let dbArticles: any[] = [];
+      try {
+        const dbRes = await axios.get(`${API_BASE_URL}/api/content/articles/`, config);
+        dbArticles = Array.isArray(dbRes.data) ? dbRes.data : (dbRes.data.results || []);
+      } catch (dbErr) {
+        console.warn("DB articles fetch error, falling back to public", dbErr);
+        try {
+          const fallbackDb = await axios.get(`${API_BASE_URL}/api/content/articles/`);
+          dbArticles = Array.isArray(fallbackDb.data) ? fallbackDb.data : (fallbackDb.data.results || []);
+        } catch (e) {
+          // ignore
+        }
+      }
 
-      // Map NewsAPI response to BlogPost format
-      const mappedPosts = res.data.map((article: any, index: number) => ({
-        id: article.url, // Use URL as unique ID since NewsAPI doesn't provide IDs
+      let newsArticles: any[] = [];
+      try {
+        const newsRes = await axios.get(`${API_BASE_URL}/api/content/news/`);
+        newsArticles = Array.isArray(newsRes.data) ? newsRes.data : [];
+      } catch (newsErr) {
+        console.warn("News API fetch error", newsErr);
+      }
+
+      const mappedDb = dbArticles.map((a: any, index: number) => ({
+        id: `db-${a.id}`,
+        title: a.title,
+        excerpt: a.description || 'Click to read full article.',
+        content: a.content || a.description || '',
+        author: a.author || 'AwareX Editorial',
+        date: new Date(a.created_at || a.published_at || Date.now()).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        }),
+        category: a.source_name || 'AI Safety',
+        readTime: '4 min read',
+        imageUrl: a.image_url || getFallbackImage(a.title || '', index),
+        tags: ['AI Safety', 'AwareX', 'Article'],
+        is_active: a.is_active,
+        isDbArticle: true,
+        rawItem: a,
+        source_url: a.source_url
+      }));
+
+      const mappedNews = newsArticles.map((article: any, index: number) => ({
+        id: article.url,
         title: article.title,
         excerpt: article.description || 'Click to read more.',
         content: article.content || article.description || 'Read the full article at the source.',
@@ -73,16 +118,14 @@ const BlogPage: React.FC = () => {
           day: 'numeric'
         }),
         category: article.source?.name || 'AI News',
-        readTime: '5 min read', // Default read time
-        imageUrl: article.urlToImage || getFallbackImage(article.title || '', index),
-        tags: ['AI', 'News', 'Technology']
+        readTime: '5 min read',
+        imageUrl: article.urlToImage || getFallbackImage(article.title || '', index + mappedDb.length),
+        tags: ['AI', 'News', 'Technology'],
+        isDbArticle: false
       }));
 
-      setPosts(mappedPosts);
-    } catch (err) {
-      console.error("Failed to fetch news articles", err);
-      // Fallback dummy data if backend fails
-      setPosts([
+      const combined = [...mappedDb, ...mappedNews];
+      setPosts(combined.length > 0 ? combined : [
         {
           id: '1',
           title: 'The Rise of Generative AI: Risks and Rewards',
@@ -108,6 +151,8 @@ const BlogPage: React.FC = () => {
           tags: ['Security', 'Media', 'Guide']
         }
       ]);
+    } catch (err) {
+      console.error("Failed to fetch articles", err);
     } finally {
       setLoading(false);
     }
@@ -115,7 +160,7 @@ const BlogPage: React.FC = () => {
 
   useEffect(() => {
     fetchPosts();
-  }, []);
+  }, [token, user?.role]);
 
   const filteredPosts = posts.filter(post => {
     const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) || post.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
@@ -181,9 +226,21 @@ const BlogPage: React.FC = () => {
           }}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
         />
-        <div className="absolute top-4 left-4 bg-white/90 dark:bg-black/80 backdrop-blur-md px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400">
-          {post.category}
+        <div className="absolute top-4 left-4 flex gap-2 items-center">
+          <span className="bg-white/90 dark:bg-black/80 backdrop-blur-md px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400">
+            {post.category}
+          </span>
+          {post.isDbArticle && post.is_active === false && (
+            <span className="bg-amber-500/90 text-black px-2.5 py-0.5 rounded-lg text-xs font-bold uppercase tracking-wider">
+              Hidden
+            </span>
+          )}
         </div>
+        {post.isDbArticle && user?.role === 'ADMIN' && post.rawItem && (
+          <div className="absolute top-3 right-3 z-20" onClick={e => e.stopPropagation()}>
+            <AdminActionButtons item={post.rawItem} contentType="articles" onUpdate={fetchPosts} />
+          </div>
+        )}
       </div>
       <div className="p-8 flex flex-col flex-grow">
         <div className="flex items-center gap-4 text-xs font-bold text-slate-400 mb-4 uppercase tracking-wider">
@@ -277,17 +334,19 @@ const BlogPage: React.FC = () => {
               ))}
             </div>
 
-            {/* Link to original article */}
-            <div className="mt-8">
-              <a
-                href={selectedPost.id}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg hover:shadow-indigo-500/30"
-              >
-                Read Full Article at Source <ArrowRight size={18} />
-              </a>
-            </div>
+            {/* Link to original article if external URL */}
+            {(selectedPost.source_url || (!selectedPost.isDbArticle && selectedPost.id.startsWith('http'))) && (
+              <div className="mt-8">
+                <a
+                  href={selectedPost.source_url || selectedPost.id}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg hover:shadow-indigo-500/30"
+                >
+                  Read Full Article at Source <ArrowRight size={18} />
+                </a>
+              </div>
+            )}
 
             <div className="mt-12 pt-12 border-t border-slate-200 dark:border-white/10">
               <h4 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-4">Tags</h4>

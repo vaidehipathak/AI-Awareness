@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config';
-import { Save, X, Edit3, Sparkles, FileText, CheckSquare, Code } from 'lucide-react';
+import { Save, X, Edit3, Sparkles, Code, Image as ImageIcon, User, Folder } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface ContentEditModalProps {
@@ -12,18 +12,37 @@ interface ContentEditModalProps {
     onSuccess: () => void;
 }
 
+const CATEGORY_OPTIONS = [
+    'AI Safety',
+    'Ethics',
+    'Cybersecurity',
+    'Deepfakes',
+    'Guide',
+    'Threat Intel',
+    'Privacy & LLMs',
+    'General AI'
+];
+
 const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, item, contentType, onSuccess }) => {
-    const { token } = useAuth();
+    const { token, user } = useAuth();
     const [formData, setFormData] = useState<any>({});
     const [loading, setLoading] = useState(false);
+    const [imageError, setImageError] = useState(false);
 
     useEffect(() => {
         if (item) {
             setFormData({ ...item });
         } else {
-            setFormData({});
+            setFormData({
+                is_active: true,
+                author: user?.username || 'AwareX Editorial',
+                source_name: 'AI Safety',
+                game_type: 'OTHER',
+                difficulty: 'easy'
+            });
         }
-    }, [item]);
+        setImageError(false);
+    }, [item, user, isOpen]);
 
     const endpoints = {
         articles: `${API_BASE_URL}/api/content/articles/`,
@@ -36,21 +55,44 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
         e.preventDefault();
         setLoading(true);
         try {
+            const activeToken = localStorage.getItem('auth_token') || token;
+            const headers = activeToken ? { Authorization: `Bearer ${activeToken}` } : {};
             const endpoint = endpoints[contentType];
+
             if (item && item.id) {
-                await axios.patch(`${endpoint}${item.id}/`, formData, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                await axios.patch(`${endpoint}${item.id}/`, formData, { headers });
             } else {
-                await axios.post(endpoint, formData, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                await axios.post(endpoint, formData, { headers });
             }
             onSuccess();
             onClose();
-        } catch (err) {
+        } catch (err: any) {
             console.error("Save failed", err);
-            alert("Failed to save changes. Please try again.");
+            // Retry with refreshed token if 401
+            const refresh = localStorage.getItem('auth_refresh');
+            if (refresh && err.response?.status === 401) {
+                try {
+                    const res = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, { refresh });
+                    const newAccess = res.data.access;
+                    localStorage.setItem('auth_token', newAccess);
+                    const endpoint = endpoints[contentType];
+                    if (item && item.id) {
+                        await axios.patch(`${endpoint}${item.id}/`, formData, {
+                            headers: { Authorization: `Bearer ${newAccess}` }
+                        });
+                    } else {
+                        await axios.post(endpoint, formData, {
+                            headers: { Authorization: `Bearer ${newAccess}` }
+                        });
+                    }
+                    onSuccess();
+                    onClose();
+                    return;
+                } catch (retryErr) {
+                    console.error("Retry save failed", retryErr);
+                }
+            }
+            alert(err.response?.data?.detail || "Failed to save changes. Please check required fields.");
         } finally {
             setLoading(false);
         }
@@ -67,13 +109,13 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-[#12131a] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-white/10 flex flex-col">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+            <div className="bg-white dark:bg-[#0f1015] rounded-3xl shadow-2xl w-full max-w-2xl max-h-[88vh] flex flex-col border border-slate-200 dark:border-white/10 overflow-hidden">
                 
-                {/* Modal Header */}
-                <div className="p-5 px-6 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-slate-50 dark:bg-gradient-to-r dark:from-indigo-950/40 dark:to-slate-900/60 sticky top-0 z-10 backdrop-blur-md">
+                {/* Fixed Header */}
+                <div className="p-5 px-6 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-slate-50 dark:bg-slate-900/80 shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                        <div className="p-2.5 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
                             {isEdit ? <Edit3 className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
                         </div>
                         <div>
@@ -81,21 +123,22 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
                                 {isEdit ? `Edit ${contentTypeLabels[contentType] || 'Content'}` : `Create ${contentTypeLabels[contentType] || 'Content'}`}
                             </h3>
                             <p className="text-xs text-slate-500 dark:text-slate-400">
-                                {isEdit ? `Modifying item #${item.id}` : 'Fill in the fields below to publish new content.'}
+                                {isEdit ? `Updating item #${item.id}` : 'Fill in the fields below to publish immediately.'}
                             </p>
                         </div>
                     </div>
                     <button 
+                        type="button"
                         onClick={onClose} 
-                        className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                        className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-white/10 transition-colors"
                         aria-label="Close modal"
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
-                {/* Modal Form */}
-                <form onSubmit={handleSave} className="p-6 space-y-5 flex-1">
+                {/* Scrollable Form Body */}
+                <form id="content-edit-form" onSubmit={handleSave} className="p-6 space-y-5 flex-1 overflow-y-auto">
                     
                     {/* Title */}
                     <div>
@@ -112,50 +155,122 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
                         />
                     </div>
 
-                    {/* Active Checkbox */}
-                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <CheckSquare className="w-5 h-5 text-indigo-500" />
-                            <div>
-                                <label htmlFor="is_active" className="text-sm font-semibold text-slate-800 dark:text-slate-200 cursor-pointer">
-                                    Active / Published
-                                </label>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">Controls visibility for end-users on the platform.</p>
+                    {/* Active/Published Toggle Switch */}
+                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-between">
+                        <div>
+                            <div className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span>Publication Status</span>
+                                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${formData.is_active ? 'bg-green-500/15 text-green-600 dark:text-green-400 border border-green-500/20' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20'}`}>
+                                    {formData.is_active ? 'Active / Visible' : 'Draft / Hidden'}
+                                </span>
                             </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Controls public visibility for learners and standard users.</p>
                         </div>
-                        <input
-                            type="checkbox"
-                            id="is_active"
-                            className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
-                            checked={formData.is_active || false}
-                            onChange={e => setFormData({ ...formData, is_active: e.target.checked })}
-                        />
+                        <button
+                            type="button"
+                            role="switch"
+                            aria-checked={formData.is_active ?? true}
+                            onClick={() => setFormData({ ...formData, is_active: !(formData.is_active ?? true) })}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 shrink-0 ${formData.is_active ?? true ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-700'}`}
+                        >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.is_active ?? true ? 'translate-x-6' : 'translate-x-1'}`} />
+                        </button>
                     </div>
+
+                    {/* --- ARTICLE SPECIFIC FIELDS --- */}
+                    {contentType === 'articles' && (
+                        <>
+                            {/* Author & Category Row */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5 flex items-center gap-1.5">
+                                        <User className="w-3.5 h-3.5 text-indigo-500" /> Author Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. Dr. Sarah Chen, AwareX Team"
+                                        className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/15 bg-white dark:bg-slate-900/70 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 outline-none transition-all text-sm"
+                                        value={formData.author || ''}
+                                        onChange={e => setFormData({ ...formData, author: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5 flex items-center gap-1.5">
+                                        <Folder className="w-3.5 h-3.5 text-indigo-500" /> Category
+                                    </label>
+                                    <select
+                                        className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/15 bg-white dark:bg-slate-900/70 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 outline-none transition-all text-sm cursor-pointer"
+                                        value={formData.source_name || 'AI Safety'}
+                                        onChange={e => setFormData({ ...formData, source_name: e.target.value })}
+                                    >
+                                        {CATEGORY_OPTIONS.map(cat => (
+                                            <option key={cat} value={cat} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
+                                                {cat}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Cover Image URL with Live Preview */}
+                            <div>
+                                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5 flex items-center gap-1.5">
+                                    <ImageIcon className="w-3.5 h-3.5 text-indigo-500" /> Cover Image URL
+                                </label>
+                                <div className="flex gap-3 items-start">
+                                    <input
+                                        type="url"
+                                        placeholder="https://images.unsplash.com/... or direct image link"
+                                        className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/15 bg-white dark:bg-slate-900/70 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 outline-none transition-all text-sm font-mono text-xs"
+                                        value={formData.image_url || ''}
+                                        onChange={e => {
+                                            setImageError(false);
+                                            setFormData({ ...formData, image_url: e.target.value });
+                                        }}
+                                    />
+                                    {formData.image_url && !imageError && (
+                                        <div className="w-14 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 bg-slate-100 dark:bg-slate-800">
+                                            <img
+                                                src={formData.image_url}
+                                                alt="Preview"
+                                                className="w-full h-full object-cover"
+                                                onError={() => setImageError(true)}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </>
+                    )}
 
                     {/* Description / Teaser */}
                     {(contentType === 'articles' || contentType === 'awareness') && (
                         <div>
                             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
-                                Description / Teaser Summary
+                                Summary / Excerpt
                             </label>
                             <textarea
-                                placeholder="Short overview or summary displayed on content cards..."
-                                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/15 bg-white dark:bg-slate-900/70 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 h-24 focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 outline-none transition-all text-sm resize-y"
+                                placeholder="Short overview displayed on cards and search previews..."
+                                rows={2}
+                                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/15 bg-white dark:bg-slate-900/70 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 outline-none transition-all text-sm resize-y"
                                 value={formData.description || formData.teaser || ''}
                                 onChange={e => setFormData({ ...formData, description: e.target.value, teaser: e.target.value })}
                             />
                         </div>
                     )}
 
-                    {/* Blog Content */}
-                    {(contentType === 'articles') && (
+                    {/* Blog Content Body */}
+                    {contentType === 'articles' && (
                         <div>
-                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
-                                Full Article Content (Markdown / HTML)
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5 flex items-center justify-between">
+                                <span>Article Content (Markdown / HTML) <span className="text-red-500">*</span></span>
+                                <span className="text-[11px] text-slate-400 font-normal">Supports full markdown</span>
                             </label>
                             <textarea
-                                placeholder="Write the main article content here using Markdown or HTML formatting..."
-                                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/15 bg-white dark:bg-slate-900/70 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 h-48 font-mono text-xs focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 outline-none transition-all leading-relaxed resize-y"
+                                required
+                                rows={8}
+                                placeholder="Write your full article content here using Markdown formatting..."
+                                className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-white/15 bg-white dark:bg-slate-900/70 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-mono text-xs focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 outline-none transition-all leading-relaxed resize-y"
                                 value={formData.content || ''}
                                 onChange={e => setFormData({ ...formData, content: e.target.value })}
                             />
@@ -167,18 +282,18 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
                         <div>
                             <div className="flex justify-between items-center mb-1.5">
                                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
-                                    <Code className="w-4 h-4 text-indigo-400" /> Advanced Data Structure (JSON)
+                                    <Code className="w-4 h-4 text-indigo-400" /> Data Structure (JSON)
                                 </label>
-                                <span className="text-[11px] text-indigo-500 dark:text-indigo-400 font-mono font-medium">Valid JSON Required</span>
+                                <span className="text-[11px] text-indigo-500 dark:text-indigo-400 font-mono font-medium">Valid JSON</span>
                             </div>
                             <div className="relative rounded-xl border border-slate-300 dark:border-white/15 overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500/40 focus-within:border-indigo-500">
                                 <textarea
-                                    className="w-full p-4 bg-slate-900 text-emerald-400 font-mono text-xs h-60 outline-none leading-relaxed resize-y scrollbar-thin"
+                                    className="w-full p-4 bg-slate-900 text-emerald-400 font-mono text-xs h-56 outline-none leading-relaxed resize-y scrollbar-thin"
                                     defaultValue={
                                         JSON.stringify(
-                                            contentType === 'games' ? formData.game_data :
-                                                contentType === 'quiz' ? formData.questions :
-                                                    contentType === 'awareness' ? formData.modules : {},
+                                            contentType === 'games' ? (formData.game_data || []) :
+                                                contentType === 'quiz' ? (formData.questions || []) :
+                                                    contentType === 'awareness' ? (formData.modules || []) : {},
                                             null, 2
                                         )
                                     }
@@ -189,39 +304,36 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
                                             if (contentType === 'quiz') setFormData({ ...formData, questions: val });
                                             if (contentType === 'awareness') setFormData({ ...formData, modules: val });
                                         } catch (err) {
-                                            // Ignore parsing errors while typing
+                                            // Ignore typing syntax errors
                                         }
                                     }}
                                 />
                             </div>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
-                                Direct JSON editor for interactive quiz questions, game parameters, or awareness modules.
-                            </p>
                         </div>
                     )}
-
-                    {/* Footer Actions */}
-                    <div className="pt-4 flex justify-end gap-3 border-t border-slate-200 dark:border-white/10 mt-6">
-                        <button 
-                            type="button" 
-                            onClick={onClose} 
-                            className="px-5 py-2.5 text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10 rounded-xl font-medium text-sm transition-colors"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className={`px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl shadow-lg shadow-indigo-500/25 flex items-center gap-2 text-sm font-bold transition-all active:scale-95 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                        >
-                            <Save className="w-4 h-4" /> {loading ? 'Saving...' : 'Save Changes'}
-                        </button>
-                    </div>
                 </form>
+
+                {/* Fixed Footer */}
+                <div className="p-4 px-6 border-t border-slate-200 dark:border-white/10 flex justify-end gap-3 bg-slate-50 dark:bg-slate-900/80 shrink-0">
+                    <button 
+                        type="button" 
+                        onClick={onClose} 
+                        className="px-5 py-2 text-slate-700 hover:bg-slate-200/50 dark:text-slate-300 dark:hover:bg-white/10 rounded-xl font-medium text-sm transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        form="content-edit-form"
+                        disabled={loading}
+                        className={`px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl shadow-lg shadow-indigo-500/25 flex items-center gap-2 text-sm font-bold transition-all active:scale-95 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    >
+                        <Save className="w-4 h-4" /> {loading ? 'Saving...' : 'Save & Publish'}
+                    </button>
+                </div>
             </div>
         </div>
     );
 };
 
 export default ContentEditModal;
-
