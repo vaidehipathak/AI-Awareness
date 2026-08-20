@@ -331,7 +331,16 @@ const QuizPage: React.FC = () => {
             const res = await axios.get(`${API_BASE_URL}/api/content/quiz/`, config);
             const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
             setAllQuizzes(data);
-        } catch (err) { console.error('Failed to load quizzes', err); }
+        } catch (err) {
+            console.error('Failed to load quizzes with auth header, trying public fallback', err);
+            try {
+                const fallbackRes = await axios.get(`${API_BASE_URL}/api/content/quiz/`);
+                const fallbackData = Array.isArray(fallbackRes.data) ? fallbackRes.data : (fallbackRes.data.results || []);
+                setAllQuizzes(fallbackData);
+            } catch (fbErr) {
+                console.error('Fallback quiz load failed', fbErr);
+            }
+        }
         finally { setLoadingAdmin(false); }
     };
     useEffect(() => { fetchQuizzesForAdmin(); }, [user?.role, token]);

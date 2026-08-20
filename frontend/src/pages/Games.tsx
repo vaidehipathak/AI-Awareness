@@ -79,7 +79,13 @@ const GamesPage: React.FC = () => {
     const fetchGames = async () => {
         try {
             const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-            const res = await axios.get(`${API_BASE_URL}/api/content/games/`, config);
+            let res;
+            try {
+                res = await axios.get(`${API_BASE_URL}/api/content/games/`, config);
+            } catch (authErr) {
+                console.warn("Auth fetch failed, falling back to public fetch", authErr);
+                res = await axios.get(`${API_BASE_URL}/api/content/games/`);
+            }
             const games = Array.isArray(res.data) ? res.data : (res.data.results || []);
             setAllGames(games);
 

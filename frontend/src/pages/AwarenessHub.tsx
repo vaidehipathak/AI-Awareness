@@ -1187,7 +1187,13 @@ const AwarenessHub: React.FC = () => {
   const fetchTopics = async () => {
     try {
       const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-      const res = await axios.get(`${API_BASE_URL}/api/content/awareness/`, config);
+      let res;
+      try {
+        res = await axios.get(`${API_BASE_URL}/api/content/awareness/`, config);
+      } catch (authErr) {
+        console.warn("Auth fetch failed, falling back to public fetch", authErr);
+        res = await axios.get(`${API_BASE_URL}/api/content/awareness/`);
+      }
       const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
       // Map backend fields to frontend Resource type
       const mapped = data.map((t: any) => ({
