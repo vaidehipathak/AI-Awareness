@@ -294,32 +294,37 @@ def detect_pdf_ai(text_input: str = "", metadata: Dict = None, image_bytes: byte
              final_risk_label = risk_label
         else:
              final_risk_label = ai_risk_label
-             
-        # --- FIX APPLIED HERE ---
-        # The overall verdict/msg is set based on the highest risk, but the AI_ANALYSIS
-        # card explanation MUST use the AI message (ai_msg) generated above.
-        
+                   # Separate AI explanation from overall document verdict
+        if word_count < 60:
+            ai_explanation = f"Text is too short ({word_count} words) for AI authorship detection."
+        elif ai_risk_label == "HIGH":
+            ai_explanation = "High predictability detected. Likely AI-generated text."
+        elif ai_risk_label == "MEDIUM":
+            ai_explanation = "Moderate language pattern predictability (Suspicious)."
+        else:
+            ai_explanation = "Natural linguistic variance. Document is human-authored (Not AI generated)."
+
+        # Overall document verdict based on highest severity
+        overall_verdict = verdict
+        overall_msg = ai_msg
+
         if risk_label == "HIGH":
-            verdict = "High-Risk PII Detected"
-            # Only overwrite ai_msg if it hasn't been set by the AI analysis block itself
-            if not ai_msg or ai_msg == "Text shows sufficient linguistic variance.": # Check if AI message is still default
-                 ai_msg = f"Document contains critical PII ({len(pii_findings)} entities)."
+            overall_verdict = "High-Risk PII Detected"
+            overall_msg = f"Document contains critical sensitive data ({len(pii_findings)} entities)."
         elif risk_label == "MEDIUM" and verdict == "Safe":
-             verdict = "Medium-Risk PII Detected"
-             if not ai_msg or ai_msg == "Text shows sufficient linguistic variance.": # Check if AI message is still default
-                 ai_msg = "Document contains sensitive personal data."
-        # ------------------------
+            overall_verdict = "Medium-Risk PII Detected"
+            overall_msg = "Document contains sensitive personal data."
         
         final_result_structure["risk_score"] = round(ai_score, 3)
-        final_result_structure["verdict"] = verdict
-        final_result_structure["explanation"] = f"{ai_msg} {status_note}".strip()
+        final_result_structure["verdict"] = overall_verdict
+        final_result_structure["explanation"] = f"{overall_msg} {status_note}".strip()
         final_result_structure["risk_label"] = final_risk_label
 
         final_result_structure["results"].append({
             "type": "AI_ANALYSIS",
-            "score": final_result_structure["risk_score"],
+            "score": round(ai_score, 3),
             "label": ai_risk_label,
-            "explanation": ai_msg # <-- This now correctly uses the AI-derived ai_msg
+            "explanation": ai_explanation
         })
 
         # ALWAYS add PII detection result (even if empty)

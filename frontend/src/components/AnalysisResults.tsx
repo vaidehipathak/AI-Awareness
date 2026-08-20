@@ -59,19 +59,15 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) =>
   const highRiskPII = ['AADHAAR', 'VID', 'PAN', 'CREDIT_DEBIT_CARD', 'CVV', 'BANK_ACCOUNT'];
   const hasHighRiskPII = piiDetection?.entities?.some((e: any) => highRiskPII.includes(e.type)) || false;
 
-  // Extract AI Data (Using overall risk_score as the primary AI indicator for simplicity)
-  const aiScore = result.risk_score || 0;
-  
-  // Find the specific AI_ANALYSIS card for detailed explanation
+  // Extract AI Content Generation Data
   const aiAnalysisCard = result.results?.find((r: DetectorFinding) => r.type?.toUpperCase() === 'AI_ANALYSIS');
-  
-  // Determine AI Label based on score (simplified to match your image's 'Medium Risk' logic)
-  const getAILabel = (score: number) => {
-      if (score >= 0.8) return 'HIGH'; // Very high risk
-      if (score >= 0.5) return 'MEDIUM'; // Medium risk
-      return 'LOW';
-  }
-  const aiLabel = aiAnalysisCard?.label?.toUpperCase() || getAILabel(aiScore);
+  const aiRawScore = aiAnalysisCard?.score !== undefined ? aiAnalysisCard.score : 0;
+  const isShortText = aiAnalysisCard?.label?.toUpperCase() === 'UNKNOWN' || 
+                      aiAnalysisCard?.label?.toUpperCase() === 'INSUFFICIENT_TEXT' ||
+                      aiAnalysisCard?.explanation?.toLowerCase().includes('insufficient text') ||
+                      aiAnalysisCard?.explanation?.toLowerCase().includes('too short');
+  const isHumanWritten = !isShortText && (aiAnalysisCard?.label?.toUpperCase() === 'LOW' || aiAnalysisCard?.label?.toUpperCase() === 'HUMAN_WRITTEN' || aiRawScore < 0.35);
+  const isAiGenerated = !isShortText && (aiAnalysisCard?.label?.toUpperCase() === 'HIGH' || aiAnalysisCard?.label?.toUpperCase() === 'AI_GENERATED' || aiRawScore >= 0.75);
 
 
   // --- HELPER FUNCTION FOR FILE NAME ---
@@ -208,33 +204,55 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) =>
         </div>
       )}
 
-      {/* --- NEW AI DETECTION BOX --- */}
+      {/* --- AI SYNTHETIC CONTENT DETECTION BOX --- */}
       {aiAnalysisCard && (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-indigo-200 dark:border-indigo-700 p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
-            <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-indigo-100 dark:bg-indigo-700/50 rounded-lg text-indigo-600 dark:text-indigo-300">
-                    <Zap className="w-5 h-5" />
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-indigo-100 dark:bg-indigo-700/50 rounded-lg text-indigo-600 dark:text-indigo-300">
+                        <Zap className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-gray-900 dark:text-white text-lg">AI Content Generation</h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Scans for synthetic / ChatGPT-generated language patterns</p>
+                    </div>
                 </div>
-                <h3 className="font-semibold text-gray-900 dark:text-white text-lg capitalize">AI Content Analysis</h3>
+                <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                    isShortText 
+                        ? 'bg-slate-100 dark:bg-gray-700 text-slate-600 dark:text-slate-300'
+                        : isAiGenerated
+                            ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700'
+                            : isHumanWritten
+                                ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
+                                : 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
+                }`}>
+                    {isShortText ? 'Too Short (< 60 words)' : isAiGenerated ? 'Likely AI-Generated' : isHumanWritten ? 'Human-Authored' : 'Suspicious'}
+                </span>
             </div>
-            
-            <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-3">
-                The AI model assessed the content predictability based on language patterns.
-            </p>
 
-            <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
-                <span className="font-bold text-sm text-gray-700 dark:text-gray-300">AI Risk Score:</span>
-                <span className={`text-lg font-black ${aiScore > 0.7 ? 'text-red-500' : aiScore > 0.4 ? 'text-amber-500' : 'text-emerald-500'}`}>
-                    {Math.round(aiScore * 100)}%
+            <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-700/60 p-3.5 rounded-xl mb-3">
+                <span className="font-bold text-sm text-gray-700 dark:text-gray-300">AI Likelihood Score:</span>
+                <span className={`text-base font-black ${
+                    isShortText 
+                        ? 'text-gray-500'
+                        : isAiGenerated 
+                            ? 'text-red-500' 
+                            : isHumanWritten 
+                                ? 'text-emerald-500' 
+                                : 'text-amber-500'
+                }`}>
+                    {isShortText ? 'N/A' : `${Math.round(aiRawScore * 100)}%`}
                 </span>
             </div>
             
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                Verdict: {aiAnalysisCard.label || 'N/A'} | {aiAnalysisCard.explanation || aiAnalysisCard.short_explanation || 'Score based on perplexity model.'}
+            <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                {isShortText 
+                    ? 'Note: AI synthetic generation detection requires longer prose (≥ 60 words). Security scan evaluated PII & secret leaks.'
+                    : (aiAnalysisCard.explanation || 'Analyzed via NLP language predictability model.')}
             </p>
         </div>
       )}
-      {/* --- END NEW AI DETECTION BOX --- */}
+      {/* --- END AI DETECTION BOX --- */}
 
       {/* PII DETECTION BOX (Kept as is) */}
       {piiDetection && (
