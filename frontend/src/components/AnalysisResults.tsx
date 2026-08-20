@@ -145,8 +145,9 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) =>
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
-  const maskPIIValue = (value: string) => {
-    if (!value || value.length <= 4) return value;
+  const maskPIIValue = (value?: string) => {
+    if (!value || !value.trim()) return 'Identified in Document';
+    if (value.length <= 4) return '****';
     const cleanValue = value.replace(/[\s-]/g, '');
     const last4 = cleanValue.slice(-4);
     const masked = '*'.repeat(Math.max(0, cleanValue.length - 4));
