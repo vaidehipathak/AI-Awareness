@@ -32,7 +32,7 @@ import {
 const Home: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
   const [demoTab, setDemoTab] = useState<'IMAGE' | 'PII' | 'PDF'>('IMAGE');
   const [scanning, setScanning] = useState(false);
 
@@ -162,10 +162,10 @@ const Home: React.FC = () => {
           >
 
             <button
-              onClick={() => document.getElementById('problem')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
               className="group relative px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full font-bold shadow-2xl hover:shadow-[0_0_40px_-10px_rgba(99,102,241,0.5)] hover:scale-105 transition-all overflow-hidden"
             >
-              <span className="relative z-10">Explore The Risks</span>
+              <span className="relative z-10">Explore Features</span>
               <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </button>
 
@@ -180,7 +180,7 @@ const Home: React.FC = () => {
       </section>
 
       {/* --- SECTION 2: FEATURES (Glassmorphism Cards) --- */}
-      <section className="py-24 relative z-10">
+      <section id="features" className="py-24 relative z-10">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-4 uppercase tracking-tighter">
@@ -197,65 +197,118 @@ const Home: React.FC = () => {
                 title: "Deepfake Detection",
                 desc: "Identify synthetic faces and media manipulation with high-precision heuristic analysis.",
                 icon: ImageIcon,
-                color: "from-blue-500 to-indigo-500"
+                color: "from-blue-500 to-indigo-500",
+                link: "/report",
+                action: "Analyze Media"
               },
               {
                 title: "PII Risk Assessment",
                 desc: "Automatically detect and scrub personally identifiable information from text and images.",
                 icon: Fingerprint,
-                color: "from-emerald-500 to-teal-500"
+                color: "from-emerald-500 to-teal-500",
+                link: "/report",
+                action: "Scan for PII"
               },
               {
                 title: "PDF Forensics",
                 desc: "Deep-layer inspection of document metadata and structure to identify fraud and tampering.",
                 icon: FileText,
-                color: "from-orange-500 to-amber-500"
+                color: "from-orange-500 to-amber-500",
+                link: "/report",
+                action: "Inspect Documents"
               },
               {
                 title: "Gamified Awareness",
                 desc: "Interactive missions and quizzes designed to build critical cybersecurity intuition.",
                 icon: BrainCircuit,
-                color: "from-purple-500 to-pink-500"
+                color: "from-purple-500 to-pink-500",
+                link: "/games",
+                action: "Play Games"
               },
               {
                 title: "Explainable Analysis",
                 desc: "No black-boxes. Every risk assessment comes with a deterministic, human-readable justification.",
                 icon: ShieldCheck,
-                color: "from-cyan-500 to-blue-500"
+                color: "from-cyan-500 to-blue-500",
+                link: "/awareness-hub",
+                action: "Explore Hub"
               },
               {
                 title: "Institutional Oversight",
                 desc: "Robust role-based access and audit trails for organizational security management.",
                 icon: Lock,
-                color: "from-slate-700 to-slate-900"
+                color: "from-slate-700 to-slate-900",
+                link: "/admin/dashboard",
+                adminOnly: true
               }
-            ].map((feature, i) => (
-              <motion.div
-                key={i}
-                whileHover={{ y: -10, scale: 1.02 }}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="group relative p-8 rounded-[2.5rem] bg-white/40 dark:bg-white/5 border border-white/20 backdrop-blur-2xl transition-all duration-500 shadow-2xl hover:shadow-indigo-500/20 overflow-hidden"
-              >
-                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-6 shadow-lg transform group-hover:rotate-6 transition-transform`}>
-                  <feature.icon className="w-8 h-8 text-white" strokeWidth={2.5} />
-                </div>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-4 tracking-tight">
-                  {feature.title}
-                </h3>
-                <p className="text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
-                  {feature.desc}
-                </p>
-              </motion.div>
-            ))}
+            ].map((feature, i) => {
+              const isLockedAdmin = feature.adminOnly && !isAdmin;
+
+              return (
+                <motion.div
+                  key={i}
+                  whileHover={!isLockedAdmin ? { y: -10, scale: 1.02 } : undefined}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  onClick={() => {
+                    if (feature.adminOnly) {
+                      if (isAdmin) {
+                        navigate(feature.link);
+                      }
+                      return;
+                    }
+                    if (feature.link) {
+                      navigate(feature.link);
+                    }
+                  }}
+                  className={`group relative p-8 rounded-[2.5rem] bg-white/40 dark:bg-white/5 border border-white/20 backdrop-blur-2xl transition-all duration-500 shadow-2xl flex flex-col justify-between overflow-hidden ${
+                    isLockedAdmin
+                      ? 'cursor-default opacity-80'
+                      : 'cursor-pointer hover:shadow-indigo-500/20 hover:border-indigo-500/30'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-6">
+                      <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center shadow-lg transform ${!isLockedAdmin ? 'group-hover:rotate-6' : ''} transition-transform`}>
+                        <feature.icon className="w-8 h-8 text-white" strokeWidth={2.5} />
+                      </div>
+                      {feature.adminOnly && (
+                        <span className="text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-slate-900/80 dark:bg-white/10 text-slate-400 dark:text-slate-300 border border-slate-700 dark:border-white/10 flex items-center gap-1.5">
+                          <Lock size={12} /> Admin Only
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className={`text-2xl font-black text-slate-900 dark:text-white mb-4 tracking-tight flex items-center gap-2 ${!isLockedAdmin ? 'group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors' : ''}`}>
+                      {feature.title}
+                    </h3>
+                    <p className="text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                      {feature.desc}
+                    </p>
+                  </div>
+
+                  <div className="mt-8 pt-4 border-t border-slate-200/60 dark:border-white/5 flex items-center justify-between text-xs font-black uppercase tracking-widest">
+                    {isLockedAdmin ? (
+                      <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+                        <Lock size={14} /> Restricted Access
+                      </span>
+                    ) : (
+                      <span className="text-indigo-600 dark:text-indigo-400 flex items-center gap-2 group-hover:gap-3 transition-all">
+                        {feature.adminOnly && isAdmin ? 'Open Admin Panel' : feature.action || 'Explore Feature'} <ArrowRight size={16} strokeWidth={2.5} />
+                      </span>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
 
       {/* --- SECTION 3: PURPOSE / WHY THIS PLATFORM EXISTS --- */}
-      <section className="py-32 bg-slate-900 text-white relative overflow-hidden">
+      <section id="problem" className="py-32 bg-slate-900 text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay" />
         <div className="max-w-4xl mx-auto px-4 relative z-10 text-center">
           <motion.div
@@ -311,7 +364,8 @@ const Home: React.FC = () => {
                 name: "Admin Oversight",
                 desc: "For institutions and educators. Oversee platform activity, manage learning modules, and audit system performance through a centralized management dashboard.",
                 link: "/admin/dashboard",
-                img: "/assets/screens/admin_panel_security_control_center.png"
+                img: "/assets/screens/admin_panel_security_control_center.png",
+                adminOnly: true
               },
               {
                 name: "About Our Mission",
@@ -319,46 +373,78 @@ const Home: React.FC = () => {
                 link: "/about-us",
                 img: "/assets/screens/about-us.png"
               }
-            ].map((page, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: i % 2 === 0 ? -50 : 50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                className={`flex flex-col ${i % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'} gap-12 lg:gap-24 items-center`}
-              >
-                {/* Image Preview Container */}
-                <div 
-                  onClick={() => navigate(page.link)}
-                  className="w-full lg:w-1/2 aspect-video bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-[3rem] shadow-2xl overflow-hidden group cursor-pointer relative"
-                >
-                   <motion.img 
-                      src={page.img} 
-                      alt={page.name}
-                      whileHover={{ scale: 1.05 }}
-                      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                      className="w-full h-full object-cover"
-                   />
-                   <div className="absolute inset-0 bg-indigo-500/0 group-hover:bg-indigo-500/5 transition-colors duration-500 pointer-events-none" />
-                </div>
+            ].map((page, i) => {
+              const isLockedAdmin = page.adminOnly && !isAdmin;
 
-                {/* Page Description */}
-                <div className="w-full lg:w-1/2 space-y-6">
-                  <h3 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
-                    {page.name}
-                  </h3>
-                  <p className="text-xl text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
-                    {page.desc}
-                  </p>
-                  <button
-                    onClick={() => navigate(page.link)}
-                    className="flex items-center gap-2 text-indigo-500 font-black uppercase tracking-widest hover:gap-4 transition-all"
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: i % 2 === 0 ? -50 : 50 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  className={`flex flex-col ${i % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'} gap-12 lg:gap-24 items-center`}
+                >
+                  {/* Image Preview Container */}
+                  <div 
+                    onClick={() => {
+                      if (page.adminOnly) {
+                        if (isAdmin) navigate(page.link);
+                        return;
+                      }
+                      navigate(page.link);
+                    }}
+                    className={`w-full lg:w-1/2 aspect-video bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-[3rem] shadow-2xl overflow-hidden group relative ${
+                      isLockedAdmin ? 'cursor-default opacity-85' : 'cursor-pointer'
+                    }`}
                   >
-                    View Page <ArrowRight size={20} strokeWidth={3} />
-                  </button>
-                </div>
-              </motion.div>
-            ))}
+                     <motion.img 
+                        src={page.img} 
+                        alt={page.name}
+                        whileHover={!isLockedAdmin ? { scale: 1.05 } : undefined}
+                        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                        className="w-full h-full object-cover"
+                     />
+                     {!isLockedAdmin && (
+                       <div className="absolute inset-0 bg-indigo-500/0 group-hover:bg-indigo-500/5 transition-colors duration-500 pointer-events-none" />
+                     )}
+                     {isLockedAdmin && (
+                       <div className="absolute top-4 right-4 bg-slate-900/90 text-white text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur-md flex items-center gap-1.5 border border-white/20">
+                         <Lock size={12} /> Admin Only
+                       </div>
+                     )}
+                  </div>
+
+                  {/* Page Description */}
+                  <div className="w-full lg:w-1/2 space-y-6">
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                        {page.name}
+                      </h3>
+                      {page.adminOnly && (
+                        <span className="text-xs font-bold uppercase px-2.5 py-1 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                          Admin
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xl text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                      {page.desc}
+                    </p>
+                    {isLockedAdmin ? (
+                      <div className="inline-flex items-center gap-2 text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest text-sm">
+                        <Lock size={16} /> Restricted to Administrators
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => navigate(page.link)}
+                        className="flex items-center gap-2 text-indigo-500 font-black uppercase tracking-widest hover:gap-4 transition-all"
+                      >
+                        {page.adminOnly && isAdmin ? 'Open Admin Panel' : 'View Page'} <ArrowRight size={20} strokeWidth={3} />
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>

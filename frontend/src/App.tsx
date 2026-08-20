@@ -24,6 +24,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Signup from './pages/Signup';
 import ZKATTPage from './pages/zkatt/ZKATTPage';
+import ScrollToTop from './components/ScrollToTop';
 
 
 const App: React.FC = () => {
@@ -33,6 +34,7 @@ const App: React.FC = () => {
       <ThemeProvider attribute="class">
         <AuthProvider>
           <HashRouter>
+            <ScrollToTop />
             <Routes>
               {/* Conditional Layout Routes - Show sidebar when logged in, navbar only when logged out */}
               <Route element={<ConditionalLayout />}>
