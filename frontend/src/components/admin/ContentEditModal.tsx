@@ -44,6 +44,17 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
         setImageError(false);
     }, [item, user, isOpen]);
 
+    // Close on Escape key press
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        if (isOpen) {
+            window.addEventListener('keydown', handleKeyDown);
+        }
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
+
     const endpoints = {
         articles: `${API_BASE_URL}/api/content/articles/`,
         games: `${API_BASE_URL}/api/content/games/`,
@@ -111,11 +122,17 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-[#0f1015] rounded-3xl shadow-2xl w-full max-w-2xl max-h-[88vh] flex flex-col border border-slate-200 dark:border-white/10 overflow-hidden">
+        <div 
+            className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+            onClick={onClose}
+        >
+            <div 
+                className="bg-white dark:bg-[#0f1015] rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-2xl h-[85vh] max-h-[720px] flex flex-col border border-slate-200 dark:border-white/10 overflow-hidden"
+                onClick={e => e.stopPropagation()}
+            >
                 
                 {/* Fixed Header */}
-                <div className="p-5 px-6 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-slate-50 dark:bg-slate-900/80 shrink-0">
+                <div className="p-4 sm:p-5 px-6 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-slate-50 dark:bg-slate-900/80 shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="p-2.5 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
                             {isEdit ? <Edit3 className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
@@ -132,15 +149,16 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
                     <button 
                         type="button"
                         onClick={onClose} 
-                        className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-white/10 transition-colors"
+                        className="p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-white/10 transition-colors"
+                        title="Close (Esc)"
                         aria-label="Close modal"
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
-                {/* Scrollable Form Body */}
-                <form id="content-edit-form" onSubmit={handleSave} className="p-6 space-y-5 flex-1 overflow-y-auto">
+                {/* Scrollable Form Body with min-h-0 */}
+                <form id="content-edit-form" onSubmit={handleSave} className="p-5 sm:p-6 space-y-5 flex-1 min-h-0 overflow-y-auto">
                     
                     {/* Title */}
                     <div>
