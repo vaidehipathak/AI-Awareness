@@ -413,7 +413,6 @@ const QuizPage: React.FC = () => {
                             <Plus className="w-5 h-5" /> Create New Quiz
                         </button>
                     </div>
-                    {/* Re-use existing tables if preferred, or simplified placeholder for brevity since user is learner focused generally */}
                     <div className={`rounded-xl shadow-sm border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} overflow-hidden`}>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
@@ -422,13 +421,20 @@ const QuizPage: React.FC = () => {
                                         <th className={`p-4 font-bold border-b ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>Title</th>
                                         <th className={`p-4 font-bold border-b ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>Difficulty</th>
                                         <th className={`p-4 font-bold border-b ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>Questions</th>
+                                        <th className={`p-4 font-bold border-b ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>Status</th>
                                         <th className={`p-4 font-bold border-b ${darkMode ? 'border-slate-700' : 'border-slate-100'} text-right`}>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className={`divide-y ${darkMode ? 'divide-slate-700' : 'divide-slate-100'}`}>
-                                    {allQuizzes.length === 0 ? (
+                                    {loadingAdmin ? (
                                         <tr>
-                                            <td colSpan={4} className={`p-8 text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                                            <td colSpan={5} className={`p-8 text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                                                Loading quizzes...
+                                            </td>
+                                        </tr>
+                                    ) : allQuizzes.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={5} className={`p-8 text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                                                 No quizzes found. Create one to get started.
                                             </td>
                                         </tr>
@@ -448,6 +454,11 @@ const QuizPage: React.FC = () => {
                                                 </td>
                                                 <td className={`p-4 align-middle ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
                                                     {quiz.questions?.length || 0} Questions
+                                                </td>
+                                                <td className="p-4 align-middle">
+                                                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${quiz.is_active ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}`}>
+                                                        {quiz.is_active ? 'Active' : 'Hidden'}
+                                                    </span>
                                                 </td>
                                                 <td className="p-4 align-middle text-right">
                                                     <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
