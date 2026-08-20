@@ -29,10 +29,11 @@ class ReportListSerializer(serializers.ModelSerializer):
     file_type = serializers.SerializerMethodField()
     file_metadata = serializers.SerializerMethodField()
     overall_risk = serializers.CharField(source='risk_label', read_only=True)
+    preview_snippet = serializers.SerializerMethodField()
     
     class Meta:
         model = DetectionRun
-        fields = ('report_id', 'submitted_at', 'submitted_by', 'file_type', 'file_metadata', 'overall_risk', 'status')
+        fields = ('report_id', 'submitted_at', 'submitted_by', 'file_type', 'file_metadata', 'overall_risk', 'status', 'preview_snippet')
         read_only_fields = fields
     
     def get_report_id(self, obj):
@@ -45,7 +46,6 @@ class ReportListSerializer(serializers.ModelSerializer):
     
     def get_file_type(self, obj):
         """Return file type from related AnalysisFile."""
-        # File type isn't stored, but we can infer from detectors executed or original filename
         filename = obj.file.original_name.lower()
         if filename.endswith('.pdf'):
             return 'PDF'
@@ -54,16 +54,26 @@ class ReportListSerializer(serializers.ModelSerializer):
         else:
             return 'Text'
 
+    def get_preview_snippet(self, obj):
+        """Return short preview of extracted text or filename."""
+        text = obj.file.extracted_text
+        if text:
+            clean = " ".join(text.split())
+            return clean[:120] + ("..." if len(clean) > 120 else "")
+        return obj.file.original_name
+
     def get_file_metadata(self, obj):
-        """Return partial file metadata (original name)."""
+        """Return file metadata."""
         file_obj = obj.file
         return {
             'original_name': file_obj.original_name,
+            'size_bytes': file_obj.size_bytes,
+            'content_type': file_obj.content_type,
         }
 
 
 class ReportDetailSerializer(serializers.ModelSerializer):
-    """Serializer for detailed report view including all detection results."""
+    """Serializer for detailed report view including all detection results and full document."""
     
     report_id = serializers.SerializerMethodField()
     submitted_at = serializers.DateTimeField(source='created_at', read_only=True)
@@ -71,6 +81,7 @@ class ReportDetailSerializer(serializers.ModelSerializer):
     file_metadata = serializers.SerializerMethodField()
     detector_results = serializers.SerializerMethodField()
     overall_risk = serializers.CharField(source='risk_label', read_only=True)
+    extracted_text = serializers.SerializerMethodField()
     
     class Meta:
         model = DetectionRun
@@ -79,6 +90,7 @@ class ReportDetailSerializer(serializers.ModelSerializer):
             'submitted_at',
             'submitted_by',
             'file_metadata',
+            'extracted_text',
             'detector_results',
             'overall_risk',
             'detectors_executed',
@@ -93,6 +105,10 @@ class ReportDetailSerializer(serializers.ModelSerializer):
     def get_submitted_by(self, obj):
         """Return email of submitting user."""
         return obj.user.email if obj.user else 'Anonymous'
+
+    def get_extracted_text(self, obj):
+        """Return full extracted document text."""
+        return obj.file.extracted_text or ''
     
     def get_file_metadata(self, obj):
         """Return full file metadata."""
@@ -102,6 +118,7 @@ class ReportDetailSerializer(serializers.ModelSerializer):
             'original_name': file_obj.original_name,
             'content_type': file_obj.content_type,
             'size_bytes': file_obj.size_bytes,
+            'extracted_text': file_obj.extracted_text,
             'created_at': file_obj.created_at,
         }
     

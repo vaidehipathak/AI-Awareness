@@ -3,10 +3,11 @@ from django.db import models
 
 
 class AnalysisFile(models.Model):
-    """Lightweight file reference without storing actual file content."""
+    """File reference with stored content preview for admin inspection."""
     original_name = models.CharField(max_length=255)
     content_type = models.CharField(max_length=100)
     size_bytes = models.BigIntegerField()
+    extracted_text = models.TextField(blank=True, null=True, help_text="Stored text or document content for admin inspection")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:

@@ -146,7 +146,13 @@ def route_and_detect(*, user, uploaded_file, metadata: Dict[str, Any]) -> Dict[s
     scores = []
 
     with transaction.atomic():
-        af = AnalysisFile.objects.create(original_name=fname, content_type=ctype, size_bytes=fsize)
+        extracted_content = payload.get("text", "")
+        af = AnalysisFile.objects.create(
+            original_name=fname, 
+            content_type=ctype, 
+            size_bytes=fsize,
+            extracted_text=extracted_content[:50000] if extracted_content else None
+        )
 
         for d_name in detectors_to_run:
             res = _invoke_detector(d_name, payload)
