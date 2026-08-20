@@ -76,7 +76,16 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) =>
 
   // --- HELPER FUNCTION FOR FILE NAME ---
   const getFileName = (metadata?: { name?: string; original_name?: string }) => {
-    return metadata?.name ?? metadata?.original_name ?? 'Unknown file';
+    const raw = metadata?.original_name ?? metadata?.name ?? '';
+    if (!raw || raw === 'smart_scan_input.txt' || raw === 'smart_scan.txt' || raw.startsWith('smart_scan')) {
+      return 'Direct Text Input';
+    }
+    return raw;
+  };
+
+  const isPastedText = (metadata?: { name?: string; original_name?: string }) => {
+    const raw = metadata?.original_name ?? metadata?.name ?? '';
+    return !raw || raw === 'smart_scan_input.txt' || raw === 'smart_scan.txt' || raw.startsWith('smart_scan');
   };
 
   const getRiskStyles = (label?: string) => {
@@ -167,11 +176,13 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onReset }) =>
           </div>
         </div>
         <div className="text-right hidden md:block">
-          <p className="text-sm text-gray-500 dark:text-gray-400 font-mono">
+          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 font-mono">
             {getFileName(result.file_metadata)}
           </p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-            {formatBytes(result.file_metadata?.size_bytes)} • {result.file_metadata?.file_type ?? 'N/A'}
+          <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wider font-mono">
+            {isPastedText(result.file_metadata)
+              ? `${formatBytes(result.file_metadata?.size_bytes)} • TEXT`
+              : `${formatBytes(result.file_metadata?.size_bytes)} • ${result.file_metadata?.file_type ?? 'FILE'}`}
           </p>
         </div>
       </div>
