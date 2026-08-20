@@ -8,7 +8,7 @@ interface ContentEditModalProps {
     isOpen: boolean;
     onClose: () => void;
     item: any;
-    contentType: 'articles' | 'games' | 'quiz' | 'awareness';
+    contentType: 'articles' | 'games' | 'quiz' | 'awareness' | 'news';
     onSuccess: () => void;
 }
 
@@ -48,7 +48,8 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
         articles: `${API_BASE_URL}/api/content/articles/`,
         games: `${API_BASE_URL}/api/content/games/`,
         quiz: `${API_BASE_URL}/api/content/quiz/`,
-        awareness: `${API_BASE_URL}/api/content/awareness/`
+        awareness: `${API_BASE_URL}/api/content/awareness/`,
+        news: `${API_BASE_URL}/api/content/news-cache/`
     };
 
     const handleSave = async (e: React.FormEvent) => {
@@ -105,7 +106,8 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
         articles: 'Blog Article',
         games: 'Game Entry',
         quiz: 'Quiz Question Set',
-        awareness: 'Awareness Module'
+        awareness: 'Awareness Module',
+        news: 'News Feed Article'
     };
 
     return (
@@ -177,8 +179,8 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
                         </button>
                     </div>
 
-                    {/* --- ARTICLE SPECIFIC FIELDS --- */}
-                    {contentType === 'articles' && (
+                    {/* --- ARTICLE / NEWS SPECIFIC FIELDS --- */}
+                    {(contentType === 'articles' || contentType === 'news') && (
                         <>
                             {/* Author & Category Row */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -196,19 +198,21 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
                                 </div>
                                 <div>
                                     <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5 flex items-center gap-1.5">
-                                        <Folder className="w-3.5 h-3.5 text-indigo-500" /> Category
+                                        <Folder className="w-3.5 h-3.5 text-indigo-500" /> Category / Source
                                     </label>
-                                    <select
-                                        className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/15 bg-white dark:bg-slate-900/70 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 outline-none transition-all text-sm cursor-pointer"
-                                        value={formData.source_name || 'AI Safety'}
+                                    <input
+                                        type="text"
+                                        list="category-suggestions"
+                                        placeholder="e.g. AI Safety, Wired, Yahoo"
+                                        className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/15 bg-white dark:bg-slate-900/70 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 outline-none transition-all text-sm"
+                                        value={formData.source_name || ''}
                                         onChange={e => setFormData({ ...formData, source_name: e.target.value })}
-                                    >
+                                    />
+                                    <datalist id="category-suggestions">
                                         {CATEGORY_OPTIONS.map(cat => (
-                                            <option key={cat} value={cat} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
-                                                {cat}
-                                            </option>
+                                            <option key={cat} value={cat} />
                                         ))}
-                                    </select>
+                                    </datalist>
                                 </div>
                             </div>
 
@@ -222,16 +226,16 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
                                         type="url"
                                         placeholder="https://images.unsplash.com/... or direct image link"
                                         className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/15 bg-white dark:bg-slate-900/70 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 outline-none transition-all text-sm font-mono text-xs"
-                                        value={formData.image_url || ''}
+                                        value={formData.url_to_image || formData.image_url || ''}
                                         onChange={e => {
                                             setImageError(false);
-                                            setFormData({ ...formData, image_url: e.target.value });
+                                            setFormData({ ...formData, image_url: e.target.value, url_to_image: e.target.value });
                                         }}
                                     />
-                                    {formData.image_url && !imageError && (
+                                    {(formData.url_to_image || formData.image_url) && !imageError && (
                                         <div className="w-14 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 bg-slate-100 dark:bg-slate-800">
                                             <img
-                                                src={formData.image_url}
+                                                src={formData.url_to_image || formData.image_url}
                                                 alt="Preview"
                                                 className="w-full h-full object-cover"
                                                 onError={() => setImageError(true)}
@@ -244,7 +248,7 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
                     )}
 
                     {/* Description / Teaser */}
-                    {(contentType === 'articles' || contentType === 'awareness') && (
+                    {(contentType === 'articles' || contentType === 'awareness' || contentType === 'news') && (
                         <div>
                             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
                                 Summary / Excerpt
@@ -260,14 +264,13 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({ isOpen, onClose, it
                     )}
 
                     {/* Blog Content Body */}
-                    {contentType === 'articles' && (
+                    {(contentType === 'articles' || contentType === 'news') && (
                         <div>
                             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5 flex items-center justify-between">
-                                <span>Article Content (Markdown / HTML) <span className="text-red-500">*</span></span>
+                                <span>Article Content (Markdown / HTML)</span>
                                 <span className="text-[11px] text-slate-400 font-normal">Supports full markdown</span>
                             </label>
                             <textarea
-                                required
                                 rows={8}
                                 placeholder="Write your full article content here using Markdown formatting..."
                                 className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-white/15 bg-white dark:bg-slate-900/70 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-mono text-xs focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 outline-none transition-all leading-relaxed resize-y"

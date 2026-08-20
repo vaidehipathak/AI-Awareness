@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Article, Game, Quiz, AwarenessTopic
+from .models import Article, Game, Quiz, AwarenessTopic, CachedNewsArticle
 
 class ArticleSerializer(serializers.ModelSerializer):
     class Meta:
@@ -24,3 +24,10 @@ class AwarenessTopicSerializer(serializers.ModelSerializer):
         model = AwarenessTopic
         fields = '__all__'
         read_only_fields = ['created_by', 'created_at', 'updated_at']
+
+class CachedNewsArticleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CachedNewsArticle
+        fields = '__all__'
+        read_only_fields = ['cached_at']
+

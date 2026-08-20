@@ -4,10 +4,10 @@ from rest_framework.decorators import action, api_view, permission_classes
 from django.utils import timezone
 from django.conf import settings
 import requests
-from .models import Article, Game, Quiz, AwarenessTopic
-from .serializers import ArticleSerializer, GameSerializer, QuizSerializer, AwarenessTopicSerializer
+from .models import Article, Game, Quiz, AwarenessTopic, CachedNewsArticle
+from .serializers import ArticleSerializer, GameSerializer, QuizSerializer, AwarenessTopicSerializer, CachedNewsArticleSerializer
 from accounts.models import AuditLog
-from accounts.permissions import IsAdminWithMFA # Assuming this exists or generic Admin
+from accounts.permissions import IsAdminWithMFA
 
 class IsAdminOrReadOnly(permissions.BasePermission):
     """
@@ -38,7 +38,7 @@ class ContentAuditViewSet(viewsets.ModelViewSet):
         return self.queryset.filter(is_active=True, is_deleted=False)
 
     def perform_create(self, serializer):
-        instance = serializer.save(created_by=self.request.user)
+        instance = serializer.save()
         self._log_action('CREATE', instance)
 
     def perform_update(self, serializer):
@@ -55,7 +55,7 @@ class ContentAuditViewSet(viewsets.ModelViewSet):
     def _log_action(self, action_type, instance):
         try:
             AuditLog.objects.create(
-                actor=self.request.user,
+                actor=self.request.user if self.request.user.is_authenticated else None,
                 action=f"CONTENT_{action_type.upper()}",
                 target=f"{instance._meta.model_name}:{instance.pk}",
                 metadata={"title": getattr(instance, 'title', 'N/A')}
@@ -80,27 +80,36 @@ class AwarenessTopicViewSet(ContentAuditViewSet):
     queryset = AwarenessTopic.objects.all()
     serializer_class = AwarenessTopicSerializer
 
+class CachedNewsArticleViewSet(ContentAuditViewSet):
+    queryset = CachedNewsArticle.objects.all()
+    serializer_class = CachedNewsArticleSerializer
+
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def fetch_news(request):
     """
-    NewsAPI proxy endpoint with rate limiting (2 requests/day), caching, and filtering.
+    NewsAPI proxy endpoint with rate limiting (2 requests/day), caching, and admin control.
     Fetches AI, cybersecurity, and cybercrime news from the last 15 days.
     """
     from datetime import datetime, timedelta
-    from django.utils import timezone as tz
+    from django.utils import timezone as tz 
     from .models import NewsAPIRequestLog, CachedNewsArticle
+    
+    user = request.user
+    is_admin = bool(user and user.is_authenticated and getattr(user, 'role', '') == 'ADMIN')
     
     # Check cache first (12-hour expiration)
     cache_expiry = tz.now() - timedelta(hours=12)
-    cached_articles = CachedNewsArticle.objects.filter(cached_at__gte=cache_expiry)
+    cache_query = CachedNewsArticle.objects.filter(cached_at__gte=cache_expiry, is_deleted=False)
+    if not is_admin:
+        cache_query = cache_query.filter(is_active=True)
     
-    if cached_articles.exists():
-        # Return cached articles
+    if cache_query.exists():
         articles_data = []
-        for article in cached_articles:
+        for article in cache_query:
             articles_data.append({
+                'id': article.id,
                 'title': article.title,
                 'author': article.author or 'Unknown Author',
                 'publishedAt': article.published_at.isoformat(),
@@ -108,7 +117,9 @@ def fetch_news(request):
                 'url': article.url,
                 'urlToImage': article.url_to_image,
                 'source': {'name': article.source_name},
-                'content': article.content or ''
+                'content': article.content or '',
+                'is_active': article.is_active,
+                'is_news_feed': True
             })
         
         if articles_data:
@@ -120,11 +131,16 @@ def fetch_news(request):
     
     if today_requests >= 2:
         # Rate limit exceeded, return stale cache or database fallback
-        stale_cached = CachedNewsArticle.objects.all()[:50]
+        stale_query = CachedNewsArticle.objects.filter(is_deleted=False)
+        if not is_admin:
+            stale_query = stale_query.filter(is_active=True)
+        stale_cached = stale_query[:50]
+        
         if stale_cached.exists():
             articles_data = []
             for article in stale_cached:
                 articles_data.append({
+                    'id': article.id,
                     'title': article.title,
                     'author': article.author or 'Unknown Author',
                     'publishedAt': article.published_at.isoformat(),
@@ -132,18 +148,19 @@ def fetch_news(request):
                     'url': article.url,
                     'urlToImage': article.url_to_image,
                     'source': {'name': article.source_name},
-                    'content': article.content or ''
+                    'content': article.content or '',
+                    'is_active': article.is_active,
+                    'is_news_feed': True
                 })
             return Response(articles_data)
         else:
-            # Fallback to database
-            return _get_database_fallback()
+            return _get_database_fallback(is_admin)
     
     # Fetch from NewsAPI
     api_key = getattr(settings, 'NEWS_API_KEY', '')
     
     if not api_key:
-        return _get_database_fallback()
+        return _get_database_fallback(is_admin)
     
     try:
         url = "https://newsapi.org/v2/everything"
@@ -165,13 +182,12 @@ def fetch_news(request):
         
         if response.status_code == 200:
             data = response.json()
-            valid_articles = []
             
             if 'articles' in data:
                 raw_articles = data['articles']
                 
-                # Clear old cache
-                CachedNewsArticle.objects.all().delete()
+                # Delete only unmodified cached articles
+                CachedNewsArticle.objects.filter(is_active=True, is_deleted=False).delete()
                 
                 cache_objects = []
                 for article in raw_articles:
@@ -183,7 +199,7 @@ def fetch_news(request):
                     
                     source_name = 'AI News'
                     if article.get('source') and article['source'].get('name'):
-                        source_name = article['source']['name']
+                        source_name = article['source'].get('name')
                     
                     article_url = article.get('url')
                     if not article_url:
@@ -207,33 +223,44 @@ def fetch_news(request):
                         description=(article.get('description') or 'Click to read more.')[:500],
                         url_to_image=article.get('urlToImage'),
                         source_name=source_name,
-                        content=(article.get('content') or '')[:500]
+                        content=(article.get('content') or '')[:500],
+                        is_active=True,
+                        is_deleted=False
                     ))
                 
                 # Bulk insert all articles in a single database query
                 if cache_objects:
                     CachedNewsArticle.objects.bulk_create(cache_objects, ignore_conflicts=True)
 
-                for cached_article in cache_objects:
-                    valid_articles.append({
-                        'title': cached_article.title,
-                        'author': cached_article.author or 'Unknown Author',
-                        'publishedAt': cached_article.published_at.isoformat(),
-                        'description': cached_article.description,
-                        'url': cached_article.url,
-                        'urlToImage': cached_article.url_to_image,
-                        'source': {'name': cached_article.source_name},
-                        'content': cached_article.content
-                    })
-                
                 # Log the API request
                 NewsAPIRequestLog.objects.create(
                     success=True,
-                    articles_fetched=len(valid_articles)
+                    articles_fetched=len(cache_objects)
                 )
                 
-                if valid_articles:
-                    return Response(valid_articles)
+                # Retrieve updated list respecting admin / active flags
+                refreshed_query = CachedNewsArticle.objects.filter(is_deleted=False)
+                if not is_admin:
+                    refreshed_query = refreshed_query.filter(is_active=True)
+                
+                result_data = []
+                for item in refreshed_query[:50]:
+                    result_data.append({
+                        'id': item.id,
+                        'title': item.title,
+                        'author': item.author or 'Unknown Author',
+                        'publishedAt': item.published_at.isoformat(),
+                        'description': item.description,
+                        'url': item.url,
+                        'urlToImage': item.url_to_image,
+                        'source': {'name': item.source_name},
+                        'content': item.content,
+                        'is_active': item.is_active,
+                        'is_news_feed': True
+                    })
+                
+                if result_data:
+                    return Response(result_data)
         else:
             # Log failed request
             NewsAPIRequestLog.objects.create(
@@ -250,18 +277,22 @@ def fetch_news(request):
         )
     
     # Fallback to database or stale cache
-    return _get_database_fallback()
+    return _get_database_fallback(is_admin)
 
 
-def _get_database_fallback():
+def _get_database_fallback(is_admin=False):
     """Helper function to return database articles as fallback."""
-    articles = Article.objects.filter(is_active=True, is_deleted=False).order_by('-published_at')
+    articles = Article.objects.filter(is_deleted=False)
+    if not is_admin:
+        articles = articles.filter(is_active=True)
+    articles = articles.order_by('-published_at')
     serializer = ArticleSerializer(articles, many=True)
     
     # Transform to NewsAPI-like format for frontend compatibility
     transformed = []
     for article in serializer.data:
         transformed.append({
+            'id': article['id'],
             'title': article['title'],
             'author': article['author'],
             'publishedAt': article['published_at'],
@@ -269,8 +300,9 @@ def _get_database_fallback():
             'url': article.get('source_url', '#'),
             'urlToImage': article.get('image_url'),
             'source': {'name': article.get('source_name', 'AI AwareX')},
-            'content': article.get('content', '')
+            'content': article.get('content', ''),
+            'is_active': article['is_active'],
+            'is_news_feed': False
         })
     
     return Response(transformed)
-

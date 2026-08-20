@@ -124,6 +124,9 @@ class CachedNewsArticle(models.Model):
     source_name = models.CharField(max_length=255)
     content = models.TextField(blank=True, null=True)
     
+    is_active = models.BooleanField(default=True, help_text=_("If unchecked, hidden from users."))
+    is_deleted = models.BooleanField(default=False, help_text=_("Soft delete flag."))
+    
     cached_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:

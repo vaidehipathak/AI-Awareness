@@ -79,10 +79,16 @@ const BlogPage: React.FC = () => {
 
       let newsArticles: any[] = [];
       try {
-        const newsRes = await axios.get(`${API_BASE_URL}/api/content/news/`);
+        const newsRes = await axios.get(`${API_BASE_URL}/api/content/news/`, config);
         newsArticles = Array.isArray(newsRes.data) ? newsRes.data : [];
       } catch (newsErr) {
-        console.warn("News API fetch error", newsErr);
+        console.warn("News API fetch error, trying public", newsErr);
+        try {
+          const fallbackNews = await axios.get(`${API_BASE_URL}/api/content/news/`);
+          newsArticles = Array.isArray(fallbackNews.data) ? fallbackNews.data : [];
+        } catch (e) {
+          // ignore
+        }
       }
 
       const mappedDb = dbArticles.map((a: any, index: number) => ({
@@ -107,7 +113,7 @@ const BlogPage: React.FC = () => {
       }));
 
       const mappedNews = newsArticles.map((article: any, index: number) => ({
-        id: article.url,
+        id: article.id ? `news-${article.id}` : article.url,
         title: article.title,
         excerpt: article.description || 'Click to read more.',
         content: article.content || article.description || 'Read the full article at the source.',
@@ -121,7 +127,20 @@ const BlogPage: React.FC = () => {
         readTime: '5 min read',
         imageUrl: article.urlToImage || getFallbackImage(article.title || '', index + mappedDb.length),
         tags: ['AI', 'News', 'Technology'],
-        isDbArticle: false
+        is_active: article.is_active !== undefined ? article.is_active : true,
+        isDbArticle: false,
+        rawItem: {
+          id: article.id,
+          title: article.title,
+          description: article.description,
+          content: article.content,
+          author: article.author,
+          source_name: article.source?.name || 'AI News',
+          image_url: article.urlToImage,
+          url_to_image: article.urlToImage,
+          is_active: article.is_active !== undefined ? article.is_active : true
+        },
+        source_url: article.url
       }));
 
       const combined = [...mappedDb, ...mappedNews];
@@ -230,15 +249,19 @@ const BlogPage: React.FC = () => {
           <span className="bg-white/90 dark:bg-black/80 backdrop-blur-md px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400">
             {post.category}
           </span>
-          {post.isDbArticle && post.is_active === false && (
+          {post.is_active === false && (
             <span className="bg-amber-500/90 text-black px-2.5 py-0.5 rounded-lg text-xs font-bold uppercase tracking-wider">
               Hidden
             </span>
           )}
         </div>
-        {post.isDbArticle && user?.role === 'ADMIN' && post.rawItem && (
+        {user?.role === 'ADMIN' && post.rawItem?.id && (
           <div className="absolute top-3 right-3 z-20" onClick={e => e.stopPropagation()}>
-            <AdminActionButtons item={post.rawItem} contentType="articles" onUpdate={fetchPosts} />
+            <AdminActionButtons
+              item={post.rawItem}
+              contentType={post.isDbArticle ? 'articles' : 'news'}
+              onUpdate={fetchPosts}
+            />
           </div>
         )}
       </div>

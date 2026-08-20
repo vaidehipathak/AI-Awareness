@@ -7,6 +7,7 @@ router.register(r'articles', views.ArticleViewSet)
 router.register(r'games', views.GameViewSet)
 router.register(r'quiz', views.QuizViewSet)
 router.register(r'awareness', views.AwarenessTopicViewSet)
+router.register(r'news-cache', views.CachedNewsArticleViewSet, basename='news-cache')
 
 urlpatterns = [
     path('', include(router.urls)),

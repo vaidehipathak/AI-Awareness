@@ -7,7 +7,7 @@ import ContentEditModal from './ContentEditModal';
 
 interface AdminActionButtonsProps {
     item: any;
-    contentType: 'articles' | 'games' | 'quiz' | 'awareness';
+    contentType: 'articles' | 'games' | 'quiz' | 'awareness' | 'news';
     onUpdate: () => void; // Trigger parent refresh
 }
 
@@ -23,7 +23,8 @@ const AdminActionButtons: React.FC<AdminActionButtonsProps> = ({ item, contentTy
         articles: `${API_BASE_URL}/api/content/articles/`,
         games: `${API_BASE_URL}/api/content/games/`,
         quiz: `${API_BASE_URL}/api/content/quiz/`,
-        awareness: `${API_BASE_URL}/api/content/awareness/`
+        awareness: `${API_BASE_URL}/api/content/awareness/`,
+        news: `${API_BASE_URL}/api/content/news-cache/`
     };
 
     const handleToggle = async (e: React.MouseEvent) => {
