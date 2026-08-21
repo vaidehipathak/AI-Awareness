@@ -28,7 +28,7 @@ interface TeamMember {
 const teamMembers: TeamMember[] = [
   {
     name: "Vaidehi Pathak",
-    role: "Team Lead (3rd Year)",
+    role: "Team Lead (4th Year)",
     image: "/assets/team/vaidehi.png",
     description: "Focuses on system architecture and integration of AI detection modules.",
     github: "https://github.com/vaidehipathak",
@@ -39,7 +39,7 @@ const teamMembers: TeamMember[] = [
   },
   {
     name: "Om Mehta",
-    role: "Backend & Security Engineer (2nd Year)",
+    role: "Backend & Security Engineer (3rd Year)",
     image: "/assets/team/om.png",
     description: "Built and secured the Django backend, including JWT authentication, admin MFA, role-based access controls, file-analysis APIs, and audit logging.",
     github: "https://github.com/Om-Mehta-143",
@@ -49,7 +49,7 @@ const teamMembers: TeamMember[] = [
   },
   {
     name: "Neel Pasad",
-    role: "Frontend & Game Development Engineer (2nd Year)",
+    role: "Frontend & Game Development Engineer (3rd Year)",
     image: "/assets/team/neel.png",
     description: "Built interactive cybersecurity games and frontend learning experiences that make AI safety and digital-security concepts engaging and accessible.",
     github: "https://github.com/neel-pasad",
@@ -60,7 +60,7 @@ const teamMembers: TeamMember[] = [
   },
   {
     name: "Swayam Poojari",
-    role: "Detection & Explainable AI Engineer (3rd Year)",
+    role: "Detection & Explainable AI Engineer (4th Year)",
     image: "/assets/team/swayam.jpeg",
     description: "Developed heuristic detection logic and explainable risk-scoring workflows for PII, AI-generated content, and digital-safety analysis.",
     github: "https://github.com/Swayam-2006",
@@ -70,7 +70,7 @@ const teamMembers: TeamMember[] = [
   },
   {
     name: "Jay Gurav",
-    role: "Frontend Performance & Visualization Engineer (3rd Year)",
+    role: "Frontend Performance & Visualization Engineer (4th Year)",
     image: "/assets/team/jay.jpeg",
     description: "Improved frontend performance and built clear, responsive visualizations that make security insights and platform activity easier to understand.",
     github: "https://github.com/JayG1711",
@@ -81,7 +81,7 @@ const teamMembers: TeamMember[] = [
   },
   {
     name: "Purva Nalawade",
-    role: "UI/UX & Design Systems Engineer (3rd Year)",
+    role: "UI/UX & Design Systems Engineer (4th Year)",
     image: "/assets/team/purva.jpeg",
     description: "Designed the platform's visual identity and reusable interface system, bringing the glassmorphism and neobrutalist style into a cohesive user experience.",
     github: "https://github.com/Nalawade-Purva",
