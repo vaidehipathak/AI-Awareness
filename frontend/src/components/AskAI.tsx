@@ -1,7 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bot } from 'lucide-react';
+import { Bot, LogIn, Sparkles } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import axios from 'axios';
+import { useAuth } from '../contexts/AuthContext';
+import { API_BASE_URL } from '../config';
 
 interface ChatMessage {
   role: 'user' | 'model';
@@ -10,7 +14,7 @@ interface ChatMessage {
 
 const initialMessage: ChatMessage = {
   role: 'model',
-  text: "Hello! I'm the AI assistant for AI AwareX. Ask me about AI awareness, digital safety, online privacy, or responsible technology use. How can I help you today?"
+  text: "Hello! I'm AI Shield, your cybersecurity and AI awareness assistant. Ask me about AI awareness, digital safety, online privacy, scam prevention, or responsible technology use. How can I help you today?"
 };
 
 // Markdown component styling
@@ -36,6 +40,7 @@ const AskAI: React.FC = () => {
   const [prompt, setPrompt] = useState('');
   const [history, setHistory] = useState<ChatMessage[]>([initialMessage]);
   const [isLoading, setIsLoading] = useState(false);
+  const { token, isAuthenticated } = useAuth();
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -61,42 +66,58 @@ const AskAI: React.FC = () => {
     const userMessage: ChatMessage = { role: 'user', text: prompt };
     setHistory(prev => [...prev, userMessage]);
     setPrompt('');
+
+    if (!isAuthenticated) {
+      const guestMessage: ChatMessage = {
+        role: 'model',
+        text: "You must be signed in to chat with AI Shield. Please [Log In](#/login) or [Sign Up](#/signup) to start chatting."
+      };
+      setHistory(prev => [...prev, guestMessage]);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout
 
-      const response = await fetch('/api/ask-ai/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message: userMessage.text }),
-        signal: controller.signal,
-      });
+      const authToken = token || localStorage.getItem('auth_token');
+      const response = await axios.post(
+        `${API_BASE_URL}/api/ask-ai/`,
+        { message: userMessage.text },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(authToken ? { Authorization: `Bearer ${authToken}` } : {})
+          },
+          signal: controller.signal,
+        }
+      );
 
       clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.reply || 'Failed to get response from AI');
-      }
-
-      const data = await response.json();
       const modelMessage: ChatMessage = {
         role: 'model',
-        text: data.reply || 'Sorry, I could not process your message.'
+        text: response.data?.reply || 'Sorry, I could not process your message.'
       };
       setHistory(prev => [...prev, modelMessage]);
     } catch (error: any) {
-      console.error('Error:', error);
+      console.error('AskAI Error:', error);
       let errorText = 'Sorry, I encountered an error. ';
 
-      if (error.name === 'AbortError') {
-        errorText += 'The request timed out. LM Studio may be busy. Please try again.';
-      } else if (error instanceof TypeError && error.message.includes('fetch')) {
-        errorText += 'Cannot connect to the backend server. Make sure Django is running.';
+      if (axios.isCancel(error) || error.name === 'AbortError' || error.code === 'ECONNABORTED') {
+        errorText += 'The request timed out. The AI model may be busy. Please try again.';
+      } else if (error.response?.status === 401) {
+        errorText = 'Your session has expired or you are not logged in. Please log in again to continue.';
+      } else if (error.response?.status === 429) {
+        errorText = 'Rate limit reached (maximum 30 requests per hour). Please try again later.';
+      } else if (error.response?.data?.reply) {
+        errorText = error.response.data.reply;
+      } else if (error.response?.data?.detail) {
+        errorText = error.response.data.detail;
+      } else if (error.message && error.message.includes('Network Error')) {
+        errorText += 'Cannot connect to the backend server. Make sure the backend is running.';
       } else {
         errorText += error.message || 'Please try again or check if the backend is running.';
       }
@@ -115,10 +136,10 @@ const AskAI: React.FC = () => {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 bg-primary text-white p-4 rounded-full shadow-lg hover:bg-primary-focus focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-transform transform hover:scale-110 duration-300 z-50"
+        className="fixed bottom-6 right-6 bg-primary text-white p-4 rounded-full shadow-lg hover:bg-primary-focus focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-transform transform hover:scale-110 duration-300 z-50 flex items-center justify-center"
         aria-label="Ask AI"
       >
-        <Bot className="h-16 w-16" />
+        <Bot className="h-8 w-8" />
       </button>
 
       {isOpen && (
@@ -128,13 +149,33 @@ const AskAI: React.FC = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <header className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-primary">Ask AI</h2>
+              <div className="flex items-center space-x-2">
+                <div className="p-1.5 bg-primary/10 rounded-lg text-primary">
+                  <Bot className="h-5 w-5" />
+                </div>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                  AI Shield Assistant
+                </h2>
+              </div>
               <button onClick={() => setIsOpen(false)} className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200" aria-label="Close chat">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </header>
+
+            {!isAuthenticated && (
+              <div className="mx-4 mt-3 bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs px-3 py-2 rounded-lg flex items-center justify-between">
+                <span>Sign in required to chat with AI Shield.</span>
+                <Link
+                  to="/login"
+                  onClick={() => setIsOpen(false)}
+                  className="font-semibold underline ml-2 hover:text-amber-800 dark:hover:text-amber-300"
+                >
+                  Log In →
+                </Link>
+              </div>
+            )}
 
             <div ref={chatContainerRef} className="flex-grow p-4 space-y-4 overflow-y-auto">
               {history.map((msg, index) => (
@@ -175,7 +216,7 @@ const AskAI: React.FC = () => {
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  placeholder="Ask about global issues..."
+                  placeholder={isAuthenticated ? "Ask about digital safety, AI awareness..." : "Please log in to ask a question..."}
                   className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white"
                   disabled={isLoading}
                 />
